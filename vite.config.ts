@@ -60,5 +60,7 @@ export default defineConfig({
   base: './',
   plugins: [react(), offlineWorker()],
   build: { chunkSizeWarningLimit: 1200 },
+  // Module workers can lazy-load chunks (the photo scanner loads its EXIF reader on demand).
+  worker: { format: 'es' },
   server: { port: 5174 },
 });
