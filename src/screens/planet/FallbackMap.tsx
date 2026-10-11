@@ -2,7 +2,7 @@ import { geoGraticule10, geoNaturalEarth1, geoOrthographic, geoPath, type GeoPro
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import type { PlaceStatus } from '../../domain/world';
 import { type CountryShapes, loadCountryShapes } from '../../geo/geometry';
-import type { MapApi, PlaceCollection } from './MapView';
+import type { MapApi, PlaceCollection, PoiCollection } from './MapView';
 
 /**
  * Light SVG map used when WebGL is unavailable or the user chose the light mode on a weak phone.
@@ -17,6 +17,8 @@ export const FallbackMap = forwardRef<
     selectedCountry: string | null;
     selectedCity: string | null;
     focusPoint: [number, number] | null;
+    pois?: PoiCollection;
+    onPoi?(id: string, kind: 'stay' | 'booking'): void;
     picking: boolean;
     onCity(id: string): void;
     onCountry(id: string): void;
@@ -95,6 +97,11 @@ export const FallbackMap = forwardRef<
       return;
     }
     const target = e.target as SVGElement;
+    const poi = target.closest('[data-poi]');
+    if (poi) {
+      props.onPoi?.(poi.getAttribute('data-poi') as string, poi.getAttribute('data-kind') as 'stay' | 'booking');
+      return;
+    }
     const city = target.closest('[data-city]')?.getAttribute('data-city');
     const country = target.closest('[data-country]')?.getAttribute('data-country');
     if (city) props.onCity(city);
@@ -131,6 +138,12 @@ export const FallbackMap = forwardRef<
             </g>
           );
         })}
+        {zoom >= 3 &&
+          props.pois?.features.map((p) => {
+            const xy = projection(p.geometry.coordinates as [number, number]);
+            if (!xy) return null;
+            return <circle key={p.properties.id} data-poi={p.properties.id} data-kind={p.properties.kind} cx={xy[0]} cy={xy[1]} r={6} fill="var(--graphite)" stroke="var(--lime)" strokeWidth={2} />;
+          })}
         {props.focusPoint &&
           (() => {
             const xy = projection(props.focusPoint);

@@ -121,24 +121,32 @@ img { display: block; max-width: 100%; }
 
 /* ============ soft bar */
 .softbar {
-  position: fixed; z-index: 40; left: 0; right: 0; margin: 0 auto; width: fit-content; bottom: calc(10px + var(--safe-b)); height: var(--bar-h);
-  display: grid; grid-template-columns: repeat(3, auto); align-items: center; gap: 4px; padding: 6px; border-radius: var(--r-pill);
-  background: rgba(255, 255, 255, 0.5); border: 1px solid rgba(255, 255, 255, 0.75);
-  -webkit-backdrop-filter: blur(30px) saturate(190%); backdrop-filter: blur(30px) saturate(190%);
-  box-shadow: 0 10px 34px rgba(27, 27, 31, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  max-width: calc(100% - 24px);
+  position: fixed; z-index: 40; left: 0; right: 0; margin: 0 auto; width: fit-content; max-width: calc(100% - 24px);
+  bottom: calc(10px + var(--safe-b)); height: var(--bar-h); display: flex; align-items: center; gap: 6px; padding: 6px;
+  border-radius: var(--r-pill); isolation: isolate;
+  /* Liquid glass: very light tint, strong blur, bright rim and an inner highlight */
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.18));
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  -webkit-backdrop-filter: blur(24px) saturate(200%) brightness(1.05); backdrop-filter: blur(24px) saturate(200%) brightness(1.05);
+  box-shadow: 0 12px 36px rgba(27, 27, 31, 0.16), 0 2px 6px rgba(27, 27, 31, 0.06), inset 0 1px 1px rgba(255, 255, 255, 0.95), inset 0 -1px 1px rgba(255, 255, 255, 0.35);
 }
-[data-theme='dark'] .softbar { background: rgba(38, 38, 43, 0.62); border-color: rgba(255, 255, 255, 0.1); box-shadow: 0 10px 34px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255,255,255,.08); }
+[data-theme='dark'] .softbar {
+  background: linear-gradient(180deg, rgba(70, 70, 78, 0.5), rgba(30, 30, 34, 0.42)); border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55), inset 0 1px 1px rgba(255, 255, 255, 0.16), inset 0 -1px 1px rgba(255, 255, 255, 0.05);
+}
 .softbar a {
-  height: 52px; min-width: 52px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px;
-  border-radius: var(--r-pill); text-decoration: none; font-size: 14px; font-weight: 620; color: var(--ink-2);
-  transition: background 0.3s var(--ease), color 0.2s, padding 0.3s var(--ease);
+  position: relative; height: 52px; min-width: 52px; display: inline-flex; align-items: center; justify-content: center; gap: 0; padding: 0 14px;
+  border-radius: var(--r-pill); text-decoration: none; font-size: 15px; font-weight: 650; color: var(--ink-2);
+  background: rgba(255, 255, 255, 0.22); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  transition: background 0.35s var(--ease), color 0.25s, box-shadow 0.35s var(--ease), padding 0.35s var(--ease), transform 0.15s var(--ease);
 }
-.softbar a .lbl { white-space: nowrap; }
-.softbar a[aria-current='page'] { background: var(--lime); color: var(--lime-ink); box-shadow: 0 4px 14px rgba(170, 200, 40, 0.4); }
-.softbar a:active { transform: scale(0.96); }
+[data-theme='dark'] .softbar a { background: rgba(255, 255, 255, 0.06); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08); }
 .softbar a svg { flex: none; }
-@media (max-width: 360px) { .softbar a { padding: 0 12px; font-size: 13px; gap: 6px; } }
+.softbar a .lbl { max-width: 0; overflow: hidden; white-space: nowrap; opacity: 0; transition: max-width 0.4s var(--ease), opacity 0.25s, margin 0.4s var(--ease); }
+.softbar a.on { padding: 0 20px 0 16px; background: var(--lime); color: var(--lime-ink); box-shadow: 0 6px 18px rgba(170, 200, 40, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.6); }
+.softbar a.on .lbl { max-width: 120px; opacity: 1; margin-left: 8px; }
+.softbar a:active { transform: scale(0.94); }
+@media (max-width: 350px) { .softbar a { min-width: 48px; padding: 0 12px; } .softbar a.on { padding: 0 14px 0 12px; } }
 
 /* ============ forms */
 .field { display: grid; gap: 6px; min-width: 0; }

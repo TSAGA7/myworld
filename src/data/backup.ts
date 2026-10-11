@@ -3,6 +3,9 @@ import {
   attachmentSchema,
   bookingSchema,
   citySchema,
+  diarySchema,
+  expenseSchema,
+  guideSchema,
   noteSchema,
   planSchema,
   staySchema,
@@ -32,6 +35,10 @@ const backupSchema = z.object({
     attachments: z.array(attachmentSchema),
     tasks: z.array(taskSchema),
     meta: z.array(z.object({ key: z.string(), value: z.unknown() })),
+    // Added in schema v2; older backups simply have none.
+    expenses: z.array(expenseSchema).default([]),
+    diary: z.array(diarySchema).default([]),
+    guides: z.array(guideSchema).default([]),
   }),
   files: z.array(z.object({ id: z.string(), mime: z.string(), base64: z.string() })).default([]),
 });
@@ -113,6 +120,9 @@ export async function restoreBackup(db: WorldDb, b: Backup): Promise<void> {
     await db.notes.bulkPut(b.tables.notes);
     await db.tasks.bulkPut(b.tables.tasks);
     await db.meta.bulkPut(b.tables.meta.map((m) => ({ key: m.key, value: m.value })));
+    await db.expenses.bulkPut(b.tables.expenses);
+    await db.diary.bulkPut(b.tables.diary);
+    await db.guides.bulkPut(b.tables.guides);
     await db.attachments.bulkPut(attachments);
     await db.blobs.bulkPut(b.files.map((f) => ({ id: f.id, blob: fromBase64(f.base64, f.mime) })));
   });

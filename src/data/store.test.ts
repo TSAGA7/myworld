@@ -26,7 +26,7 @@ async function world() {
 }
 
 async function makeTrip() {
-  const trip = await store.saveTrip({ title: 'Италия и Швейцария', startDate: '2026-09-10', endDate: '2026-09-20', countryIds: [], note: '', coverId: null });
+  const trip = await store.saveTrip({ title: 'Италия и Швейцария', startDate: '2026-09-10', endDate: '2026-09-20', countryIds: [], note: '', coverId: null, members: [], dailyBudget: null, dailyBudgetCurrency: '' });
   await store.saveRoute(trip.id, [
     { city: ROME, startDate: '2026-09-10', endDate: '2026-09-13', note: '' },
     { city: FLORENCE, startDate: '2026-09-13', endDate: '2026-09-16', note: '' },
@@ -112,5 +112,48 @@ describe('WorldStore', () => {
     expect(await other.plans.count()).toBe(3);
     expect((await other.visits.toArray())[0]?.key).toBe('country:JP');
     expect(() => parseBackup({ app: 'fitapp' })).toThrow(/резервную копию/);
+  });
+});
+
+import Dexie from 'dexie';
+import { decodeBundle, encodeBundle, importBundle, packTrip, previewMerge } from './shareTrip';
+
+describe('schema v2 and shared trips', () => {
+  it('upgrades a v1 database without losing data', async () => {
+    const name = `v1-${n}`;
+    const old = new Dexie(name);
+    old.version(1).stores({ trips: 'id, startDate', bookings: 'id, tripId', meta: 'key' });
+    await old.table('trips').add({ id: 't1', title: 'Старая', startDate: null, endDate: null, countryIds: [], note: '', coverId: null, createdAt: 'x', updatedAt: 'x' });
+    await old.table('bookings').add({ id: 'b1', tripId: 't1', kind: 'tour', title: 'Экскурсия' });
+    old.close();
+    const upgraded = new WorldDb(name);
+    const t = await upgraded.trips.get('t1');
+    expect(t?.title).toBe('Старая');
+    expect(t?.members).toEqual([]);
+    expect((await upgraded.bookings.get('b1'))?.lat).toBeNull();
+    expect(await upgraded.expenses.count()).toBe(0);
+  });
+
+  it('sends a trip by link and merges changes back', async () => {
+    const trip = await makeTrip();
+    await store.saveExpense({ tripId: trip.id, date: '2026-09-11', category: 'food', amount: 1200, currency: 'RUB', note: 'Ужин', paidBy: 'me', splitWith: [] });
+    const code = await encodeBundle(await packTrip(db, trip.id, 'Андрей'));
+    expect(code).toMatch(/^[A-Za-z0-9_-]+$/);
+
+    const friend = new WorldDb(`friend-${n}`);
+    const bundle = await decodeBundle(code);
+    expect(await previewMerge(friend, bundle)).toMatchObject({ isNew: true, added: 4 });
+    await importBundle(friend, bundle);
+    expect(await friend.stops.count()).toBe(3);
+    expect((await friend.cities.get('ne:2'))?.name).toBe('Флоренция');
+
+    // The friend edits an expense; the owner imports it back: newer record wins, nothing is duplicated.
+    const e = (await friend.expenses.toArray())[0]!;
+    await friend.expenses.put({ ...e, amount: 1500, updatedAt: '2026-10-12T00:00:00.000Z' });
+    await importBundle(db, await decodeBundle(await encodeBundle(await packTrip(friend, trip.id, 'Друг'))));
+    const mine = await db.expenses.toArray();
+    expect(mine).toHaveLength(1);
+    expect(mine[0]?.amount).toBe(1500);
+    await expect(decodeBundle('мусор')).rejects.toThrow();
   });
 });

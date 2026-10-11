@@ -85,6 +85,9 @@ export function TripEditor({ tripId }: { tripId: string | null }) {
         countryIds,
         note,
         coverId: existing?.coverId ?? null,
+        members: existing?.members ?? [],
+        dailyBudget: existing?.dailyBudget ?? null,
+        dailyBudgetCurrency: existing?.dailyBudgetCurrency ?? '',
       });
       await store.saveRoute(
         trip.id,

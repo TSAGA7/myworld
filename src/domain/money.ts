@@ -25,7 +25,7 @@ export interface Priced {
 }
 
 export interface CostLine {
-  key: 'transport' | 'stays' | 'bookings';
+  key: 'transport' | 'stays' | 'bookings' | 'expenses';
   label: string;
   /** Sum in the target currency. */
   total: number;
@@ -44,17 +44,18 @@ export interface TripCost {
 
 /** Sums tickets, stays and bookings of one trip in the target currency. */
 export function tripCost(
-  groups: { transport: readonly Priced[]; stays: readonly Priced[]; bookings: readonly Priced[] },
+  groups: { transport: readonly Priced[]; stays: readonly Priced[]; bookings: readonly Priced[]; expenses?: readonly Priced[] },
   to: Currency,
   rates: Rates,
 ): TripCost {
-  const labels = { transport: 'Билеты', stays: 'Жильё', bookings: 'Брони' } as const;
+  const labels: Partial<Record<CostLine['key'], string>> = { transport: 'Билеты', stays: 'Жильё', bookings: 'Брони' };
+  if (groups.expenses) labels.expenses = 'Расходы в поездке';
   const skipped: TripCost['skipped'] = [];
   let unpriced = 0;
-  const lines = (Object.keys(labels) as Array<keyof typeof labels>).map<CostLine>((key) => {
+  const lines = (Object.keys(labels) as Array<CostLine['key']>).map<CostLine>((key) => {
     let total = 0;
     let count = 0;
-    for (const r of groups[key]) {
+    for (const r of groups[key] ?? []) {
       if (r.price === null) {
         unpriced++;
         continue;
@@ -67,7 +68,7 @@ export function tripCost(
       total += convert(r.price, cur, to, rates);
       count++;
     }
-    return { key, label: labels[key], total, count };
+    return { key, label: labels[key] as string, total, count };
   });
   return { currency: to, total: lines.reduce((s, l) => s + l.total, 0), lines, skipped, unpriced };
 }

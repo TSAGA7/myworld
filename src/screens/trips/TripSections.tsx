@@ -18,6 +18,7 @@ import {
 } from '../../domain/model';
 import { countryName } from '../../geo/reference';
 import { Icon } from '../../ui/Icon';
+import { locateAddress } from '../../geo/locate';
 import { Check, Confirm, Empty, Field, Flag, Segmented, Sheet } from '../../ui/kit';
 import { CURRENCIES, CURRENCY_SIGN, type Currency, formatMoney, isCurrency } from '../../domain/money';
 import { AttachmentField, AttachmentRow, AttachmentTile, savePending } from './Attachments';
@@ -299,12 +300,12 @@ function TicketCard({ t, onEdit }: { t: TransportBooking; onEdit: () => void }) 
   );
 }
 
-function TransportForm({ value, onClose }: { value: Stamped<TransportBooking>; onClose: () => void }) {
+export function TransportForm({ value, onClose, initialFiles = [] }: { value: Stamped<TransportBooking>; onClose: () => void; initialFiles?: File[] }) {
   const { settings } = useWorld();
   const toast = useToastFn();
   const [v, setV] = useState(value);
   const [price, setPrice] = useState(value.price === null ? '' : String(value.price));
-  const [files, setFiles] = useState<File[]>([]);
+  const [files, setFiles] = useState<File[]>(initialFiles);
   const set = <K extends keyof TransportBooking>(k: K, x: TransportBooking[K]) => setV((s) => ({ ...s, [k]: x }));
   return (
     <FormSheet
@@ -452,7 +453,7 @@ export function StaysSection({ trip }: { trip: Trip }) {
   );
 }
 
-function StayForm({ value, onClose, trip }: { value: Stamped<AccommodationBooking>; onClose: () => void; trip: Trip }) {
+export function StayForm({ value, onClose, trip, initialFiles = [] }: { value: Stamped<AccommodationBooking>; onClose: () => void; trip: Trip; initialFiles?: File[] }) {
   const toast = useToastFn();
   const { stops, cities } = useWorld();
   const routeCities = stops
@@ -462,7 +463,7 @@ function StayForm({ value, onClose, trip }: { value: Stamped<AccommodationBookin
     .filter((c, i, arr): c is NonNullable<typeof c> => !!c && arr.findIndex((x) => x?.id === c.id) === i);
   const [v, setV] = useState(value);
   const [price, setPrice] = useState(value.price === null ? '' : String(value.price));
-  const [files, setFiles] = useState<File[]>([]);
+  const [files, setFiles] = useState<File[]>(initialFiles);
   const set = <K extends keyof AccommodationBooking>(k: K, x: AccommodationBooking[K]) => setV((s) => ({ ...s, [k]: x }));
   return (
     <FormSheet
@@ -471,8 +472,16 @@ function StayForm({ value, onClose, trip }: { value: Stamped<AccommodationBookin
       canSave={v.name.trim().length > 0}
       onSave={async () => {
         const city = v.cityId ? cities.get(v.cityId) : undefined;
-        const saved = await store.saveStay({ ...v, name: v.name.trim(), price: parsePrice(price), lat: city?.lat ?? null, lon: city?.lon ?? null });
+        const addressChanged = v.address.trim() !== value.address.trim();
+        // Coordinates: the address once found on the map; until then nothing (the city pin already marks the city).
+        const keep = !addressChanged && value.lat !== null ? { lat: value.lat, lon: value.lon } : { lat: null, lon: null };
+        const saved = await store.saveStay({ ...v, name: v.name.trim(), price: parsePrice(price), ...keep });
         await savePending(saved.tripId, 'stay', saved.id, files, toast);
+        if (saved.address && (addressChanged || saved.lat === null)) {
+          void locateAddress('stays', saved.id, saved.address, city?.name ?? '').then((r) =>
+            toast(r === 'found' ? `${saved.name}: адрес найден, флажок на карте` : r === 'offline' ? 'Адрес найдём на карте, когда появится интернет' : `${saved.name}: адрес не найден — проверьте написание`),
+          );
+        }
       }}
       onDelete={value.id ? () => store.deleteRecord('stays', value.id as string) : undefined}
     >
@@ -498,7 +507,7 @@ function StayForm({ value, onClose, trip }: { value: Stamped<AccommodationBookin
           </select>
         </Field>
       )}
-      <Field label="Адрес">
+      <Field label="Адрес" hint={value.lat !== null && v.address === value.address ? 'Отмечено на карте флажком' : 'После сохранения адрес сам найдётся на карте'}>
         <input className="input" value={v.address} onChange={(e) => set('address', e.target.value)} />
       </Field>
       <div className="grid-2">
@@ -530,7 +539,7 @@ function StayForm({ value, onClose, trip }: { value: Stamped<AccommodationBookin
 // ====================================================================== Other bookings
 
 const emptyBooking = (tripId: string, currency: Currency): Stamped<GeneralBooking> => ({
-  tripId, kind: 'tour', title: '', date: null, time: null, place: '', confirmation: '', price: null, currency, url: '', note: '',
+  tripId, kind: 'tour', title: '', date: null, time: null, place: '', lat: null, lon: null, confirmation: '', price: null, currency, url: '', note: '',
 });
 
 export function BookingsSection({ trip }: { trip: Trip }) {
@@ -585,16 +594,17 @@ export function BookingsSection({ trip }: { trip: Trip }) {
           );
         })
       )}
-      {edit && <BookingForm value={edit} onClose={() => setEdit(null)} />}
+      {edit && <BookingForm value={edit} onClose={() => setEdit(null)} trip={trip} />}
     </section>
   );
 }
 
-function BookingForm({ value, onClose }: { value: Stamped<GeneralBooking>; onClose: () => void }) {
+export function BookingForm({ value, onClose, trip, initialFiles = [] }: { value: Stamped<GeneralBooking>; onClose: () => void; trip: Trip; initialFiles?: File[] }) {
   const toast = useToastFn();
+  const { stops, cities } = useWorld();
   const [v, setV] = useState(value);
   const [price, setPrice] = useState(value.price === null ? '' : String(value.price));
-  const [files, setFiles] = useState<File[]>([]);
+  const [files, setFiles] = useState<File[]>(initialFiles);
   const set = <K extends keyof GeneralBooking>(k: K, x: GeneralBooking[K]) => setV((s) => ({ ...s, [k]: x }));
   return (
     <FormSheet
@@ -602,8 +612,18 @@ function BookingForm({ value, onClose }: { value: Stamped<GeneralBooking>; onClo
       onClose={onClose}
       canSave={v.title.trim().length > 0}
       onSave={async () => {
-        const saved = await store.saveBooking({ ...v, title: v.title.trim(), price: parsePrice(price) });
+        const placeChanged = v.place.trim() !== value.place.trim();
+        const keep = !placeChanged && value.lat !== null ? { lat: value.lat, lon: value.lon } : { lat: null, lon: null };
+        const saved = await store.saveBooking({ ...v, title: v.title.trim(), price: parsePrice(price), ...keep });
         await savePending(saved.tripId, 'booking', saved.id, files, toast);
+        if (saved.place && (placeChanged || saved.lat === null)) {
+          const tripStops = stops.filter((s) => s.tripId === trip.id).sort((a, b) => a.order - b.order);
+          const stop = tripStops.find((s) => saved.date && s.startDate && s.startDate <= saved.date && (s.endDate ?? s.startDate) >= saved.date) ?? tripStops[0];
+          const cityName = stop ? (cities.get(stop.cityId)?.name ?? '') : '';
+          void locateAddress('bookings', saved.id, saved.place, cityName).then((r) =>
+            toast(r === 'found' ? `${saved.title}: место найдено, флажок на карте` : r === 'offline' ? 'Место найдём на карте, когда появится интернет' : `${saved.title}: адрес не найден — уточните его`),
+          );
+        }
       }}
       onDelete={value.id ? () => store.deleteRecord('bookings', value.id as string) : undefined}
     >
@@ -625,7 +645,7 @@ function BookingForm({ value, onClose }: { value: Stamped<GeneralBooking>; onClo
           <input className="input" type="time" value={v.time ?? ''} onChange={(e) => set('time', e.target.value || null)} />
         </Field>
       </div>
-      <Field label="Место, адрес">
+      <Field label="Место, адрес" hint={value.lat !== null && v.place === value.place ? 'Отмечено на карте флажком' : 'Укажите адрес — после сохранения он сам найдётся на карте'}>
         <input className="input" value={v.place} onChange={(e) => set('place', e.target.value)} />
       </Field>
       <Field label="Номер бронирования">

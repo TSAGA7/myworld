@@ -12,9 +12,14 @@ import { TripStatusPill, useRoute } from './common';
 import { AddToMapSheet, MarkVisitedSheet } from './MapSync';
 import { BudgetCard } from './Budget';
 import { RouteMap } from './RouteMap';
+import { DiarySection } from './Diary';
+import { ExpensesSection } from './Expenses';
+import { GuideSection } from './Guide';
+import { HintsSection } from './Hints';
+import { TripActions } from './TripActions';
 import { BookingsSection, DocsSection, RouteSection, StaysSection, TasksSection, TransportSection } from './TripSections';
 
-type Section = 'route' | 'tickets' | 'stays' | 'bookings' | 'docs' | 'tasks';
+type Section = 'route' | 'tickets' | 'stays' | 'bookings' | 'expenses' | 'diary' | 'guide' | 'hints' | 'docs' | 'tasks';
 
 export function TripPage({ trip }: { trip: Trip }) {
   const today = useToday();
@@ -26,22 +31,32 @@ export function TripPage({ trip }: { trip: Trip }) {
   const [sync, setSync] = useState<'add' | 'visited' | null>(null);
   const counts = useLiveQuery(
     async () => {
-      const [t, s, b, n, f, k] = await Promise.all([
+      const [t, s, b, n, f, k, e, d] = await Promise.all([
         db.transport.where('tripId').equals(trip.id).count(),
         db.stays.where('tripId').equals(trip.id).count(),
         db.bookings.where('tripId').equals(trip.id).count(),
         db.notes.where('tripId').equals(trip.id).count(),
         db.attachments.where('tripId').equals(trip.id).filter((a) => a.ownerType === 'trip').count(),
         db.tasks.where('tripId').equals(trip.id).toArray(),
+        db.expenses.where('tripId').equals(trip.id).count(),
+        db.diary.where('tripId').equals(trip.id).count(),
       ]);
-      return { tickets: t, stays: s, bookings: b, docs: n + f, tasks: k.length, tasksDone: k.filter((x) => x.done).length };
+      return { tickets: t, stays: s, bookings: b, docs: n + f, tasks: k.length, tasksDone: k.filter((x) => x.done).length, expenses: e, diary: d };
     },
     [trip.id],
-    { tickets: 0, stays: 0, bookings: 0, docs: 0, tasks: 0, tasksDone: 0 },
+    { tickets: 0, stays: 0, bookings: 0, docs: 0, tasks: 0, tasksDone: 0, expenses: 0, diary: 0 },
   );
   const points = route
     .filter((r) => r.city && r.city.lat !== null && r.city.lon !== null)
     .map((r) => ({ id: r.stop.cityId, lon: r.city?.lon as number, lat: r.city?.lat as number, visited: world.visitedCityIds.has(r.stop.cityId) }));
+  const pois = useLiveQuery(
+    async () =>
+      [...(await db.stays.where('tripId').equals(trip.id).toArray()), ...(await db.bookings.where('tripId').equals(trip.id).toArray())]
+        .filter((x) => x.lat !== null && x.lon !== null)
+        .map((x) => ({ lat: x.lat as number, lon: x.lon as number })),
+    [trip.id],
+    [],
+  );
   const n = nights(trip.startDate, trip.endDate);
   const canVisit = status !== 'upcoming';
   const places = route.length + trip.countryIds.filter((c) => !route.some((r) => r.stop.countryId === c)).length;
@@ -51,6 +66,10 @@ export function TripPage({ trip }: { trip: Trip }) {
     ['tickets', 'Билеты', counts.tickets ? String(counts.tickets) : null],
     ['stays', 'Жильё', counts.stays ? String(counts.stays) : null],
     ['bookings', 'Брони', counts.bookings ? String(counts.bookings) : null],
+    ['expenses', 'Расходы', counts.expenses ? String(counts.expenses) : null],
+    ['diary', 'Дневник', counts.diary ? String(counts.diary) : null],
+    ['guide', 'Гид', null],
+    ['hints', 'Подсказки', null],
     ['docs', 'Документы', counts.docs ? String(counts.docs) : null],
     ['tasks', 'Чек-лист', counts.tasks ? `${counts.tasksDone}/${counts.tasks}` : null],
   ];
@@ -69,7 +88,7 @@ export function TripPage({ trip }: { trip: Trip }) {
         </header>
 
         <div className="trip-hero">
-          {cover ? <img className="cover" src={cover} alt="" /> : <RouteMap points={points} width={680} height={300} />}
+          {cover ? <img className="cover" src={cover} alt="" /> : <RouteMap points={points} width={680} height={300} pois={pois} />}
           <div className="trip-visual-top">
             <TripStatusPill status={status} />
             {points.length > 0 && (
@@ -115,7 +134,9 @@ export function TripPage({ trip }: { trip: Trip }) {
           </p>
         </section>
 
-        <BudgetCard tripId={trip.id} onAdd={() => setSection('tickets')} />
+        <TripActions trip={trip} route={route} />
+
+        <BudgetCard tripId={trip.id} onAdd={() => setSection('expenses')} />
 
         <div className="chips section-tabs" role="tablist" aria-label="Разделы поездки">
           {tabs.map(([id, label, badge]) => (
@@ -130,6 +151,10 @@ export function TripPage({ trip }: { trip: Trip }) {
         {section === 'tickets' && <TransportSection trip={trip} />}
         {section === 'stays' && <StaysSection trip={trip} />}
         {section === 'bookings' && <BookingsSection trip={trip} />}
+        {section === 'expenses' && <ExpensesSection trip={trip} />}
+        {section === 'diary' && <DiarySection trip={trip} route={route} />}
+        {section === 'guide' && <GuideSection trip={trip} route={route} />}
+        {section === 'hints' && <HintsSection trip={trip} route={route} />}
         {section === 'docs' && <DocsSection trip={trip} />}
         {section === 'tasks' && <TasksSection trip={trip} />}
       </div>

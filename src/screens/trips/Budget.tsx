@@ -6,23 +6,24 @@ import { CURRENCIES, CURRENCY_SIGN, type Currency, formatMoney, type Priced, tri
 import { Icon } from '../../ui/Icon';
 import { Segmented } from '../../ui/kit';
 
-type Groups = { transport: Priced[]; stays: Priced[]; bookings: Priced[] };
-const EMPTY: Groups = { transport: [], stays: [], bookings: [] };
+type Groups = { transport: Priced[]; stays: Priced[]; bookings: Priced[]; expenses: Priced[] };
+const EMPTY: Groups = { transport: [], stays: [], bookings: [], expenses: [] };
 
 /** Priced records of every trip, grouped by trip. */
 export function useAllTripPrices(): Map<string, Groups> {
   return (
     useLiveQuery(async () => {
-      const [t, s, b] = await Promise.all([db.transport.toArray(), db.stays.toArray(), db.bookings.toArray()]);
+      const [t, s, b, e] = await Promise.all([db.transport.toArray(), db.stays.toArray(), db.bookings.toArray(), db.expenses.toArray()]);
       const map = new Map<string, Groups>();
       const get = (id: string) => {
         let g = map.get(id);
-        if (!g) map.set(id, (g = { transport: [], stays: [], bookings: [] }));
+        if (!g) map.set(id, (g = { transport: [], stays: [], bookings: [], expenses: [] }));
         return g;
       };
       for (const r of t) get(r.tripId).transport.push(r);
       for (const r of s) get(r.tripId).stays.push(r);
       for (const r of b) get(r.tripId).bookings.push(r);
+      for (const r of e) get(r.tripId).expenses.push({ price: r.amount, currency: r.currency });
       return map;
     }, []) ?? new Map()
   );
@@ -33,7 +34,7 @@ export function useTripTotal(groups: Groups | undefined) {
   return tripCost(groups ?? EMPTY, settings.currency, settings.rates);
 }
 
-const COLORS: Record<string, string> = { transport: 'var(--graphite)', stays: 'var(--lime-deep)', bookings: 'var(--ink-3)' };
+const COLORS: Record<string, string> = { transport: 'var(--graphite)', stays: 'var(--lime-deep)', bookings: 'var(--ink-3)', expenses: '#e0a43a' };
 
 /** Trip budget: total of tickets, stays and bookings in the chosen currency, with a split by category. */
 export function BudgetCard({ tripId, onAdd }: { tripId: string; onAdd: () => void }) {
@@ -58,7 +59,7 @@ export function BudgetCard({ tripId, onAdd }: { tripId: string; onAdd: () => voi
       {priced === 0 ? (
         <button type="button" className="budget-empty" onClick={onAdd}>
           <Icon name="ticket" size={20} />
-          <span>Укажите цену у билетов, жилья или броней — здесь появится сумма поездки</span>
+          <span>Укажите цену у билетов, жилья или броней или добавьте расходы — здесь появится сумма поездки</span>
         </button>
       ) : (
         <>

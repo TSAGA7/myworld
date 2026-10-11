@@ -23,6 +23,7 @@ export interface PlaceFeatureProps {
   trips: number;
 }
 export type PlaceCollection = GeoJSON.FeatureCollection<GeoJSON.Point, PlaceFeatureProps>;
+export type PoiCollection = GeoJSON.FeatureCollection<GeoJSON.Point, { id: string; kind: 'stay' | 'booking' }>;
 
 export interface MapApi {
   flyTo(lon: number, lat: number, zoom?: number): void;
@@ -39,6 +40,8 @@ interface Props {
   active: boolean;
   countryStatus: ReadonlyMap<string, PlaceStatus>;
   places: PlaceCollection;
+  pois: PoiCollection;
+  onPoi(id: string, kind: 'stay' | 'booking'): void;
   selectedCity: string | null;
   selectedCountry: string | null;
   /** Ring for a selected city that has no pin. */
@@ -137,6 +140,7 @@ export const MapView = forwardRef<MapApi, Props>(function MapView(props, ref) {
       loaded.current = true;
       (map.getSource('small') as GeoJSONSource).setData(SMALL);
       (map.getSource('places') as GeoJSONSource).setData(latest.current.places);
+      (map.getSource('pois') as GeoJSONSource).setData(latest.current.pois);
       syncStates();
       syncSelection();
       syncFocus();
@@ -158,10 +162,11 @@ export const MapView = forwardRef<MapApi, Props>(function MapView(props, ref) {
         cur.onPick(e.lngLat.wrap().lng, e.lngLat.lat);
         return;
       }
-      const hits = map.queryRenderedFeatures(e.point, { layers: ['place-pins', 'place-clusters', 'small-countries', 'country-fill'] });
+      const hits = map.queryRenderedFeatures(e.point, { layers: ['poi-pins', 'place-pins', 'place-clusters', 'small-countries', 'country-fill'] });
       const top = pickTop(map, e.point, hits);
       if (!top) return cur.onBackground();
       const layer = top.layer.id;
+      if (layer === 'poi-pins') return cur.onPoi(String(top.properties.id), top.properties.kind as 'stay' | 'booking');
       if (layer === 'place-pins') return cur.onCity(String(top.properties.id));
       if (layer === 'place-clusters') {
         const src = map.getSource('places') as GeoJSONSource;
@@ -242,6 +247,10 @@ export const MapView = forwardRef<MapApi, Props>(function MapView(props, ref) {
     const map = mapRef.current;
     if (map && loaded.current) (map.getSource('places') as GeoJSONSource).setData(props.places);
   }, [props.places]);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (map && loaded.current) (map.getSource('pois') as GeoJSONSource).setData(props.pois);
+  }, [props.pois]);
 
   // ---- projection switch
   useEffect(() => {
@@ -338,14 +347,14 @@ function initialZoom(el: HTMLElement, globe: boolean): number {
 
 /** On a tap, prefer pins over clusters over countries; on touch screens look a few pixels around the finger. */
 function pickTop(map: MlMap, point: maplibregl.Point, hits: MapGeoJSONFeature[]): MapGeoJSONFeature | undefined {
-  const order = ['place-pins', 'place-clusters', 'small-countries', 'country-fill'];
+  const order = ['poi-pins', 'place-pins', 'place-clusters', 'small-countries', 'country-fill'];
   const best = (list: MapGeoJSONFeature[]) => [...list].sort((a, b) => order.indexOf(a.layer.id) - order.indexOf(b.layer.id))[0];
   const near = map.queryRenderedFeatures(
     [
       [point.x - 14, point.y - 14],
       [point.x + 14, point.y + 6],
     ],
-    { layers: ['place-pins', 'place-clusters', 'small-countries'] },
+    { layers: ['poi-pins', 'place-pins', 'place-clusters', 'small-countries'] },
   );
   return best(near) ?? best(hits);
 }

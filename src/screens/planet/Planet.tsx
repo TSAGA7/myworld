@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { type MapFocus, onFocusRequest, takeFocus } from '../../app/router';
 import { useToast } from '../../app/toast';
-import { store, useToday, useWorld } from '../../app/world';
+import { db, store, useToday, useWorld } from '../../app/world';
 import type { CityInput } from '../../data/store';
 import { countLabel, formatDate, plural } from '../../domain/dates';
 import { lastJourney, worldProgress } from '../../domain/world';
@@ -12,13 +12,15 @@ import { Icon } from '../../ui/Icon';
 import { Field, Segmented, Sheet } from '../../ui/kit';
 import { PlaceSearch } from '../../ui/PlaceSearch';
 import { FallbackMap } from './FallbackMap';
-import type { MapApi, PlaceCollection } from './MapView';
+import type { MapApi, PlaceCollection, PoiCollection } from './MapView';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { PoiCard } from './PoiCard';
 import { CityCard, CountryCard } from './PlaceCard';
 
 const MapView = lazy(() => import('./MapView').then((m) => ({ default: m.MapView })));
 
 type View = 'map' | 'globe';
-type Selection = { kind: 'city'; city: CityInput } | { kind: 'country'; id: string } | null;
+type Selection = { kind: 'city'; city: CityInput } | { kind: 'country'; id: string } | { kind: 'poi'; id: string; poiKind: 'stay' | 'booking' } | null;
 type Picking = { name: string; relocateId: string | null } | null;
 
 const hasWebGL = (() => {
@@ -87,6 +89,21 @@ export function Planet({ active, onSettings }: { active: boolean; onSettings: ()
     }
     return { type: 'FeatureCollection', features };
   }, [world, cities]);
+
+  const poiRows = useLiveQuery(
+    async () => ({ stays: await db.stays.filter((s) => s.lat !== null).toArray(), bookings: await db.bookings.filter((b) => b.lat !== null).toArray() }),
+    [],
+  );
+  const pois: PoiCollection = useMemo(
+    () => ({
+      type: 'FeatureCollection',
+      features: [
+        ...(poiRows?.stays ?? []).map((s) => ({ type: 'Feature' as const, properties: { id: s.id, kind: 'stay' as const }, geometry: { type: 'Point' as const, coordinates: [s.lon as number, s.lat as number] } })),
+        ...(poiRows?.bookings ?? []).map((b) => ({ type: 'Feature' as const, properties: { id: b.id, kind: 'booking' as const }, geometry: { type: 'Point' as const, coordinates: [b.lon as number, b.lat as number] } })),
+      ],
+    }),
+    [poiRows],
+  );
 
   const progress = worldProgress(COUNTRIES, world.visitedCountryIds, settings.methodology);
   const last = lastJourney(data.trips, data.visits, cities, today, countryName);
@@ -192,6 +209,8 @@ export function Planet({ active, onSettings }: { active: boolean; onSettings: ()
     onCountry: (id: string) => setSelection({ kind: 'country', id }),
     onPick: (lon: number, lat: number) => void onPick(lon, lat),
     onBackground: () => setSelection(null),
+    pois,
+    onPoi: (id: string, kind: 'stay' | 'booking') => setSelection({ kind: 'poi', id, poiKind: kind }),
   };
 
   return (
@@ -303,6 +322,8 @@ export function Planet({ active, onSettings }: { active: boolean; onSettings: ()
         <div className="card-dock">
           {selection.kind === 'city' ? (
             <CityCard key={selection.city.id} city={selection.city} onClose={() => setSelection(null)} />
+          ) : selection.kind === 'poi' ? (
+            <PoiCard key={selection.id} id={selection.id} kind={selection.poiKind} onClose={() => setSelection(null)} />
           ) : (
             <CountryCard key={selection.id} countryId={selection.id} onClose={() => setSelection(null)} />
           )}

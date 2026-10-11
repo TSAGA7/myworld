@@ -6,6 +6,8 @@ import { Settings } from './screens/Settings';
 import { SoftBar, type Tab } from './ui/SoftBar';
 
 const Countries = lazy(() => import('./screens/countries/Countries').then((m) => ({ default: m.Countries })));
+const Profile = lazy(() => import('./screens/profile/Profile').then((m) => ({ default: m.Profile })));
+const JoinTrip = lazy(() => import('./screens/trips/JoinTrip').then((m) => ({ default: m.JoinTrip })));
 const Trips = lazy(() => import('./screens/trips/Trips').then((m) => ({ default: m.Trips })));
 
 const Loading = () => (
@@ -20,7 +22,7 @@ export function App() {
   const route = useRoute();
   const { error, ready } = useWorld();
   const [settings, setSettings] = useState(false);
-  const tab: Tab = route[0] === 'countries' || route[0] === 'trips' ? route[0] : 'planet';
+  const tab: Tab = route[0] === 'countries' || route[0] === 'trips' || route[0] === 'me' ? route[0] : route[0] === 'join' ? 'trips' : 'planet';
 
   if (error) {
     return (
@@ -50,7 +52,17 @@ export function App() {
       {tab !== 'planet' && (
         <div className="tab-layer">
           <Suspense fallback={<Loading />}>
-            {!ready ? <Loading /> : tab === 'countries' ? <Countries route={route} onSettings={() => setSettings(true)} /> : <Trips route={route} />}
+            {!ready ? (
+              <Loading />
+            ) : tab === 'countries' ? (
+              <Countries route={route} onSettings={() => setSettings(true)} />
+            ) : tab === 'me' ? (
+              <Profile onSettings={() => setSettings(true)} />
+            ) : route[0] === 'join' ? (
+              <JoinTrip code={route.slice(1).join('/')} />
+            ) : (
+              <Trips route={route} />
+            )}
           </Suspense>
         </div>
       )}

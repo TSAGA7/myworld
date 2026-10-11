@@ -91,6 +91,14 @@ export function countryLayers(p: MapPalette): LayerSpecification[] {
 
 export const placeLayers = (): LayerSpecification[] => [
   {
+    // Hotels and bookings found by address: small flags, visible when zoomed into a city.
+    id: 'poi-pins',
+    type: 'symbol',
+    source: 'pois',
+    minzoom: 6,
+    layout: { 'icon-image': ['concat', 'poi-', ['get', 'kind']], 'icon-anchor': 'bottom', 'icon-allow-overlap': true, 'icon-size': ['interpolate', ['linear'], ['zoom'], 6, 0.7, 11, 1] },
+  },
+  {
     // A searched city that is not on the map yet: a ring shows where it is.
     id: 'focus-ring',
     type: 'circle',
@@ -144,6 +152,7 @@ export function baseStyle(p: MapPalette, globe: boolean, lite: boolean, countrie
       countries: { type: 'geojson', data: countriesUrl, promoteId: 'id', attribution: 'Natural Earth' },
       small: { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, promoteId: 'id' },
       focus: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
+      pois: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
       places: {
         type: 'geojson',
         data: { type: 'FeatureCollection', features: [] },

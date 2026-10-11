@@ -73,9 +73,16 @@ export const tripSchema = z.object({
   countryIds: z.array(z.string()).default([]),
   note: text,
   coverId: z.string().nullable().default(null),
+  /** People travelling together. Used to split expenses; "me" is always the owner of the device. */
+  members: z.array(z.object({ id: z.string(), name: z.string() })).default([]),
+  /** Optional daily spending limit. */
+  dailyBudget: z.number().nonnegative().nullable().default(null),
+  dailyBudgetCurrency: text,
   ...stamps,
 });
 export type Trip = z.infer<typeof tripSchema>;
+export type Member = Trip['members'][number];
+export const ME = 'me';
 
 /** TripDestination: one stop of the route. */
 export const stopSchema = z.object({
@@ -144,6 +151,8 @@ export const bookingSchema = z.object({
   date: optDate,
   time: optTime,
   place: text,
+  lat: z.number().nullable().default(null),
+  lon: z.number().nullable().default(null),
   confirmation: text,
   price: money,
   currency: text,
@@ -165,7 +174,7 @@ export const noteSchema = z.object({
 });
 export type TripNote = z.infer<typeof noteSchema>;
 
-export const OWNER_TYPES = ['trip', 'cover', 'transport', 'stay', 'booking', 'stop', 'note'] as const;
+export const OWNER_TYPES = ['trip', 'cover', 'transport', 'stay', 'booking', 'stop', 'note', 'diary', 'expense', 'avatar'] as const;
 export type OwnerType = (typeof OWNER_TYPES)[number];
 /** File metadata; the bytes live in a separate table so lists never load them. */
 export const attachmentSchema = z.object({
@@ -189,6 +198,51 @@ export const taskSchema = z.object({
   ...stamps,
 });
 export type TripTask = z.infer<typeof taskSchema>;
+
+export const EXPENSE_CATEGORIES = ['food', 'transport', 'stay', 'fun', 'shopping', 'connection', 'other'] as const;
+export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number];
+/** Money spent during the trip (bookings are counted separately, from their own records). */
+export const expenseSchema = z.object({
+  id: z.string(),
+  tripId: z.string(),
+  date: optDate,
+  category: z.enum(EXPENSE_CATEGORIES),
+  amount: z.number().finite().nonnegative(),
+  currency: z.string(),
+  note: text,
+  /** Member id who paid; "me" when travelling alone. */
+  paidBy: z.string().default('me'),
+  /** Members who share the cost; empty = everyone in the trip. */
+  splitWith: z.array(z.string()).default([]),
+  ...stamps,
+});
+export type Expense = z.infer<typeof expenseSchema>;
+
+export const diarySchema = z.object({
+  id: z.string(),
+  tripId: z.string(),
+  date: optDate,
+  cityId: z.string().nullable().default(null),
+  title: text,
+  text: text,
+  ...stamps,
+});
+export type DiaryEntry = z.infer<typeof diarySchema>;
+
+/** A city guide assembled from Wikivoyage and kept for offline reading. id = `${tripId}:${cityId}`. */
+export const guideSchema = z.object({
+  id: z.string(),
+  tripId: z.string(),
+  cityId: z.string(),
+  lang: z.string(),
+  title: z.string(),
+  url: z.string(),
+  sections: z.array(z.object({ key: z.string(), title: z.string(), html: z.string() })),
+  places: z.array(z.object({ name: z.string(), kind: z.string(), lat: z.number().nullable(), lon: z.number().nullable() })).default([]),
+  fetchedAt: z.string(),
+  ...stamps,
+});
+export type Guide = z.infer<typeof guideSchema>;
 
 export const METHODOLOGIES = ['m195', 'un193', 'all'] as const;
 export type Methodology = (typeof METHODOLOGIES)[number];

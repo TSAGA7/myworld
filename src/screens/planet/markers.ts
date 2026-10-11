@@ -111,6 +111,58 @@ function cluster(kind: 'v' | 'p' | 'mix', count: string, dark: boolean) {
   return ctx.getImageData(0, 0, S * PR, S * PR);
 }
 
+/** Small round flag for a hotel (bed) or a booking (ticket). */
+function poiPin(kind: 'stay' | 'booking', dark: boolean) {
+  const W = 30;
+  const H = 36;
+  const { ctx } = canvas(W, H);
+  ctx.shadowColor = 'rgba(0,0,0,0.3)';
+  ctx.shadowBlur = 5;
+  ctx.shadowOffsetY = 2;
+  ctx.beginPath();
+  ctx.arc(15, 14, 12, 0, Math.PI * 2);
+  ctx.moveTo(10, 23);
+  ctx.lineTo(15, 33);
+  ctx.lineTo(20, 23);
+  ctx.fillStyle = dark ? '#f0f0f2' : DARK;
+  ctx.fill();
+  ctx.shadowColor = 'transparent';
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = LIME;
+  ctx.beginPath();
+  ctx.arc(15, 14, 12, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.strokeStyle = LIME;
+  ctx.fillStyle = LIME;
+  ctx.lineWidth = 1.8;
+  ctx.lineCap = 'round';
+  if (kind === 'stay') {
+    ctx.beginPath();
+    ctx.moveTo(8.5, 19);
+    ctx.lineTo(8.5, 9.5);
+    ctx.moveTo(8.5, 16);
+    ctx.lineTo(21.5, 16);
+    ctx.lineTo(21.5, 19);
+    ctx.moveTo(13, 16);
+    ctx.lineTo(13, 12.5);
+    ctx.lineTo(19.5, 12.5);
+    ctx.quadraticCurveTo(21.5, 12.5, 21.5, 15);
+    ctx.stroke();
+  } else {
+    ctx.beginPath();
+    ctx.moveTo(10, 8);
+    ctx.lineTo(10, 20);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(10, 8);
+    ctx.lineTo(20, 11);
+    ctx.lineTo(10, 14);
+    ctx.closePath();
+    ctx.fill();
+  }
+  return ctx.getImageData(0, 0, W * PR, H * PR);
+}
+
 /** Generates any pin or cluster image the style asks for. */
 export function installMarkerImages(map: MlMap, isDark: () => boolean): void {
   map.on('styleimagemissing', (e) => {
@@ -122,6 +174,11 @@ export function installMarkerImages(map: MlMap, isDark: () => boolean): void {
       map.addImage(id, pin(m[1] as 'visited' | 'planned', !!m[2], dark), { pixelRatio: PR });
       return;
     }
+    const poi = /^poi-(stay|booking)$/.exec(id);
+    if (poi) {
+      map.addImage(id, poiPin(poi[1] as 'stay' | 'booking', dark), { pixelRatio: PR });
+      return;
+    }
     m = /^cluster-(v|p|mix)-(\d+)$/.exec(id);
     if (m) map.addImage(id, cluster(m[1] as 'v' | 'p' | 'mix', m[2] as string, dark), { pixelRatio: PR });
   });
@@ -129,5 +186,5 @@ export function installMarkerImages(map: MlMap, isDark: () => boolean): void {
 
 /** Drops generated images so they are redrawn in the new theme colors. */
 export function resetMarkerImages(map: MlMap): void {
-  for (const id of map.listImages()) if (id.startsWith('pin-') || id.startsWith('cluster-')) map.removeImage(id);
+  for (const id of map.listImages()) if (id.startsWith('pin-') || id.startsWith('cluster-') || id.startsWith('poi-')) map.removeImage(id);
 }

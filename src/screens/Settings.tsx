@@ -82,6 +82,19 @@ export function Settings({ onClose }: { onClose: () => void }) {
       </section>
 
       <section className="stack">
+        <h3 className="h3">Поездки</h3>
+        <Segmented
+          label="Вид списка поездок"
+          value={settings.tripsView}
+          onChange={(v) => void setSetting('tripsView', v)}
+          options={[
+            { value: 'carousel', label: 'Карусель', icon: 'grid' },
+            { value: 'list', label: 'Список', icon: 'list' },
+          ]}
+        />
+      </section>
+
+      <section className="stack">
         <h3 className="h3">Обращение</h3>
         <Segmented
           label="Пол"

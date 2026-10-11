@@ -1,7 +1,8 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useMemo, useState } from 'react';
 import { go } from '../../app/router';
-import { db, useToday, useWorld } from '../../app/world';
+import { db, setSetting, useToday, useWorld } from '../../app/world';
+import { TripCarousel } from './TripCarousel';
 import { countLabel, formatRange, type TripStatus, tripStatus } from '../../domain/dates';
 import type { Trip } from '../../domain/model';
 import { Icon } from '../../ui/Icon';
@@ -43,7 +44,7 @@ function TripList() {
   const prices = useAllTripPrices();
   const { settings } = useWorld();
   const totalOf = (id: string): string | null => {
-    const c = tripCost(prices.get(id) ?? { transport: [], stays: [], bookings: [] }, settings.currency, settings.rates);
+    const c = tripCost(prices.get(id) ?? { transport: [], stays: [], bookings: [], expenses: [] }, settings.currency, settings.rates);
     return c.total > 0 ? formatMoney(c.total, c.currency, false) : null;
   };
   const counts = useMemo(() => {
@@ -73,7 +74,8 @@ function TripList() {
           <Icon name="plus" size={20} /> Новое путешествие
         </button>
         {trips.length > 0 && (
-          <div className="chips" role="group" aria-label="Фильтр поездок">
+          <div className="row trips-filter">
+          <div className="chips grow" role="group" aria-label="Фильтр поездок">
             {(
               [
                 ['upcoming', 'Предстоящие'],
@@ -86,6 +88,15 @@ function TripList() {
               </button>
             ))}
           </div>
+            <button
+              type="button"
+              className="circle-btn sm"
+              aria-label={settings.tripsView === 'carousel' ? 'Показать списком' : 'Показать карточками'}
+              onClick={() => void setSetting('tripsView', settings.tripsView === 'carousel' ? 'list' : 'carousel')}
+            >
+              <Icon name={settings.tripsView === 'carousel' ? 'list' : 'grid'} size={18} />
+            </button>
+          </div>
         )}
         {trips.length === 0 ? (
           <Empty
@@ -95,6 +106,8 @@ function TripList() {
           />
         ) : list.length === 0 ? (
           <Empty icon="calendar" title={active === 'ongoing' ? 'Сейчас вы не в поездке' : active === 'upcoming' ? 'Нет предстоящих поездок' : 'Нет завершённых поездок'} />
+        ) : settings.tripsView === 'carousel' ? (
+          <TripCarousel trips={list} statusOf={statusOf} totalOf={totalOf} />
         ) : (
           <div className="trip-grid">
             {list.map((t) => (

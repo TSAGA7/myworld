@@ -23,6 +23,13 @@ export interface Settings {
   rates: Rates;
   ratesDate: string | null;
   ratesSource: 'default' | 'manual' | 'cbr';
+  /** Trips screen: big swipeable cards or a compact list. */
+  tripsView: 'carousel' | 'list';
+  /** Profile */
+  name: string;
+  homeCityId: string | null;
+  passport: 'RU' | 'other';
+  avatarId: string | null;
 }
 const DEFAULTS: Settings = {
   methodology: 'm195',
@@ -33,6 +40,11 @@ const DEFAULTS: Settings = {
   rates: DEFAULT_RATES,
   ratesDate: DEFAULT_RATES_DATE,
   ratesSource: 'default',
+  tripsView: 'carousel',
+  name: '',
+  homeCityId: null,
+  passport: 'RU',
+  avatarId: null,
 };
 
 /** Texts that depend on the user's gender. */

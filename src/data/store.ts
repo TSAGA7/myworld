@@ -2,7 +2,10 @@ import type {
   AccommodationBooking,
   Attachment,
   City,
+  DiaryEntry,
+  Expense,
   GeneralBooking,
+  Guide,
   OwnerType,
   PlannedMark,
   TransportBooking,
@@ -269,6 +272,15 @@ export class WorldStore {
   async saveNote(r: Stamped<TripNote>): Promise<TripNote> {
     return this.put<TripNote>(this.db.notes, r);
   }
+  async saveExpense(r: Stamped<Expense>): Promise<Expense> {
+    return this.put<Expense>(this.db.expenses, r);
+  }
+  async saveDiary(r: Stamped<DiaryEntry>): Promise<DiaryEntry> {
+    return this.put<DiaryEntry>(this.db.diary, r);
+  }
+  async saveGuide(g: Stamped<Guide> & { id: string }): Promise<Guide> {
+    return this.put<Guide>(this.db.guides, g);
+  }
   async saveTask(r: Stamped<TripTask>): Promise<TripTask> {
     return this.put<TripTask>(this.db.tasks, r);
   }
@@ -285,7 +297,7 @@ export class WorldStore {
   }
 
   /** Deletes one trip record with the files attached to it. */
-  async deleteRecord(table: 'transport' | 'stays' | 'bookings' | 'notes' | 'tasks', id: string): Promise<void> {
+  async deleteRecord(table: 'transport' | 'stays' | 'bookings' | 'notes' | 'tasks' | 'expenses' | 'diary' | 'guides', id: string): Promise<void> {
     const db = this.db;
     await db.transaction('rw', db[table], db.attachments, db.blobs, async () => {
       const files = await db.attachments.where('ownerId').equals(id).toArray();

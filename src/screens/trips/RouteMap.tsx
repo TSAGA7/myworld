@@ -19,7 +19,19 @@ const loadShapes = () => {
  * Static route map drawn in SVG (no WebGL): countries, a dashed great-circle line with a plane, numbered stops.
  * Used on trip cards and the trip page so the app never runs a second WebGL scene.
  */
-export const RouteMap = memo(function RouteMap({ points, width = 360, height = 180, numbered = true }: { points: RoutePoint[]; width?: number; height?: number; numbered?: boolean }) {
+export const RouteMap = memo(function RouteMap({
+  points,
+  width = 360,
+  height = 180,
+  numbered = true,
+  pois = [],
+}: {
+  points: RoutePoint[];
+  width?: number;
+  height?: number;
+  numbered?: boolean;
+  pois?: Array<{ lat: number; lon: number }>;
+}) {
   const [shapes, setShapes] = useState<Awaited<ReturnType<typeof loadShapes>> | null>(null);
   useEffect(() => {
     let alive = true;
@@ -105,6 +117,10 @@ export const RouteMap = memo(function RouteMap({ points, width = 360, height = 1
           <path transform="translate(-8,-8) scale(0.66)" d="M10.5 21l1.5-1v-6l8 3v-2l-8-5V4.5a1.5 1.5 0 0 0-3 0V10l-8 5v2l8-3v6l1.5 1z" fill="var(--ink)" />
         </g>
       )}
+      {pois.map((p, i) => {
+        const q = view.proj([p.lon, p.lat]);
+        return q ? <circle key={`poi-${i}`} cx={q[0]} cy={q[1]} r={4.5} fill="var(--graphite)" stroke="var(--lime)" strokeWidth={2} /> : null;
+      })}
       {xy.map((p, i) => {
         const pt = points[i] as RoutePoint;
         return (
