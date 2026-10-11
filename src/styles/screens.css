@@ -349,7 +349,7 @@
 .fav-filter.on { background: #ff4d6d; color: #fff; border-color: transparent; box-shadow: 0 6px 16px rgba(255, 77, 109, 0.35); }
 .fav-filter.on svg path, .heart.on svg path { fill: currentColor; }
 
-.wallet { --card-h: clamp(340px, calc(100dvh - 520px - var(--safe-b)), 470px); position: relative; margin: 2px 0 0; touch-action: none; user-select: none; -webkit-user-select: none; }
+.wallet { --card-h: 340px; position: relative; margin: 2px 0 0; touch-action: none; user-select: none; -webkit-user-select: none; }
 .wcard {
   position: absolute; top: 0; left: 0; right: 0; height: var(--card-h); border-radius: 30px; overflow: hidden; color: #fff; cursor: grab;
   transform-origin: 50% 0; will-change: transform, opacity;
@@ -464,3 +464,8 @@
 .wallet.moving .wcard * { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
 .wallet.moving .wcard .glass-pill, .wallet.moving .wcard .heart { background: rgba(255, 255, 255, 0.86); }
 .wcard::after { content: ''; position: absolute; inset: 0; z-index: 3; border-radius: inherit; background: #000; opacity: var(--dim, 0); pointer-events: none; }
+
+/* countries: all four filters on screen at once (2 × 2), no sideways scrolling */
+.chips.chips-fit { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); overflow: visible; }
+.chips.chips-fit .chip { min-width: 0; justify-content: space-between; padding: 0 14px; font-size: 14.5px; }
+@media (min-width: 640px) { .chips.chips-fit { grid-template-columns: repeat(4, minmax(0, 1fr)); } }

@@ -214,12 +214,12 @@ export function Countries({
               )}
             </label>
 
-            <div className="chips" role="group" aria-label="Фильтр">
+            <div className="chips chips-fit" role="group" aria-label="Фильтр">
               {(
                 [
                   ["all", "Все"],
                   ["visited", "Посещённые"],
-                  ["planned", "Запланированные"],
+                  ["planned", "В планах"],
                   ["none", "Не посещённые"],
                 ] as const
               ).map(([v, label]) => (
@@ -230,7 +230,7 @@ export function Countries({
                   aria-pressed={filter === v}
                   onClick={() => setFilter(v)}
                 >
-                  {label} <span className="count num">{counts[v]}</span>
+                  <span className="ellipsis">{label}</span> <span className="count num">{counts[v]}</span>
                 </button>
               ))}
             </div>

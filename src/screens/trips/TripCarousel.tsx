@@ -1,9 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { go } from '../../app/router';
 import { store, useWorld } from '../../app/world';
 import { countLabel, formatRange, nights, type TripStatus } from '../../domain/dates';
 import type { Trip } from '../../domain/model';
-import { wheelStep } from '../../domain/wheel';
+import { cardPose, dragPos, DRAG_PX, fitWallet, wheelOffset, wheelStep } from '../../domain/wheel';
 import { countryName } from '../../geo/reference';
 import { useAttachmentUrl } from '../../ui/files';
 import { Icon } from '../../ui/Icon';
@@ -11,9 +11,7 @@ import { Flag } from '../../ui/kit';
 import { TripStatusPill, useRoute } from './common';
 import { RouteMap } from './RouteMap';
 
-const PEEK = 62; // px of each card visible above the front one
-const BEHIND = 3; // cards peeking out
-const DRAG_PX = 120; // finger travel that turns the wheel by one card
+const BAR_GAP = 12; // air between the front card and the bottom soft bar
 
 /**
  * Trips on a wheel: the front card lies on top, the next ones peek out above. Drag the stack up or down —
@@ -22,7 +20,11 @@ const DRAG_PX = 120; // finger travel that turns the wheel by one card
  */
 export function TripCarousel({ trips, statusOf, totalOf }: { trips: Trip[]; statusOf: (t: Trip) => TripStatus; totalOf: (id: string) => string | null }) {
   const n = trips.length;
-  const behind = Math.min(BEHIND, n - 1);
+  // The stack is sized to end above the soft bar, so the front card's info is never under it.
+  const [fit, setFit] = useState(() => fitWallet(560, n));
+  const geo = useRef(fit);
+  geo.current = fit;
+  const { behind, peek: PEEK } = fit;
   const cards = useRef<Array<HTMLDivElement | null>>([]);
   const box = useRef<HTMLDivElement>(null);
   // While the wheel turns, glass blur inside the cards is switched off: re-blurring every frame is the costliest part.
@@ -32,46 +34,47 @@ export function TripCarousel({ trips, statusOf, totalOf }: { trips: Trip[]; stat
 
   const layout = () => {
     const pos = state.current.pos;
+    const { behind: b, peek } = geo.current;
     cards.current.forEach((el, i) => {
       if (!el || i >= n) return;
-      let d = (((i - pos) % n) + n) % n; // 0..n
-      if (n > 1 && d > n - 1) d -= n; // -1..n-1: the front card leaving downwards has negative d
-      let top: number;
-      let scale: number;
-      let opacity = 1;
-      let z: number;
-      let tilt = 0;
-      if (d < 0) {
-        // leaving the front: slides down, tilts away and fades — then comes back at the far end of the wheel
-        top = behind * PEEK - d * 90;
-        scale = 1 + d * 0.04;
-        opacity = 1 + d;
-        tilt = d * 28;
-        z = 200;
-      } else if (d <= behind) {
-        top = (behind - d) * PEEK;
-        scale = 1 - d * 0.05;
-        z = 100 - Math.round(d * 10);
-      } else if (d < behind + 1) {
-        top = (behind - d) * PEEK;
-        scale = 1 - d * 0.05;
-        opacity = behind + 1 - d;
-        z = 10;
-      } else {
-        top = -PEEK;
-        scale = 0.8;
-        opacity = 0;
-        z = 0;
-      }
+      const d = wheelOffset(i, pos, n);
+      const { top, scale, opacity, tilt, z } = cardPose(d, n, b, peek);
       el.style.transform = `translate3d(0, ${top}px, 0) perspective(900px) rotateX(${tilt}deg) scale(${scale})`;
       el.style.opacity = String(opacity);
       el.style.zIndex = String(z);
       // dimming with an overlay's opacity (composited) instead of a CSS filter (repainted every frame)
-      el.style.setProperty('--dim', d > 0 ? String(Math.min(d, behind) * 0.07) : '0');
+      el.style.setProperty('--dim', d > 0 ? String(Math.min(d, b) * 0.07) : '0');
       el.classList.toggle('front', Math.abs(d) < 0.5);
       el.style.pointerEvents = opacity < 0.3 ? 'none' : '';
     });
   };
+
+  // measure the free height between the top of the stack and the soft bar
+  useLayoutEffect(() => {
+    const measure = () => {
+      const el = box.current;
+      if (!el) return;
+      const scroller = el.closest('.screen');
+      const sRect = scroller?.getBoundingClientRect();
+      const viewTop = sRect?.top ?? 0;
+      const topInContent = el.getBoundingClientRect().top - viewTop + (scroller?.scrollTop ?? 0);
+      const bar = document.querySelector('.softbar');
+      const barTop = bar ? bar.getBoundingClientRect().top - viewTop : (scroller?.clientHeight ?? window.innerHeight);
+      const next = fitWallet(barTop - topInContent - BAR_GAP, n);
+      setFit((f) => (f.behind === next.behind && f.cardH === next.cardH && f.peek === next.peek ? f : next));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    const scroller = box.current?.closest('.screen');
+    if (scroller) ro.observe(scroller);
+    if (scroller?.firstElementChild) ro.observe(scroller.firstElementChild);
+    window.addEventListener('resize', measure);
+    void document.fonts?.ready.then(measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, [n]);
 
   const step = (dt: number) => wheelStep(state.current, dt, n);
 
@@ -132,7 +135,7 @@ export function TripCarousel({ trips, statusOf, totalOf }: { trips: Trip[]; stat
   const onMove = (e: React.PointerEvent) => {
     const d = drag.current;
     if (!d || n < 2) return;
-    state.current.pos = d.pos - (e.clientY - d.y) / DRAG_PX;
+    state.current.pos = dragPos(d.pos, e.clientY - d.y);
     d.samples.push({ t: e.timeStamp, y: e.clientY });
     if (d.samples.length > 6) d.samples.shift();
     layout();
@@ -162,7 +165,7 @@ export function TripCarousel({ trips, statusOf, totalOf }: { trips: Trip[]; stat
     const b = d.samples[d.samples.length - 1] as { t: number; y: number };
     const a = d.samples.find((p) => b.t - p.t <= 100) ?? b;
     const dt = Math.max(0.016, (b.t - a.t) / 1000);
-    s.vel = Math.max(-25, Math.min(25, -((b.y - a.y) / DRAG_PX) / dt));
+    s.vel = Math.max(-25, Math.min(25, (b.y - a.y) / DRAG_PX / dt));
     kick();
   };
 
@@ -171,7 +174,7 @@ export function TripCarousel({ trips, statusOf, totalOf }: { trips: Trip[]; stat
     <div
       ref={box}
       className="wallet"
-      style={{ height: `calc(${behind * PEEK}px + var(--card-h))` }}
+      style={{ height: behind * PEEK + fit.cardH, ['--card-h' as string]: `${fit.cardH}px` }}
       onPointerDown={onDown}
       onPointerMove={onMove}
       onPointerUp={onUp}
