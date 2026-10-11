@@ -1,6 +1,7 @@
 import { geoDistance, geoInterpolate, geoOrthographic, geoPath, type GeoPermissibleObjects } from 'd3-geo';
 import { useEffect, useRef, useState } from 'react';
 import { useWorld } from '../app/world';
+import { type LonLat, planSplashFlights, type SplashPlan } from '../domain/splashFlights';
 import { type CountryShapes, loadCountryShapes } from '../geo/geometry';
 
 export const SPLASH_OFF_KEY = 'mw-splash-off';
@@ -21,33 +22,6 @@ export function setSplashOff(off: boolean) {
     /* private mode */
   }
 }
-
-type LonLat = [number, number];
-interface Flight {
-  from: LonLat;
-  to: LonLat;
-  start: number; // s
-  dur: number; // s
-  lift: number;
-}
-
-/** Big hubs used when the user has no cities yet. */
-const HUBS: LonLat[] = [
-  [37.62, 55.75], // Moscow
-  [2.35, 48.86], // Paris
-  [-74.0, 40.71], // New York
-  [139.69, 35.69], // Tokyo
-  [55.27, 25.2], // Dubai
-  [28.98, 41.01], // Istanbul
-  [100.5, 13.75], // Bangkok
-  [12.5, 41.9], // Rome
-  [31.24, 30.04], // Cairo
-  [-43.2, -22.9], // Rio
-  [116.4, 39.9], // Beijing
-  [103.82, 1.35], // Singapore
-  [-0.13, 51.5], // London
-  [44.8, 41.72], // Tbilisi
-];
 
 const TOTAL = 2.9; // s, then fade out
 const FADE = 0.45;
@@ -75,49 +49,51 @@ export function Splash({ onDone }: { onDone: () => void }) {
       .then((s) => (shapes = s))
       .catch(() => undefined);
 
-    let flights: Flight[] | null = null;
-    let center: LonLat = [40, 35];
+    let plan: SplashPlan | null = null;
+    let t0 = 0; // when the plan was made: the globe spins and planes fly from then on
     let raf = 0;
     let finished = false;
 
-    const pickFlights = () => {
+    const makePlan = (): SplashPlan => {
       const { settings: st, cities: cs, world: w } = data.current;
       const home = st.homeCityId ? cs.get(st.homeCityId) : undefined;
       const origin: LonLat | null = home && home.lat !== null && home.lon !== null ? [home.lon, home.lat] : null;
       const dest: LonLat[] = [];
       for (const id of w.visitedCityIds) {
         const c = cs.get(id);
-        if (c && c.lat !== null && c.lon !== null && (!origin || geoDistance(origin, [c.lon, c.lat]) > 0.05)) dest.push([c.lon, c.lat]);
+        if (c && c.lat !== null && c.lon !== null) dest.push([c.lon, c.lat]);
       }
-      // spread destinations: keep the farthest-apart ones
-      const pickSpread = (pts: LonLat[], n: number) => {
-        if (pts.length <= n) return pts;
-        const out: LonLat[] = [pts[0] as LonLat];
-        while (out.length < n) {
-          let best = pts[0] as LonLat;
-          let bestD = -1;
-          for (const p of pts) {
-            const d = Math.min(...out.map((o) => geoDistance(o, p)));
-            if (d > bestD) {
-              bestD = d;
-              best = p;
-            }
+      // keep up to 8 far-apart visited cities
+      const spread: LonLat[] = [];
+      if (dest.length) spread.push(dest[0] as LonLat);
+      while (spread.length < Math.min(8, dest.length)) {
+        let best = dest[0] as LonLat;
+        let bestD = -1;
+        for (const p of dest) {
+          const d = Math.min(...spread.map((o) => geoDistance(o, p)));
+          if (d > bestD) {
+            bestD = d;
+            best = p;
           }
-          out.push(best);
         }
-        return out;
-      };
-      const pairs: Array<[LonLat, LonLat]> = [];
-      const o = origin ?? (HUBS[0] as LonLat);
-      const targets = dest.length >= 3 ? pickSpread(dest, 9) : HUBS.filter((h) => geoDistance(h, o) > 0.1).slice(0, 9);
-      for (const t of targets) pairs.push([o, t]);
-      // a couple of extra flights between destinations so the sky isn't one fan
-      for (let i = 0; i + 1 < targets.length && pairs.length < 12; i += 3) pairs.push([targets[i] as LonLat, targets[i + 1] as LonLat]);
-      center = [o[0] + 12, Math.max(-35, Math.min(45, o[1] - 12))];
-      return pairs.map(([from, to], i) => {
-        const dist = geoDistance(from, to);
-        return { from, to, start: 0.15 + (i % 6) * 0.11 + Math.floor(i / 6) * 0.25, dur: 1.15 + dist * 0.18, lift: 0.06 + Math.min(0.3, dist * 0.09) };
-      });
+        spread.push(best);
+      }
+      let focus = origin;
+      if (!focus && spread.length) {
+        // centre of the visited cities (as a unit vector average, so it works across the antimeridian)
+        let x = 0;
+        let y = 0;
+        let z = 0;
+        for (const [lo, la] of spread) {
+          const l = (lo * Math.PI) / 180;
+          const p = (la * Math.PI) / 180;
+          x += Math.cos(p) * Math.cos(l);
+          y += Math.cos(p) * Math.sin(l);
+          z += Math.sin(p);
+        }
+        focus = [(Math.atan2(y, x) * 180) / Math.PI, (Math.atan2(z, Math.hypot(x, y)) * 180) / Math.PI];
+      }
+      return planSplashFlights(focus, spread);
     };
 
     let t = 0;
@@ -127,7 +103,11 @@ export function Splash({ onDone }: { onDone: () => void }) {
       // the app the planes wait instead of skipping their flight.
       t += last ? Math.min((now - last) / 1000, 1 / 15) : 0;
       last = now;
-      if (!flights && (data.current.ready || t > 0.35)) flights = pickFlights();
+      if (!plan && (data.current.ready || t > 0.35)) {
+        plan = makePlan();
+        t0 = t;
+      }
+      const ft = plan ? t - t0 : 0;
       const dpr = Math.min(2, window.devicePixelRatio || 1);
       const W = canvas.clientWidth;
       const H = canvas.clientHeight;
@@ -141,11 +121,11 @@ export function Splash({ onDone }: { onDone: () => void }) {
       const R = Math.min(W, H) * 0.36;
       const cx = W / 2;
       const cy = H * 0.46;
-      const spin = t * 7;
+      const center = plan?.center ?? [0, 0];
       const proj = geoOrthographic()
         .scale(R)
         .translate([cx, cy])
-        .rotate([-(center[0] + spin - 10), -center[1]])
+        .rotate([-(center[0] + (plan?.spin ?? 0) * ft), -center[1]])
         .clipAngle(90);
       const path = geoPath(proj, ctx);
 
@@ -170,7 +150,8 @@ export function Splash({ onDone }: { onDone: () => void }) {
       ctx.arc(cx, cy, R, 0, Math.PI * 2);
       ctx.fill();
       // land
-      if (shapes) {
+      if (shapes && plan) {
+        ctx.globalAlpha = appear * Math.min(1, ft / 0.3);
         const visited = data.current.world.countryStatus;
         for (const f of shapes.features) {
           ctx.beginPath();
@@ -184,6 +165,7 @@ export function Splash({ onDone }: { onDone: () => void }) {
         ctx.lineWidth = 0.6;
         ctx.stroke();
       }
+      ctx.globalAlpha = appear;
       // rim light
       const rim = ctx.createRadialGradient(cx, cy, R * 0.75, cx, cy, R);
       rim.addColorStop(0, 'rgba(255,255,255,0)');
@@ -205,8 +187,8 @@ export function Splash({ onDone }: { onDone: () => void }) {
         const outside = Math.hypot(x - cx, y - cy) > R;
         return { x, y, vis: front || outside };
       };
-      for (const fl of flights ?? []) {
-        const k = Math.max(0, Math.min(1, (t - fl.start) / fl.dur));
+      for (const fl of plan?.flights ?? []) {
+        const k = Math.max(0, Math.min(1, (ft - fl.start) / fl.dur));
         if (k <= 0) continue;
         const e = ease(k);
         const interp = geoInterpolate(fl.from, fl.to);
@@ -246,7 +228,7 @@ export function Splash({ onDone }: { onDone: () => void }) {
         // destination: appears when the plane lands
         const b = lifted(fl.to, 0);
         if (b?.vis && k >= 1) {
-          const since = t - fl.start - fl.dur;
+          const since = ft - fl.start - fl.dur;
           const pulse = Math.min(1, since / 0.35);
           ctx.fillStyle = `rgba(221,243,111,${0.35 * (1 - pulse)})`;
           ctx.beginPath();
@@ -277,12 +259,12 @@ export function Splash({ onDone }: { onDone: () => void }) {
       }
       ctx.globalAlpha = 1;
 
-      if (t >= TOTAL && !finished) {
+      if (ft >= TOTAL && !finished) {
         finished = true;
         setLeaving(true);
         window.setTimeout(() => done.current(), FADE * 1000);
       }
-      if (t < TOTAL + FADE) raf = requestAnimationFrame(frame);
+      if (!plan || ft < TOTAL + FADE) raf = requestAnimationFrame(frame);
     };
     raf = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(raf);
