@@ -12,11 +12,12 @@ import { Field, Segmented, Sheet, Topo } from '../../ui/kit';
 import { PlaceSearch } from '../../ui/PlaceSearch';
 import { ShareCardSheet } from './ShareCard';
 import { useFacts } from './useFacts';
+import { travelerStatus } from '../../domain/status';
 
 const km = (n: number) => `${Math.round(n).toLocaleString('ru-RU')} км`;
 
 export function Profile({ onSettings }: { onSettings: () => void }) {
-  const { settings } = useWorld();
+  const { settings, trips } = useWorld();
   const { progress, facts, achievements, home } = useFacts();
   const toast = useToast();
   const avatar = useAttachmentUrl(settings.avatarId);
@@ -49,6 +50,8 @@ export function Profile({ onSettings }: { onSettings: () => void }) {
   }
   if (facts.topCountry && facts.topCountry.cities > 1)
     factRows.push({ icon: '❤️', text: `Больше всего городов — ${countryName(facts.topCountry.id)}: ${countLabel(facts.topCountry.cities, 'город', 'города', 'городов')}` });
+  const liked = trips.filter((t) => t.favorite);
+  if (liked.length) factRows.push({ icon: '♥️', text: `Любимые поездки: ${liked.map((t) => t.title).join(', ')}` });
   if (facts.countriesThisYear > 0) factRows.push({ icon: '📆', text: `В этом году — ${countLabel(facts.countriesThisYear, 'страна', 'страны', 'стран')}` });
 
   return (
@@ -100,6 +103,8 @@ export function Profile({ onSettings }: { onSettings: () => void }) {
             <span>{plural(facts.trips, 'поездка', 'поездки', 'поездок')}</span>
           </div>
         </section>
+
+        <StatusCard countries={progress.visited} />
 
         <button type="button" className="btn lime block" onClick={() => setShare(true)}>
           <Icon name="share" size={19} /> Поделиться картой путешествий
@@ -259,5 +264,32 @@ function ProfileEditor({ onClose, homeName }: { onClose: () => void; homeName: s
         </small>
       </div>
     </Sheet>
+  );
+}
+
+function StatusCard({ countries }: { countries: number }) {
+  const { status, next, toNext, progress } = travelerStatus(countries);
+  return (
+    <section className="status-card" aria-label="Статус">
+      <span className="status-emoji" aria-hidden="true">
+        {status.emoji}
+      </span>
+      <div className="grow stack tight">
+        <span className="status-label">Статус</span>
+        <b className="status-title">{status.title}</b>
+        {next ? (
+          <>
+            <div className="meter thin">
+              <i style={{ width: `${Math.max(4, progress * 100)}%` }} />
+            </div>
+            <span className="status-next">
+              До следующего статуса — {countLabel(toNext, 'страна', 'страны', 'стран')}
+            </span>
+          </>
+        ) : (
+          <span className="status-next">Высший статус. Дальше — только вы.</span>
+        )}
+      </div>
+    </section>
   );
 }

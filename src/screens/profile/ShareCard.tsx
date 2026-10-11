@@ -9,6 +9,7 @@ import { countryName } from '../../geo/reference';
 import { Icon } from '../../ui/Icon';
 import { Segmented, Sheet } from '../../ui/kit';
 import { useFacts } from './useFacts';
+import { travelerStatus } from '../../domain/status';
 
 type Format = 'story' | 'square';
 type Look = 'dark' | 'light';
@@ -60,6 +61,11 @@ export function ShareCardSheet({ onClose }: { onClose: () => void }) {
       ctx.fillStyle = ink2;
       ctx.font = '600 34px Onest, system-ui, sans-serif';
       ctx.fillText(settings.name ? `${settings.name} · MY WORLD` : 'MY WORLD', pad, y);
+      const st = travelerStatus(progress.visited).status;
+      y += 54;
+      ctx.fillStyle = ink;
+      ctx.font = '600 36px Onest, system-ui, sans-serif';
+      ctx.fillText(fit(ctx, `${st.emoji} ${st.title}`, w - pad * 2), pad, y);
 
       // Big counter
       y += story ? 300 : 250;

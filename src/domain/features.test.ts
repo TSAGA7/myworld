@@ -145,3 +145,17 @@ describe('hints', () => {
     expect(packingList(w, { flight: true, drivesLeft: false, beach: false })).toEqual(expect.arrayContaining(['Солнцезащитный крем', 'Купальник/плавки', 'Зонт или дождевик']));
   });
 });
+
+import { travelerStatus } from './status';
+describe('traveller status', () => {
+  it('picks the status by countries', () => {
+    expect(travelerStatus(0).status.title).toBe('Тебе точно нужно это приложение?');
+    expect(travelerStatus(0).toNext).toBe(1);
+    expect(travelerStatus(3).status.from).toBe(1);
+    expect(travelerStatus(4).status.title).toMatch(/взлетаем/);
+    expect(travelerStatus(15).toNext).toBe(1);
+    expect(travelerStatus(25).status.from).toBe(16);
+    expect(travelerStatus(50).status.title).toBe('Сильнейший, вопросов нет');
+    expect(travelerStatus(120)).toMatchObject({ next: null, progress: 1 });
+  });
+});

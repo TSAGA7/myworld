@@ -17,6 +17,7 @@ const trip = (over: Partial<Trip> = {}): Trip => ({
   countryIds: ['IT', 'CH'],
   note: '',
   coverId: null,
+  favorite: false,
   members: [],
   dailyBudget: null,
   dailyBudgetCurrency: '',

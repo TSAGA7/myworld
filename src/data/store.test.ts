@@ -26,7 +26,7 @@ async function world() {
 }
 
 async function makeTrip() {
-  const trip = await store.saveTrip({ title: 'Италия и Швейцария', startDate: '2026-09-10', endDate: '2026-09-20', countryIds: [], note: '', coverId: null, members: [], dailyBudget: null, dailyBudgetCurrency: '' });
+  const trip = await store.saveTrip({ title: 'Италия и Швейцария', startDate: '2026-09-10', endDate: '2026-09-20', countryIds: [], note: '', coverId: null, favorite: false, members: [], dailyBudget: null, dailyBudgetCurrency: '' });
   await store.saveRoute(trip.id, [
     { city: ROME, startDate: '2026-09-10', endDate: '2026-09-13', note: '' },
     { city: FLORENCE, startDate: '2026-09-13', endDate: '2026-09-16', note: '' },

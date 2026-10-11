@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useState } from 'react';
 import { focusOnMap, go, goBack } from '../../app/router';
-import { db, useToday, useWorld } from '../../app/world';
+import { db, store, useToday, useWorld } from '../../app/world';
 import { countLabel, formatRange, nights, tripStatus } from '../../domain/dates';
 import type { Trip } from '../../domain/model';
 import { countryName } from '../../geo/reference';
@@ -82,6 +82,15 @@ export function TripPage({ trip }: { trip: Trip }) {
             <Icon name="back" size={20} />
           </button>
           <span className="h3 grow center-title">Путешествие</span>
+          <button
+            type="button"
+            className={`circle-btn fav-filter ${trip.favorite ? 'on' : ''}`}
+            aria-pressed={!!trip.favorite}
+            aria-label={trip.favorite ? 'Убрать из избранного' : 'В избранное'}
+            onClick={() => void store.saveTrip({ ...trip, favorite: !trip.favorite })}
+          >
+            <Icon name="heart" size={20} weight={2} />
+          </button>
           <button type="button" className="circle-btn" onClick={() => go(`trips/${trip.id}/edit`)} aria-label="Изменить поездку">
             <Icon name="edit" size={20} />
           </button>

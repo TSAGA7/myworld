@@ -120,7 +120,7 @@ export function Segmented<T extends string>({
   className = '',
 }: {
   value: T;
-  options: ReadonlyArray<{ value: T; label: string; icon?: IconName }>;
+  options: ReadonlyArray<{ value: T; label: string; icon?: IconName; badge?: number | string }>;
   onChange: (v: T) => void;
   label: string;
   className?: string;
@@ -138,6 +138,7 @@ export function Segmented<T extends string>({
         <button key={o.value} type="button" aria-pressed={o.value === value} onClick={() => onChange(o.value)}>
           {o.icon && <Icon name={o.icon} size={17} />}
           {o.label}
+          {o.badge !== undefined && <span className="seg-badge num">{o.badge}</span>}
         </button>
       ))}
     </div>

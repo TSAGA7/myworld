@@ -7,7 +7,7 @@ import { countLabel, formatRange, type TripStatus, tripStatus } from '../../doma
 import type { Trip } from '../../domain/model';
 import { Icon } from '../../ui/Icon';
 import { useAttachmentUrl } from '../../ui/files';
-import { Empty, Flag, Topo } from '../../ui/kit';
+import { Empty, Flag, Segmented, Topo } from '../../ui/kit';
 import { sortTrips, TripStatusPill, useRoute } from './common';
 import { useAllTripPrices } from './Budget';
 import { RouteMap } from './RouteMap';
@@ -54,10 +54,12 @@ function TripList() {
   }, [trips, today]);
   const [filter, setFilter] = useState<Filter | null>(null);
   const active: Filter = filter ?? (counts.ongoing ? 'ongoing' : counts.upcoming || !counts.completed ? 'upcoming' : 'completed');
+  const [favOnly, setFavOnly] = useState(false);
+  // Liked trips go first; the heart filter shows liked trips of any status.
   const list = sortTrips(
-    trips.filter((t) => statusOf(t) === active),
+    trips.filter((t) => (favOnly ? t.favorite : statusOf(t) === active)),
     statusOf,
-  );
+  ).sort((a, b) => Number(!!b.favorite) - Number(!!a.favorite));
 
   return (
     <div className="screen trips-screen">
@@ -74,27 +76,37 @@ function TripList() {
           <Icon name="plus" size={20} /> Новое путешествие
         </button>
         {trips.length > 0 && (
-          <div className="row trips-filter">
-          <div className="chips grow" role="group" aria-label="Фильтр поездок">
-            {(
-              [
-                ['upcoming', 'Предстоящие'],
-                ['ongoing', 'Текущие'],
-                ['completed', 'Завершённые'],
-              ] as const
-            ).map(([v, label]) => (
-              <button key={v} type="button" className="chip" aria-pressed={active === v} onClick={() => setFilter(v)}>
-                {label} <span className="count num">{counts[v]}</span>
-              </button>
-            ))}
-          </div>
+          <div className="trips-filter">
+            <Segmented
+              label="Какие поездки показать"
+              className="grow trip-tabs"
+              value={active}
+              onChange={(v) => {
+                setFilter(v);
+                setFavOnly(false);
+              }}
+              options={[
+                { value: 'upcoming', label: 'Впереди', badge: counts.upcoming },
+                { value: 'ongoing', label: 'Сейчас', badge: counts.ongoing },
+                { value: 'completed', label: 'Прошлые', badge: counts.completed },
+              ]}
+            />
             <button
               type="button"
-              className="circle-btn sm"
+              className={`circle-btn fav-filter ${favOnly ? 'on' : ''}`}
+              aria-pressed={favOnly}
+              aria-label="Только избранные"
+              onClick={() => setFavOnly((f) => !f)}
+            >
+              <Icon name="heart" size={20} weight={2} />
+            </button>
+            <button
+              type="button"
+              className="circle-btn"
               aria-label={settings.tripsView === 'carousel' ? 'Показать списком' : 'Показать карточками'}
               onClick={() => void setSetting('tripsView', settings.tripsView === 'carousel' ? 'list' : 'carousel')}
             >
-              <Icon name={settings.tripsView === 'carousel' ? 'list' : 'grid'} size={18} />
+              <Icon name={settings.tripsView === 'carousel' ? 'list' : 'grid'} size={19} />
             </button>
           </div>
         )}
@@ -105,7 +117,11 @@ function TripList() {
             text="Соберите маршрут по городам, сохраните билеты, жильё и брони в одном месте, а потом перенесите города на карту."
           />
         ) : list.length === 0 ? (
-          <Empty icon="calendar" title={active === 'ongoing' ? 'Сейчас вы не в поездке' : active === 'upcoming' ? 'Нет предстоящих поездок' : 'Нет завершённых поездок'} />
+          <Empty
+            icon={favOnly ? 'heart' : 'calendar'}
+            title={favOnly ? 'Нет избранных поездок' : active === 'ongoing' ? 'Сейчас вы не в поездке' : active === 'upcoming' ? 'Нет предстоящих поездок' : 'Нет прошлых поездок'}
+            text={favOnly ? 'Нажмите ♥ на карточке поездки — любимые поездки будут первыми в списке и появятся в профиле.' : undefined}
+          />
         ) : settings.tripsView === 'carousel' ? (
           <TripCarousel trips={list} statusOf={statusOf} totalOf={totalOf} />
         ) : (
@@ -158,7 +174,14 @@ function TripCard({ trip, status, tickets, stays, bookings, total }: { trip: Tri
       <div className="trip-visual">
         {cover ? <img src={cover} alt="" className="cover" /> : <RouteMap points={points} width={420} height={170} numbered={false} />}
         <div className="trip-visual-top">
-          <TripStatusPill status={status} />
+          <span className="row" style={{ gap: 6 }}>
+            <TripStatusPill status={status} />
+            {trip.favorite && (
+              <span className="heart mini on" aria-label="В избранном">
+                <Icon name="heart" size={15} weight={2} />
+              </span>
+            )}
+          </span>
           <span className="trip-flags">
             {trip.countryIds.slice(0, 4).map((c) => (
               <Flag key={c} id={c} size="sm" />

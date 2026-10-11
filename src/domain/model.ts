@@ -73,6 +73,8 @@ export const tripSchema = z.object({
   countryIds: z.array(z.string()).default([]),
   note: text,
   coverId: z.string().nullable().default(null),
+  /** Liked trip: shown first, on the profile, and in the «♥» filter. */
+  favorite: z.boolean().default(false),
   /** People travelling together. Used to split expenses; "me" is always the owner of the device. */
   members: z.array(z.object({ id: z.string(), name: z.string() })).default([]),
   /** Optional daily spending limit. */

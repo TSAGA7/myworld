@@ -85,6 +85,7 @@ export function TripEditor({ tripId }: { tripId: string | null }) {
         countryIds,
         note,
         coverId: existing?.coverId ?? null,
+        favorite: existing?.favorite ?? false,
         members: existing?.members ?? [],
         dailyBudget: existing?.dailyBudget ?? null,
         dailyBudgetCurrency: existing?.dailyBudgetCurrency ?? '',
