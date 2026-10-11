@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { go } from '../../app/router';
+import { useToast } from '../../app/toast';
 import { store, useWorld } from '../../app/world';
 import { countLabel, formatRange, nights, type TripStatus } from '../../domain/dates';
 import type { Trip } from '../../domain/model';
@@ -7,11 +8,13 @@ import { cardPose, dragPos, DRAG_PX, fitWallet, wheelOffset, wheelStep } from '.
 import { countryName } from '../../geo/reference';
 import { useAttachmentUrl } from '../../ui/files';
 import { Icon } from '../../ui/Icon';
-import { Flag } from '../../ui/kit';
+import { Confirm, Flag } from '../../ui/kit';
 import { TripStatusPill, useRoute } from './common';
 import { RouteMap } from './RouteMap';
 
 const BAR_GAP = 12; // air between the front card and the bottom soft bar
+const ACTIONS_W = 150; // how far the front card slides left to reveal «edit» and «delete»
+const DECIDE_PX = 8; // finger travel before we know whether it is a horizontal or a vertical gesture
 
 /**
  * Trips on a wheel: the front card lies on top, the next ones peek out above. Drag the stack up or down —
@@ -30,7 +33,22 @@ export function TripCarousel({ trips, statusOf, totalOf }: { trips: Trip[]; stat
   // While the wheel turns, glass blur inside the cards is switched off: re-blurring every frame is the costliest part.
   const moving = (on: boolean) => box.current?.classList.toggle('moving', on);
   const state = useRef({ pos: 0, vel: 0, target: null as number | null, raf: 0, last: 0 });
-  const drag = useRef<{ y: number; pos: number; t: number; samples: Array<{ t: number; y: number }> } | null>(null);
+  const drag = useRef<{
+    x: number;
+    y: number;
+    pos: number;
+    t: number;
+    samples: Array<{ t: number; y: number }>;
+    mode: 'tap' | 'v' | 'h';
+    onFront: boolean;
+    sx0: number;
+  } | null>(null);
+  // the front card slid left to show its actions: which card and by how much (≤ 0)
+  const swipe = useRef({ i: -1, x: 0, raf: 0 });
+  const actions = useRef<HTMLDivElement>(null);
+  const [actionTrip, setActionTrip] = useState<string | null>(null);
+  const [del, setDel] = useState<Trip | null>(null);
+  const toast = useToast();
 
   const layout = () => {
     const pos = state.current.pos;
@@ -39,7 +57,8 @@ export function TripCarousel({ trips, statusOf, totalOf }: { trips: Trip[]; stat
       if (!el || i >= n) return;
       const d = wheelOffset(i, pos, n);
       const { top, scale, opacity, tilt, z } = cardPose(d, n, b, peek);
-      el.style.transform = `translate3d(0, ${top}px, 0) perspective(900px) rotateX(${tilt}deg) scale(${scale})`;
+      const sx = i === swipe.current.i ? swipe.current.x : 0;
+      el.style.transform = `translate3d(${sx}px, ${top}px, 0) perspective(900px) rotateX(${tilt}deg) scale(${scale})`;
       el.style.opacity = String(opacity);
       el.style.zIndex = String(z);
       // dimming with an overlay's opacity (composited) instead of a CSS filter (repainted every frame)
@@ -47,6 +66,40 @@ export function TripCarousel({ trips, statusOf, totalOf }: { trips: Trip[]; stat
       el.classList.toggle('front', Math.abs(d) < 0.5);
       el.style.pointerEvents = opacity < 0.3 ? 'none' : '';
     });
+    const a = actions.current;
+    if (a) {
+      const open = Math.min(1, -swipe.current.x / ACTIONS_W);
+      a.style.top = `${b * peek}px`;
+      a.style.opacity = String(open);
+      a.style.transform = `translate3d(${(1 - open) * 24}px, 0, 0)`;
+      a.style.pointerEvents = open > 0.9 ? '' : 'none';
+    }
+  };
+
+  /** Slides the front card to `to` (0 = closed, -ACTIONS_W = actions shown). */
+  const slideTo = (to: number) => {
+    const sw = swipe.current;
+    cancelAnimationFrame(sw.raf);
+    const tick = () => {
+      sw.x += (to - sw.x) * 0.28;
+      if (Math.abs(to - sw.x) < 0.5) {
+        sw.x = to;
+        if (to === 0) {
+          sw.i = -1;
+          setActionTrip(null);
+        }
+        layout();
+        moving(false);
+        return;
+      }
+      layout();
+      sw.raf = requestAnimationFrame(tick);
+    };
+    moving(true);
+    sw.raf = requestAnimationFrame(tick);
+  };
+  const closeSwipe = () => {
+    if (swipe.current.i >= 0) slideTo(0);
   };
 
   // measure the free height between the top of the stack and the soft bar
@@ -114,7 +167,11 @@ export function TripCarousel({ trips, statusOf, totalOf }: { trips: Trip[]; stat
   });
   useEffect(() => {
     const s = state.current;
-    return () => cancelAnimationFrame(s.raf);
+    const sw = swipe.current;
+    return () => {
+      cancelAnimationFrame(s.raf);
+      cancelAnimationFrame(sw.raf);
+    };
   }, []);
 
   const indexAt = (el: EventTarget | null) => {
@@ -122,20 +179,53 @@ export function TripCarousel({ trips, statusOf, totalOf }: { trips: Trip[]; stat
     return card ? Number(card.dataset.i) : -1;
   };
 
+  const frontIndex = () => ((Math.round(state.current.pos) % n) + n) % n;
+
   const onDown = (e: React.PointerEvent) => {
-    if ((e.target as HTMLElement).closest('.heart')) return;
+    const t = e.target as HTMLElement;
+    if (t.closest('.heart') || t.closest('.wcard-actions')) return;
     const s = state.current;
     s.target = null;
     s.vel = 0;
-    moving(true);
+    cancelAnimationFrame(swipe.current.raf);
+    const onFront = indexAt(t) === frontIndex() && !s.raf;
     // event time, not handler time: on a busy phone handlers run late, the finger's timing is what matters
-    drag.current = { y: e.clientY, pos: s.pos, t: e.timeStamp, samples: [{ t: e.timeStamp, y: e.clientY }] };
+    drag.current = {
+      x: e.clientX,
+      y: e.clientY,
+      pos: s.pos,
+      t: e.timeStamp,
+      samples: [{ t: e.timeStamp, y: e.clientY }],
+      mode: 'tap',
+      onFront,
+      sx0: swipe.current.i === frontIndex() ? swipe.current.x : 0,
+    };
     (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
   };
   const onMove = (e: React.PointerEvent) => {
     const d = drag.current;
-    if (!d || n < 2) return;
-    state.current.pos = dragPos(d.pos, e.clientY - d.y);
+    if (!d) return;
+    const dx = e.clientX - d.x;
+    const dy = e.clientY - d.y;
+    if (d.mode === 'tap') {
+      if (Math.hypot(dx, dy) < DECIDE_PX) return;
+      d.mode = d.onFront && Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
+      moving(true); // blur off only once something actually moves — a plain tap keeps the glass
+      if (d.mode === 'h') {
+        const i = frontIndex();
+        swipe.current.i = i;
+        setActionTrip(trips[i]?.id ?? null);
+      } else closeSwipe();
+    }
+    if (d.mode === 'h') {
+      // follows the finger to the left; past the buttons it resists like a rubber band
+      const raw = Math.min(0, d.sx0 + dx);
+      swipe.current.x = raw < -ACTIONS_W ? -ACTIONS_W + (raw + ACTIONS_W) * 0.3 : raw;
+      layout();
+      return;
+    }
+    if (n < 2) return;
+    state.current.pos = dragPos(d.pos, dy);
     d.samples.push({ t: e.timeStamp, y: e.clientY });
     if (d.samples.length > 6) d.samples.shift();
     layout();
@@ -145,14 +235,20 @@ export function TripCarousel({ trips, statusOf, totalOf }: { trips: Trip[]; stat
     drag.current = null;
     if (!d) return;
     const s = state.current;
-    if (Math.abs(e.clientY - d.y) < 8 && e.timeStamp - d.t < 500) {
+    if (d.mode === 'h') {
+      const flick = (e.clientX - d.x) / Math.max(16, e.timeStamp - d.t); // px per ms
+      slideTo(swipe.current.x < -ACTIONS_W / 2 || flick < -0.6 ? -ACTIONS_W : 0);
+      return;
+    }
+    if (d.mode === 'tap') {
+      if (e.type === 'pointercancel') return;
+      // a tap with actions open just closes them
+      if (swipe.current.i >= 0) return closeSwipe();
       // a tap: open the front card or turn the wheel to the tapped one
       const i = indexAt(document.elementFromPoint(e.clientX, e.clientY));
-      if (i < 0) return moving(false);
-      const front = ((Math.round(s.pos) % n) + n) % n;
-      if (i === front) {
+      if (i < 0) return;
+      if (i === frontIndex()) {
         const trip = trips[i];
-        moving(false);
         if (trip) go(`trips/${trip.id}`);
         return;
       }
@@ -161,6 +257,7 @@ export function TripCarousel({ trips, statusOf, totalOf }: { trips: Trip[]; stat
       kick();
       return;
     }
+    if (n < 2) return moving(false);
     d.samples.push({ t: e.timeStamp, y: e.clientY });
     const b = d.samples[d.samples.length - 1] as { t: number; y: number };
     const a = d.samples.find((p) => b.t - p.t <= 100) ?? b;
@@ -169,8 +266,11 @@ export function TripCarousel({ trips, statusOf, totalOf }: { trips: Trip[]; stat
     kick();
   };
 
+  const shown = trips.find((t) => t.id === actionTrip);
+
   if (n === 0) return null;
   return (
+    <>
     <div
       ref={box}
       className="wallet"
@@ -180,8 +280,25 @@ export function TripCarousel({ trips, statusOf, totalOf }: { trips: Trip[]; stat
       onPointerUp={onUp}
       onPointerCancel={onUp}
       role="listbox"
-      aria-label="Поездки: листайте вверх и вниз"
+      aria-label="Поездки: листайте вверх и вниз, карточку влево — изменить или удалить"
     >
+      <div ref={actions} className="wcard-actions" style={{ height: fit.cardH, opacity: 0, pointerEvents: 'none' }}>
+        <button
+          type="button"
+          className="wact"
+          aria-label="Редактировать поездку"
+          onClick={() => {
+            if (!shown) return;
+            closeSwipe();
+            go(`trips/${shown.id}/edit`);
+          }}
+        >
+          <Icon name="edit" size={24} weight={2} />
+        </button>
+        <button type="button" className="wact danger" aria-label="Удалить поездку" onClick={() => shown && setDel(shown)}>
+          <Icon name="trash" size={24} weight={2} />
+        </button>
+      </div>
       {trips.map((t, i) => (
         <WalletCard
           key={t.id}
@@ -194,6 +311,26 @@ export function TripCarousel({ trips, statusOf, totalOf }: { trips: Trip[]; stat
         />
       ))}
     </div>
+      {del && (
+        <Confirm
+          title="Удалить поездку?"
+          text="Удалятся маршрут, билеты, жильё, брони, заметки, файлы и чек-лист этой поездки. Отметки «посещён» на карте останутся."
+          confirmLabel="Удалить"
+          danger
+          onConfirm={async () => {
+            swipe.current = { i: -1, x: 0, raf: 0 };
+            setActionTrip(null);
+            await store.deleteTrip(del.id);
+            setDel(null);
+            toast('Поездка удалена');
+          }}
+          onClose={() => {
+            setDel(null);
+            closeSwipe();
+          }}
+        />
+      )}
+    </>
   );
 }
 

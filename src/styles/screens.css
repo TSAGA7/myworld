@@ -462,10 +462,20 @@
 .region-dot { width: 12px; height: 12px; flex: none; border-radius: 50%; border: 2px solid var(--line-strong); }
 .region-dot.on { background: var(--lime-deep); border-color: var(--lime-deep); }
 .wallet.moving .wcard * { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
-.wallet.moving .wcard .glass-pill, .wallet.moving .wcard .heart { background: rgba(255, 255, 255, 0.86); }
+.wallet.moving .wcard .glass-pill, .wallet.moving .wcard .heart:not(.on) { background: rgba(38, 38, 34, 0.42); }
+.wallet.moving .wcard .wcard-info { background: linear-gradient(135deg, rgba(78, 72, 46, 0.86), rgba(34, 34, 31, 0.9)); }
 .wcard::after { content: ''; position: absolute; inset: 0; z-index: 3; border-radius: inherit; background: #000; opacity: var(--dim, 0); pointer-events: none; }
 
 /* countries: all four filters on screen at once (2 × 2), no sideways scrolling */
 .chips.chips-fit { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); overflow: visible; }
 .chips.chips-fit .chip { min-width: 0; justify-content: space-between; padding: 0 14px; font-size: 14.5px; }
 @media (min-width: 640px) { .chips.chips-fit { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+/* trips wheel: actions revealed by sliding the front card left */
+.wcard-actions { position: absolute; right: 4px; z-index: 95; width: 140px; display: flex; align-items: center; justify-content: flex-end; gap: 12px; padding-right: 6px; }
+.wact {
+  width: 60px; height: 60px; border-radius: 50%; border: 1px solid var(--glass-edge); display: grid; place-items: center; color: var(--ink);
+  background: var(--glass-strong); box-shadow: 0 10px 24px rgba(27, 27, 31, 0.14), var(--glass-inset);
+}
+.wact.danger { background: #ff4d6d; color: #fff; border-color: transparent; box-shadow: 0 10px 24px rgba(255, 77, 109, 0.35); }
+.wact:active { transform: scale(0.92); }
