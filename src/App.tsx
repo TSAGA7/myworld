@@ -4,6 +4,7 @@ import { useWorld } from './app/world';
 import { Planet } from './screens/planet/Planet';
 import { Settings } from './screens/Settings';
 import { SoftBar, type Tab } from './ui/SoftBar';
+import { Splash, splashOff } from './ui/Splash';
 
 const Countries = lazy(() => import('./screens/countries/Countries').then((m) => ({ default: m.Countries })));
 const Profile = lazy(() => import('./screens/profile/Profile').then((m) => ({ default: m.Profile })));
@@ -22,6 +23,7 @@ export function App() {
   const route = useRoute();
   const { error, ready } = useWorld();
   const [settings, setSettings] = useState(false);
+  const [splash, setSplash] = useState(() => !splashOff());
   const tab: Tab = route[0] === 'countries' || route[0] === 'trips' || route[0] === 'me' ? route[0] : route[0] === 'join' ? 'trips' : 'planet';
 
   if (error) {
@@ -68,6 +70,7 @@ export function App() {
       )}
       <SoftBar current={tab} />
       {settings && <Settings onClose={() => setSettings(false)} />}
+      {splash && <Splash onDone={() => setSplash(false)} />}
     </div>
   );
 }

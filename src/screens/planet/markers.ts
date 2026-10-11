@@ -111,6 +111,25 @@ function cluster(kind: 'v' | 'p' | 'mix', count: string, dark: boolean) {
   return ctx.getImageData(0, 0, S * PR, S * PR);
 }
 
+/** City name with a soft halo, so it reads over any land colour. */
+function label(text: string, capital: boolean, dark: boolean) {
+  const font = `${capital ? 700 : 560} ${capital ? 12.5 : 11.5}px Onest, -apple-system, system-ui, sans-serif`;
+  const probe = document.createElement('canvas').getContext('2d') as CanvasRenderingContext2D;
+  probe.font = font;
+  const w = Math.ceil(probe.measureText(text).width) + 6;
+  const h = 18;
+  const { ctx } = canvas(w, h);
+  ctx.font = font;
+  ctx.textBaseline = 'middle';
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = dark ? 'rgba(20,20,22,0.9)' : 'rgba(250,250,252,0.92)';
+  ctx.strokeText(text, 3, h / 2);
+  ctx.fillStyle = dark ? (capital ? '#f2f2f4' : '#c9c9d0') : capital ? '#1b1b1f' : '#4a4a52';
+  ctx.fillText(text, 3, h / 2);
+  return ctx.getImageData(0, 0, w * PR, h * PR);
+}
+
 /** Small round flag for a hotel (bed) or a booking (ticket). */
 function poiPin(kind: 'stay' | 'booking', dark: boolean) {
   const W = 30;
@@ -174,6 +193,11 @@ export function installMarkerImages(map: MlMap, isDark: () => boolean): void {
       map.addImage(id, pin(m[1] as 'visited' | 'planned', !!m[2], dark), { pixelRatio: PR });
       return;
     }
+    const lbl = /^lbl-([01])-(.+)$/.exec(id);
+    if (lbl) {
+      map.addImage(id, label(lbl[2] as string, lbl[1] === '1', dark), { pixelRatio: PR });
+      return;
+    }
     const poi = /^poi-(stay|booking)$/.exec(id);
     if (poi) {
       map.addImage(id, poiPin(poi[1] as 'stay' | 'booking', dark), { pixelRatio: PR });
@@ -186,5 +210,5 @@ export function installMarkerImages(map: MlMap, isDark: () => boolean): void {
 
 /** Drops generated images so they are redrawn in the new theme colors. */
 export function resetMarkerImages(map: MlMap): void {
-  for (const id of map.listImages()) if (id.startsWith('pin-') || id.startsWith('cluster-') || id.startsWith('poi-')) map.removeImage(id);
+  for (const id of map.listImages()) if (/^(pin|cluster|poi|lbl)-/.test(id)) map.removeImage(id);
 }

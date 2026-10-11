@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { setSplashOff } from '../ui/Splash';
 import { getThemeChoice, setThemeChoice, type ThemeChoice } from '../app/theme';
 import { useToast } from '../app/toast';
 import { been, db, setSetting, useWorld } from '../app/world';
@@ -153,6 +154,16 @@ export function Settings({ onClose }: { onClose: () => void }) {
           </label>
           <label className="list-row tap">
             <span className="grow">
+              <span className="t">Заставка при запуске</span>
+              <span className="s block">Планета и самолёты по своим маршрутам — пара секунд при открытии. Тап пропускает.</span>
+            </span>
+            <input type="checkbox" className="switch" checked={settings.splash} onChange={(e) => {
+                setSplashOff(!e.target.checked);
+                void setSetting('splash', e.target.checked);
+              }} />
+          </label>
+          <label className="list-row tap">
+            <span className="grow">
               <span className="t">Подробная подложка</span>
               <span className="s block">Названия городов, дороги и озёра из OpenStreetMap. Нужен интернет; без него карта работает на встроенных границах.</span>
             </span>
@@ -185,7 +196,7 @@ export function Settings({ onClose }: { onClose: () => void }) {
       <section className="stack tight">
         <h3 className="h3">Источники</h3>
         <p className="faint small" style={{ margin: 0 }}>
-          Границы стран и справочник городов — Natural Earth (общественное достояние). Подробная подложка — OpenFreeMap, OpenMapTiles, © участники
+          Границы стран и регионов, столицы — Natural Earth (общественное достояние). Справочник городов — GeoNames (CC BY 4.0). Аэропорты — OurAirports (общественное достояние). Подробная подложка — OpenFreeMap, OpenMapTiles, © участники
           OpenStreetMap. Флаги — flag-icons (MIT). Шрифт Onest (SIL OFL). Число стран зависит от выбранного способа подсчёта.
         </p>
       </section>

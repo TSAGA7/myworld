@@ -26,7 +26,8 @@ function offlineWorker(): Plugin {
         }
       };
       walk(outDir);
-      const precache = files.filter((f) => !f.startsWith('ocr/'));
+      // OCR (~10 MB) and per-country region maps are fetched when first needed and cached then.
+      const precache = files.filter((f) => !f.startsWith('ocr/') && !f.startsWith('data/regions/'));
       const version = Date.now().toString(36);
       const sw = `const CACHE = 'mw-${version}';
 const FILES = ${JSON.stringify(['./', ...precache])};
@@ -43,7 +44,7 @@ self.addEventListener('fetch', (e) => {
   e.respondWith(caches.open(CACHE).then((c) => c.match(e.request, { ignoreSearch: true, ignoreVary: true }).then((hit) => {
     if (hit) return hit;
     return fetch(e.request).then((r) => {
-      if (r.ok && url.pathname.includes('/ocr/')) c.put(e.request, r.clone());
+      if (r.ok && (url.pathname.includes('/ocr/') || url.pathname.includes('/data/regions/'))) c.put(e.request, r.clone());
       return r;
     }).catch(() => (e.request.mode === 'navigate' ? c.match('./') : Response.error()));
   })));

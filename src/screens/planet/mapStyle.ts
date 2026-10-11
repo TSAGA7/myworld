@@ -89,6 +89,49 @@ export function countryLayers(p: MapPalette): LayerSpecification[] {
   ];
 }
 
+/** Capitals and big cities from the bundled catalog: dots and labels drawn as images, so they work offline. */
+export const labelLayers = (p: MapPalette): LayerSpecification[] => {
+  const shown: ExpressionSpecification = [
+    'any',
+    ['all', ['==', ['get', 'cap'], 1], ['>=', ['zoom'], 2.3]],
+    ['all', ['>=', ['get', 'pop'], 5_000_000], ['>=', ['zoom'], 3.2]],
+    ['all', ['>=', ['get', 'pop'], 2_000_000], ['>=', ['zoom'], 3.9]],
+    ['all', ['>=', ['get', 'pop'], 1_000_000], ['>=', ['zoom'], 4.6]],
+    ['>=', ['zoom'], 5.3],
+  ];
+  return [
+    {
+      id: 'city-dots',
+      type: 'circle',
+      source: 'labels',
+      minzoom: 2.3,
+      filter: shown,
+      paint: {
+        'circle-radius': ['case', ['==', ['get', 'cap'], 1], 3.5, 2.5],
+        'circle-color': p.dark ? '#f2f2f4' : '#1b1b1f',
+        'circle-stroke-color': p.dark ? '#1b1b1f' : '#ffffff',
+        'circle-stroke-width': 1.2,
+        'circle-opacity': ['case', ['==', ['get', 'cap'], 1], 0.9, 0.6],
+      },
+    },
+    {
+      id: 'city-labels',
+      type: 'symbol',
+      source: 'labels',
+      minzoom: 2.3,
+      filter: shown,
+      layout: {
+        'icon-image': ['concat', 'lbl-', ['to-string', ['get', 'cap']], '-', ['get', 'name']],
+        'icon-anchor': 'left',
+        'icon-offset': [5, 0],
+        'icon-allow-overlap': false,
+        'icon-padding': 2,
+        'symbol-sort-key': ['-', 0, ['+', ['get', 'pop'], ['*', ['get', 'cap'], 100_000_000]]],
+      },
+    },
+  ];
+};
+
 export const placeLayers = (): LayerSpecification[] => [
   {
     // Hotels and bookings found by address: small flags, visible when zoomed into a city.
@@ -153,6 +196,7 @@ export function baseStyle(p: MapPalette, globe: boolean, lite: boolean, countrie
       small: { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, promoteId: 'id' },
       focus: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
       pois: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
+      labels: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
       places: {
         type: 'geojson',
         data: { type: 'FeatureCollection', features: [] },
@@ -165,7 +209,7 @@ export function baseStyle(p: MapPalette, globe: boolean, lite: boolean, countrie
         },
       },
     },
-    layers: [...countryLayers(p), ...placeLayers()],
+    layers: [...countryLayers(p), ...labelLayers(p), ...placeLayers()],
   };
 }
 
@@ -202,16 +246,6 @@ export function detailLayers(p: MapPalette): LayerSpecification[] {
       filter: ['==', ['get', 'class'], 'country'],
       layout: { 'text-field': NAME, 'text-font': FONT_BOLD, 'text-size': ['interpolate', ['linear'], ['zoom'], 2, 10, 5, 14], 'text-max-width': 7 },
       paint: { 'text-color': label, 'text-halo-color': haloC, 'text-halo-width': 1.4, 'text-opacity': 0.75 },
-    },
-    {
-      id: 'ofm-city-labels',
-      type: 'symbol',
-      source: 'ofm',
-      'source-layer': 'place',
-      minzoom: 4,
-      filter: ['match', ['get', 'class'], ['city', 'town'], true, false],
-      layout: { 'text-field': NAME, 'text-font': FONT, 'text-size': ['interpolate', ['linear'], ['zoom'], 4, 10, 10, 14], 'text-max-width': 8 },
-      paint: { 'text-color': label, 'text-halo-color': haloC, 'text-halo-width': 1.2 },
     },
   ];
 }

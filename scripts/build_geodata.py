@@ -3,7 +3,6 @@
 Outputs (committed, so CI never needs the network):
   src/data/countries.json      – country reference: ids, Russian/English names, region, UN flag, label point
   public/data/countries.geojson – country polygons (only an `id` property, coordinates rounded)
-  public/data/cities.json      – populated places with Russian names, coordinates, population
   public/flags/<id>.svg        – flags copied from the flag-icons package (MIT)
 
 Usage: python3 scripts/build_geodata.py [cache_dir]
@@ -160,32 +159,7 @@ def main():
     with open(os.path.join(APP, 'public', 'data', 'countries.geojson'), 'w', encoding='utf-8') as f:
         json.dump({'type': 'FeatureCollection', 'features': out_feats}, f, separators=(',', ':'))
 
-    # Cities: Natural Earth populated places (10 m) carry Russian names, coordinates and population.
-    by_a3 = dict(ids)
-    iso_to_id = {c['iso2']: c['id'] for c in countries if c['iso2']}
-    cities, seen = [], set()
-    for f in fetch('ne_10m_populated_places'):
-        p = f['properties']
-        cid = by_a3.get(p['ADM0_A3']) or iso_to_id.get(clean(p['ISO_A2']))
-        if not cid:
-            continue
-        key = p['NE_ID']
-        if key in seen:
-            continue
-        seen.add(key)
-        ru = p.get('NAME_RU') or p['NAME']
-        en = p.get('NAME_EN') or p['NAME']
-        cities.append([
-            str(key), ru, en if en != ru else '', cid,
-            round(p['LATITUDE'], 4), round(p['LONGITUDE'], 4),
-            int(p['POP_MAX'] or 0), p.get('ADM1NAME') or '',
-            1 if p['FEATURECLA'] == 'Admin-0 capital' else 0,
-        ])
-    cities.sort(key=lambda c: -c[6])
-    with open(os.path.join(APP, 'public', 'data', 'cities.json'), 'w', encoding='utf-8') as f:
-        json.dump({'fields': ['id', 'ru', 'en', 'country', 'lat', 'lon', 'pop', 'adm1', 'capital'], 'rows': cities},
-                  f, ensure_ascii=False, separators=(',', ':'))
-    print('cities:', len(cities))
+    # Cities, regions and airports are built by scripts/build_world.mjs.
 
     # Flags (flag-icons, MIT).
     dst = os.path.join(APP, 'public', 'flags')

@@ -12,15 +12,19 @@ export const normalize = (s: string): string =>
 
 /** Catalog city as shipped in public/data/cities.json. */
 export interface CatalogCity {
-  id: string; // "ne:<Natural Earth id>"
+  id: string; // "ne:<Natural Earth id>" for the 7k major cities, "gn:<GeoNames id>" for the rest
   ru: string;
   en: string;
   countryId: string;
   lat: number;
   lon: number;
   pop: number;
+  /** Region id ("RU-15") and its Russian name. */
+  regionId: string;
   region: string;
   capital: boolean;
+  /** Seat of a region (oblast, state, province). */
+  regionCapital: boolean;
 }
 
 export interface Indexed<T> {

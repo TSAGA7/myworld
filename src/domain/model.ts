@@ -118,9 +118,19 @@ export const transportSchema = z.object({
   currency: text,
   url: text,
   note: text,
+  // Boarding details (all optional)
+  passenger: text,
+  seat: text,
+  gate: text,
+  terminal: text,
+  travelClass: text,
+  boardingTime: optTime,
+  /** Content of the boarding pass barcode (IATA BCBP for flights), as read from the user's pass. */
+  barcode: text,
   ...stamps,
 });
 export type TransportBooking = z.infer<typeof transportSchema>;
+export const BOARDING_DEFAULTS = { passenger: '', seat: '', gate: '', terminal: '', travelClass: '', boardingTime: null, barcode: '' } as const;
 
 export const STAY_KINDS = ['hotel', 'apartment', 'hostel', 'other'] as const;
 export const staySchema = z.object({

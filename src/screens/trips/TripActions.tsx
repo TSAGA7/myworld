@@ -6,7 +6,7 @@ import { encodeBundle, packTrip } from '../../data/shareTrip';
 import type { Stamped } from '../../data/store';
 import { parseBooking, type ParsedBooking } from '../../domain/bookingParser';
 import { buildIcs, googleMapsUrl, type RoutePoint, twoGisUrl } from '../../domain/exportTrip';
-import type { AccommodationBooking, GeneralBooking, TransportBooking, Trip } from '../../domain/model';
+import { type AccommodationBooking, BOARDING_DEFAULTS, type GeneralBooking, type TransportBooking, type Trip } from '../../domain/model';
 import { isCurrency } from '../../domain/money';
 import { formatDate } from '../../domain/dates';
 import { extractText } from '../../geo/ocr';
@@ -60,7 +60,7 @@ function toDraft(p: ParsedBooking, kind: ParsedBooking['kind'], tripId: string, 
       value: {
         tripId, mode: p.mode === 'other' ? 'flight' : p.mode, carrier: p.carrier, number: p.number, from: p.from, to: p.to,
         departDate: d1 ?? null, departTime: t1 ?? null, arriveDate: t2 ? (d2 ?? d1 ?? null) : (d2 ?? null), arriveTime: t2 ?? null,
-        confirmation: p.confirmation, price: p.price, currency, url: '', note: '',
+        confirmation: p.confirmation, price: p.price, currency, url: '', note: '', ...BOARDING_DEFAULTS,
       },
     };
   if (kind === 'stay')

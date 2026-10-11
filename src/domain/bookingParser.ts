@@ -92,7 +92,7 @@ export function findPrice(text: string): { price: number; currency: 'RUB' | 'USD
   return best ? { price: best.v, currency: best.c } : null;
 }
 
-const AIRLINES: Record<string, string> = {
+export const AIRLINES: Record<string, string> = {
   SU: 'Аэрофлот', S7: 'S7 Airlines', U6: 'Уральские авиалинии', DP: 'Победа', FV: 'Россия', UT: 'ЮТэйр', N4: 'Северный ветер', WZ: 'Red Wings',
   TK: 'Turkish Airlines', PC: 'Pegasus', EK: 'Emirates', FZ: 'flydubai', QR: 'Qatar Airways', EY: 'Etihad', LH: 'Lufthansa', AF: 'Air France',
   KL: 'KLM', BA: 'British Airways', LX: 'Swiss', AZ: 'ITA Airways', U2: 'easyJet', FR: 'Ryanair', W6: 'Wizz Air', CA: 'Air China',

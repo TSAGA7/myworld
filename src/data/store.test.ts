@@ -1,6 +1,7 @@
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { deriveWorld } from '../domain/world';
+import { BOARDING_DEFAULTS } from '../domain/model';
 import { exportBackup, parseBackup, restoreBackup } from './backup';
 import { WorldDb } from './db';
 import { type CityInput, WorldStore } from './store';
@@ -87,7 +88,7 @@ describe('WorldStore', () => {
     await store.markTripVisited(trip.id, new Set(['city:ne:1']), new Set());
     await store.saveTransport({
       tripId: trip.id, mode: 'flight', carrier: 'X', number: '', from: 'MOW', to: 'ROM', departDate: null, departTime: null,
-      arriveDate: null, arriveTime: null, confirmation: '', price: null, currency: '', url: '', note: '',
+      arriveDate: null, arriveTime: null, confirmation: '', price: null, currency: '', url: '', note: '', ...BOARDING_DEFAULTS,
     });
     await store.saveTask({ tripId: trip.id, title: 'Купить билеты', done: false, order: 0 });
     await store.deleteTrip(trip.id);

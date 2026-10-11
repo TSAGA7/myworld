@@ -30,6 +30,12 @@ export interface Settings {
   homeCityId: string | null;
   passport: 'RU' | 'other';
   avatarId: string | null;
+  /** Social card: show the traveller status line. */
+  shareStatus: boolean;
+  /** Home country for the «Моя страна» tracker (falls back to the home city's country). */
+  homeCountryId: string | null;
+  /** Short globe-and-planes animation on every launch. */
+  splash: boolean;
 }
 const DEFAULTS: Settings = {
   methodology: 'm195',
@@ -45,6 +51,9 @@ const DEFAULTS: Settings = {
   homeCityId: null,
   passport: 'RU',
   avatarId: null,
+  shareStatus: true,
+  homeCountryId: null,
+  splash: true,
 };
 
 /** Texts that depend on the user's gender. */

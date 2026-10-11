@@ -224,3 +224,11 @@ button.list-row:active, .list-row.tap:active { background: var(--line); }
 @keyframes spin { to { transform: rotate(360deg); } }
 .banner { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: var(--r-sm); background: var(--lime-soft); font-size: 14px; }
 .banner.warn { background: var(--danger-soft); color: var(--danger); }
+
+/* launch animation */
+.splash { position: fixed; inset: 0; z-index: 200; background: radial-gradient(120% 90% at 50% 40%, #121826 0%, #07090e 60%, #030406 100%); transition: opacity 0.45s ease; cursor: pointer; }
+.splash.leaving { opacity: 0; pointer-events: none; }
+.splash-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.splash-title { position: absolute; left: 0; right: 0; bottom: max(64px, calc(env(safe-area-inset-bottom) + 48px)); text-align: center; color: #f2f2f4; font-size: 26px; font-weight: 720; letter-spacing: 0.32em; animation: splash-title 1.4s 0.5s ease both; }
+.splash-title .thin { font-weight: 250; }
+@keyframes splash-title { from { opacity: 0; transform: translateY(10px); letter-spacing: 0.5em; } }

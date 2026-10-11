@@ -2,11 +2,12 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import maplibregl, { type GeoJSONSource, type LngLatBoundsLike, type Map as MlMap, type MapGeoJSONFeature } from 'maplibre-gl';
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import type { PlaceStatus } from '../../domain/world';
-import { COUNTRIES } from '../../geo/reference';
+import { COUNTRIES, loadStatic } from '../../geo/reference';
 import { installMarkerImages, resetMarkerImages } from './markers';
 import {
   baseStyle,
   countryLayers,
+  labelLayers,
   detailLayers,
   detailReachable,
   type MapPalette,
@@ -141,6 +142,14 @@ export const MapView = forwardRef<MapApi, Props>(function MapView(props, ref) {
       (map.getSource('small') as GeoJSONSource).setData(SMALL);
       (map.getSource('places') as GeoJSONSource).setData(latest.current.places);
       (map.getSource('pois') as GeoJSONSource).setData(latest.current.pois);
+      loadStatic<Array<[string, string, number, number, number, number]>>('data/labels.json').then(
+        (rows) =>
+          (map.getSource('labels') as GeoJSONSource | undefined)?.setData({
+            type: 'FeatureCollection',
+            features: rows.map(([id, name, lat, lon, pop, cap]) => ({ type: 'Feature', properties: { id, name, pop, cap }, geometry: { type: 'Point', coordinates: [lon, lat] } })),
+          }),
+        () => undefined,
+      );
       syncStates();
       syncSelection();
       syncFocus();
@@ -272,7 +281,7 @@ export const MapView = forwardRef<MapApi, Props>(function MapView(props, ref) {
       if (!map || !loaded.current) return;
       const p = readPalette();
       palette.current = p;
-      for (const layer of countryLayers(p)) {
+      for (const layer of [...countryLayers(p), ...labelLayers(p)]) {
         const paint = (layer as { paint?: Record<string, unknown> }).paint ?? {};
         for (const [k, v] of Object.entries(paint)) map.setPaintProperty(layer.id, k, v as never);
       }

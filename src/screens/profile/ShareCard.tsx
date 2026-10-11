@@ -1,7 +1,7 @@
 import { geoEqualEarth, geoPath } from 'd3-geo';
 import { useEffect, useRef, useState } from 'react';
 import { useToast } from '../../app/toast';
-import { useWorld } from '../../app/world';
+import { setSetting, useWorld } from '../../app/world';
 import { INHABITED_CONTINENTS } from '../../domain/achievements';
 import { plural } from '../../domain/dates';
 import { loadCountryShapes } from '../../geo/geometry';
@@ -26,6 +26,7 @@ export function ShareCardSheet({ onClose }: { onClose: () => void }) {
   const [look, setLook] = useState<Look>('dark');
   const [url, setUrl] = useState<string | null>(null);
   const blob = useRef<Blob | null>(null);
+  const showStatus = settings.shareStatus;
 
   useEffect(() => {
     let alive = true;
@@ -61,11 +62,13 @@ export function ShareCardSheet({ onClose }: { onClose: () => void }) {
       ctx.fillStyle = ink2;
       ctx.font = '600 34px Onest, system-ui, sans-serif';
       ctx.fillText(settings.name ? `${settings.name} · MY WORLD` : 'MY WORLD', pad, y);
-      const st = travelerStatus(progress.visited).status;
-      y += 54;
-      ctx.fillStyle = ink;
-      ctx.font = '600 36px Onest, system-ui, sans-serif';
-      ctx.fillText(fit(ctx, `${st.emoji} ${st.title}`, w - pad * 2), pad, y);
+      if (showStatus) {
+        const st = travelerStatus(progress.visited).status;
+        y += 54;
+        ctx.fillStyle = ink;
+        ctx.font = '600 36px Onest, system-ui, sans-serif';
+        ctx.fillText(fit(ctx, `${st.emoji} ${st.title}`, w - pad * 2), pad, y);
+      } else y += 54;
 
       // Big counter
       y += story ? 300 : 250;
@@ -94,7 +97,7 @@ export function ShareCardSheet({ onClose }: { onClose: () => void }) {
       y += 80;
       ctx.fillStyle = ink2;
       ctx.font = '500 38px Onest, system-ui, sans-serif';
-      ctx.fillText(`${progress.percent}% мира исследовано`, pad, y);
+      ctx.fillText(`${String(progress.percent).replace('.', ',')}% мира исследовано`, pad, y);
 
       // Map
       y += story ? 50 : 30;
@@ -173,7 +176,7 @@ export function ShareCardSheet({ onClose }: { onClose: () => void }) {
     return () => {
       alive = false;
     };
-  }, [format, look, progress, facts, world, settings.name, toast]);
+  }, [format, look, showStatus, progress, facts, world, settings.name, toast]);
 
   useEffect(() => () => void (url && URL.revokeObjectURL(url)), [url]);
 
@@ -211,6 +214,17 @@ export function ShareCardSheet({ onClose }: { onClose: () => void }) {
       <div className="row wrap">
         <Segmented label="Формат" value={format} onChange={setFormat} options={[{ value: 'story', label: 'Сторис' }, { value: 'square', label: 'Пост' }]} />
         <Segmented label="Тема" value={look} onChange={setLook} options={[{ value: 'dark', label: 'Тёмная' }, { value: 'light', label: 'Светлая' }]} />
+      </div>
+      <div className="list">
+        <label className="list-row tap">
+          <span className="grow">
+            <span className="t">Статус на карточке</span>
+            <span className="s block">
+              {travelerStatus(progress.visited).status.emoji} {travelerStatus(progress.visited).status.title}
+            </span>
+          </span>
+          <input type="checkbox" className="switch" checked={showStatus} onChange={(e) => void setSetting('shareStatus', e.target.checked)} />
+        </label>
       </div>
       <div className={`share-preview ${format}`}>{url ? <img src={url} alt="Карточка с количеством стран и городов" /> : <span className="spinner" />}</div>
     </Sheet>
