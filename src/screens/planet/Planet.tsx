@@ -15,6 +15,7 @@ import { FallbackMap } from './FallbackMap';
 import type { MapApi, PlaceCollection, PoiCollection } from './MapView';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { PoiCard } from './PoiCard';
+import { PhotoImport } from '../countries/PhotoImport';
 import { CityCard, CountryCard } from './PlaceCard';
 
 const MapView = lazy(() => import('./MapView').then((m) => ({ default: m.MapView })));
@@ -49,6 +50,7 @@ export function Planet({ active, onSettings }: { active: boolean; onSettings: ()
   const [view, setView] = useState<View>(readView);
   const [selection, setSelection] = useState<Selection>(null);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [photosOpen, setPhotosOpen] = useState(false);
   const [picking, setPicking] = useState<Picking>(null);
   const [picked, setPicked] = useState<{ name: string; lon: number; lat: number; countryId: string | null; relocateId: string | null } | null>(null);
   const [detailOn, setDetailOn] = useState(false);
@@ -339,12 +341,29 @@ export function Planet({ active, onSettings }: { active: boolean; onSettings: ()
             <button type="button" className="btn lime" onClick={() => setSearchOpen(true)}>
               <Icon name="search" size={18} /> Найти город
             </button>
+            <button type="button" className="btn glass-btn" onClick={() => setPhotosOpen(true)}>
+              <Icon name="image" size={18} /> Отметить по фото
+            </button>
           </div>
         </div>
       )}
 
       {searchOpen && (
         <Sheet title="Поиск" onClose={() => setSearchOpen(false)}>
+          <button
+            type="button"
+            className="btn glass-btn photo-btn"
+            onClick={() => {
+              setSearchOpen(false);
+              setPhotosOpen(true);
+            }}
+          >
+            <Icon name="image" size={22} />
+            <span className="grow">
+              <span>Отметить по фото</span>
+              <small>Страны и города — по геометкам снимков</small>
+            </span>
+          </button>
           <PlaceSearch
             onCountry={(c) => {
               setSearchOpen(false);
@@ -362,6 +381,8 @@ export function Planet({ active, onSettings }: { active: boolean; onSettings: ()
           />
         </Sheet>
       )}
+
+      {photosOpen && <PhotoImport onClose={() => setPhotosOpen(false)} />}
 
       {picked && (
         <CustomCitySheet

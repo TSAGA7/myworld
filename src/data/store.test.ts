@@ -157,4 +157,42 @@ describe('schema v2 and shared trips', () => {
     expect(mine[0]?.amount).toBe(1500);
     await expect(decodeBundle('мусор')).rejects.toThrow();
   });
+
+  it('imports places from photos: new visits with dates, earlier dates win, trips with route and linked visits', async () => {
+    await store.markCity(ROME, 'visited', '2025-01-01');
+    await store.markCountry('IT', 'visited', null);
+    const r = await store.importPhotoPlaces({
+      places: [
+        { city: null, countryId: 'IT', date: '2019-05-01' },
+        { city: ROME, countryId: 'IT', date: '2019-05-01' },
+        { city: FLORENCE, countryId: 'IT', date: '2019-05-03' },
+        { city: null, countryId: 'CH', date: '2019-05-06' },
+        { city: ZURICH, countryId: 'CH', date: '2019-05-06' },
+      ],
+      trips: [
+        { title: 'Италия и Швейцария, май 2019', start: '2019-05-01', end: '2019-05-06', countryIds: ['IT', 'CH'], stops: [
+          { city: ROME, startDate: '2019-05-01', endDate: '2019-05-02' },
+          { city: FLORENCE, startDate: '2019-05-03', endDate: '2019-05-03' },
+          { city: ZURICH, startDate: '2019-05-06', endDate: '2019-05-06' },
+        ] },
+      ],
+    });
+    expect(r).toEqual({ countries: 1, cities: 2, trips: 1 });
+    const visits = await db.visits.toArray();
+    expect(visits).toHaveLength(5); // IT, Rome, Florence, CH, Zurich — no duplicates
+    const byKey = new Map(visits.map((v) => [v.cityId ?? v.countryId, v]));
+    expect(byKey.get('ne:1')?.date).toBe('2019-05-01'); // earlier photo replaced 2025
+    expect(byKey.get('IT')?.date).toBe('2019-05-01'); // had no date
+    const [trip] = await db.trips.toArray();
+    expect(trip).toMatchObject({ title: 'Италия и Швейцария, май 2019', startDate: '2019-05-01', endDate: '2019-05-06', countryIds: ['IT', 'CH'] });
+    expect((await db.stops.where('tripId').equals(trip!.id).sortBy('order')).map((s) => s.cityId)).toEqual(['ne:1', 'ne:2', 'ne:3']);
+    const linked = (await db.visits.toArray()).filter((v) => v.tripIds.includes(trip!.id)).map((v) => v.cityId).sort();
+    expect(linked).toEqual(['ne:1', 'ne:2', 'ne:3']);
+
+    // Importing the same photos again changes nothing.
+    const again = await store.importPhotoPlaces({ places: [{ city: ROME, countryId: 'IT', date: '2020-01-01' }], trips: [] });
+    expect(again).toEqual({ countries: 0, cities: 0, trips: 0 });
+    expect((await db.visits.where('cityId').equals('ne:1').first())?.date).toBe('2019-05-01');
+    expect((await world()).visitedCountryIds.has('CH')).toBe(true);
+  });
 });

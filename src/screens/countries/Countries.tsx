@@ -14,6 +14,7 @@ import { Icon } from "../../ui/Icon";
 import { Empty, Flag, Segmented, Topo } from "../../ui/kit";
 import { CountrySheet } from "./CountrySheet";
 import { HomeCountry } from "./HomeCountry";
+import { PhotoImport } from "./PhotoImport";
 
 const SCOPE_KEY = "mw-countries-scope";
 const readScope = (): "world" | "home" => {
@@ -38,6 +39,7 @@ export function Countries({
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [sort, setSort] = useState<Sort>("az");
+  const [photos, setPhotos] = useState(false);
   const openId = route[1] ?? null;
   const [scope, setScopeRaw] = useState(readScope);
   const setScope = (v: "world" | "home") => {
@@ -194,6 +196,19 @@ export function Countries({
               </button>
             </section>
 
+            <button
+              type="button"
+              className="btn glass-btn photo-btn"
+              onClick={() => setPhotos(true)}
+            >
+              <Icon name="image" size={22} />
+              <span className="grow">
+                <span>Отметить по фото</span>
+                <small>Страны, города, поездки — по геометкам</small>
+              </span>
+              <Icon name="chevron" size={18} className="faint" />
+            </button>
+
             <label className="search">
               <Icon name="search" size={20} />
               <input
@@ -313,6 +328,7 @@ export function Countries({
           </>
         )}
       </div>
+      {photos && <PhotoImport onClose={() => setPhotos(false)} />}
       {openId && (
         <CountrySheet countryId={openId} onClose={() => goBack("countries")} />
       )}

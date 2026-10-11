@@ -101,6 +101,48 @@ export class WorldStore {
     await this.db.plans.add({ id: this.newId(), key, cityId, countryId, tripIds: [], manual: true, createdAt: now, updatedAt: now });
   }
 
+  /**
+   * Places found in the user's photos. A new place gets the photo date; an existing one keeps its record and only
+   * moves to an earlier date (or gets one when it had none). Trips are created with their route and confirm their visits.
+   */
+  async importPhotoPlaces(input: {
+    places: ReadonlyArray<{ city: CityInput | null; countryId: string; date: string | null }>;
+    trips: ReadonlyArray<{ title: string; start: string; end: string; countryIds: string[]; stops: ReadonlyArray<{ city: CityInput; startDate: string | null; endDate: string | null }> }>;
+  }): Promise<{ countries: number; cities: number; trips: number }> {
+    let countries = 0;
+    let cities = 0;
+    await this.db.transaction('rw', this.db.cities, this.db.visits, async () => {
+      const before = new Set((await this.db.visits.toArray()).map((v) => v.countryId));
+      const now = this.now();
+      for (const p of input.places) {
+        if (p.city) await this.ensureCity(p.city);
+        const key = visitKey(p.city?.id ?? null, p.countryId);
+        const v = await this.db.visits.where('key').equals(key).first();
+        if (!v) {
+          await this.db.visits.add({ id: this.newId(), key, cityId: p.city?.id ?? null, countryId: p.countryId, date: p.date, tripIds: [], manual: true, createdAt: now, updatedAt: now });
+          if (p.city) cities++;
+        } else if (p.date && (!v.date || p.date < v.date)) {
+          await this.db.visits.put({ ...v, date: p.date, updatedAt: now });
+        }
+        if (!before.has(p.countryId)) {
+          before.add(p.countryId);
+          countries++;
+        }
+      }
+    });
+    for (const t of input.trips) {
+      const trip = await this.saveTrip({
+        title: t.title, startDate: t.start, endDate: t.end, countryIds: t.countryIds, note: 'Найдена по фото',
+        coverId: null, favorite: false, members: [], dailyBudget: null, dailyBudgetCurrency: '',
+      });
+      await this.saveRoute(trip.id, t.stops.map((s) => ({ city: s.city, startDate: s.startDate, endDate: s.endDate, note: '' })));
+      const items = await this.previewMarkVisited(trip.id);
+      const earlier = items.filter((i) => i.existing?.date && i.proposedDate && i.proposedDate < i.existing.date).map((i) => i.key);
+      await this.markTripVisited(trip.id, new Set(items.map((i) => i.key)), new Set(earlier));
+    }
+    return { countries, cities, trips: input.trips.length };
+  }
+
   async setVisitDate(key: string, date: string | null): Promise<void> {
     const v = await this.db.visits.where('key').equals(key).first();
     if (v) await this.db.visits.put({ ...v, date, updatedAt: this.now() });
