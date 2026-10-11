@@ -101,7 +101,7 @@ export function ShareCardSheet({ onClose }: { onClose: () => void }) {
 
       // Map
       y += story ? 50 : 30;
-      const mapH = story ? 560 : 460;
+      const mapH = story ? 560 : 300;
       const proj = geoEqualEarth().fitExtent(
         [
           [pad - 20, y],
@@ -123,23 +123,39 @@ export function ShareCardSheet({ onClose }: { onClose: () => void }) {
           ctx.stroke();
         }
       }
-      y += mapH + (story ? 80 : 50);
+      y += mapH + (story ? 80 : 40);
 
-      // Facts
+      // One interesting fact as a line of its own, then the tiles: long labels never squeeze into a tile.
+      const km = (n: number) => `${String(Math.round(n / 100) / 10).replace('.', ',')} тыс. км`;
+      const fact = facts.farthestFromHome
+        ? `📍 Дальше всего от дома — ${facts.farthestFromHome.city.name}, ${km(facts.farthestFromHome.km)}`
+        : facts.north
+          ? `🧭 Северная точка — ${facts.north.name}, ${(facts.north.lat as number).toFixed(0)}° с. ш.`
+          : facts.topCountry && facts.topCountry.cities > 1
+            ? `🏙 Больше всего городов — ${countryName(facts.topCountry.id)}: ${facts.topCountry.cities}`
+            : null;
+      if (fact) {
+        ctx.fillStyle = ink;
+        ctx.font = '600 38px Onest, system-ui, sans-serif';
+        ctx.fillText(fit(ctx, fact, w - pad * 2), pad, y);
+        y += story ? 60 : 50;
+      }
+
+      // Tiles: only numbers worth showing (no "0 поездок"), always full rows.
       const inhabited = facts.continents.filter((x) => (INHABITED_CONTINENTS as readonly string[]).includes(x)).length;
-      const tiles: Array<[string, string]> = [
-        [`${inhabited}/6`, 'континентов'],
-        [String(facts.trips), plural(facts.trips, 'поездка', 'поездки', 'поездок')],
-      ];
+      const tiles: Array<[string, string]> = [[`${inhabited}/6`, 'континентов']];
+      if (facts.trips > 0) tiles.push([String(facts.trips), plural(facts.trips, 'поездка', 'поездки', 'поездок')]);
       if (facts.routeKm > 0) tiles.push([`${Math.round(facts.routeKm / 1000).toLocaleString('ru-RU')} тыс.`, 'км по маршрутам']);
-      if (facts.farthestFromHome) tiles.push([`${Math.round(facts.farthestFromHome.km / 100) / 10} тыс. км`, `дальше всего — ${facts.farthestFromHome.city.name}`]);
-      else if (facts.north) tiles.push([`${(facts.north.lat as number).toFixed(0)}° с. ш.`, `северная точка — ${facts.north.name}`]);
-      else if (facts.topCountry) tiles.push([String(facts.topCountry.cities), `городов: ${countryName(facts.topCountry.id)}`]);
+      if (world.plannedCountryIds.size > 0) tiles.push([String(world.plannedCountryIds.size), plural(world.plannedCountryIds.size, 'страна в планах', 'страны в планах', 'стран в планах')]);
+      if (facts.countriesThisYear > 0) tiles.push([String(facts.countriesThisYear), `${plural(facts.countriesThisYear, 'страна', 'страны', 'стран')} за ${new Date().getFullYear()} год`]);
+      if (facts.topCountry && facts.topCountry.cities > 0) tiles.push([String(facts.topCountry.cities), `${plural(facts.topCountry.cities, 'город', 'города', 'городов')}: ${countryName(facts.topCountry.id)}`]);
       const cols = 2;
       const gap = 24;
       const tw = (w - pad * 2 - gap) / cols;
-      const th = story ? 190 : 170;
-      tiles.slice(0, story ? 4 : 4).forEach(([v, label], i) => {
+      const th = story ? 190 : 150;
+      const footerTop = h - (story ? 150 : 130);
+      const rows = Math.max(0, Math.min(2, Math.floor((footerTop - y + gap) / (th + gap)), Math.floor(tiles.length / cols)));
+      tiles.slice(0, rows * cols).forEach(([v, label], i) => {
         const x = pad + (i % cols) * (tw + gap);
         const ty = y + Math.floor(i / cols) * (th + gap);
         ctx.fillStyle = dark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.7)';
@@ -150,10 +166,10 @@ export function ShareCardSheet({ onClose }: { onClose: () => void }) {
         ctx.stroke();
         ctx.fillStyle = ink;
         ctx.font = '720 64px Onest, system-ui, sans-serif';
-        ctx.fillText(v, x + 34, ty + 90);
+        ctx.fillText(v, x + 34, ty + th * 0.47);
         ctx.fillStyle = ink2;
         ctx.font = '500 32px Onest, system-ui, sans-serif';
-        ctx.fillText(fit(ctx, label, tw - 68), x + 34, ty + 142);
+        ctx.fillText(fit(ctx, label, tw - 68), x + 34, ty + th - 34);
       });
 
       // Footer
@@ -161,9 +177,6 @@ export function ShareCardSheet({ onClose }: { onClose: () => void }) {
       ctx.fillStyle = ink2;
       ctx.font = '500 30px Onest, system-ui, sans-serif';
       ctx.fillText(`${MONTHS[now.getMonth()]} ${now.getFullYear()}`, pad, h - 90);
-      ctx.textAlign = 'right';
-      ctx.fillText('tsaga7.github.io/myworld', w - pad, h - 90);
-      ctx.textAlign = 'left';
 
       const b = await new Promise<Blob | null>((r) => c.toBlob(r, 'image/png'));
       if (!alive || !b) return;
