@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { copyFileSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import react from '@vitejs/plugin-react';
 import { defineConfig, type Plugin } from 'vite';
@@ -18,12 +18,14 @@ function offlineWorker(): Plugin {
       outDir = config.build.outDir;
     },
     closeBundle() {
+      // The changelog is read live by the running (older) version to say what the update adds: never precached.
+      copyFileSync('src/app/changelog.json', join(outDir, 'changelog.json'));
       const files: string[] = [];
       const walk = (dir: string) => {
         for (const name of readdirSync(dir)) {
           const full = join(dir, name);
           if (statSync(full).isDirectory()) walk(full);
-          else if (name !== 'sw.js') files.push(relative(outDir, full).split('\\').join('/'));
+          else if (name !== 'sw.js' && name !== 'changelog.json') files.push(relative(outDir, full).split('\\').join('/'));
         }
       };
       walk(outDir);
@@ -45,7 +47,11 @@ async function fill(c, f) {
   return c.put(f, r);
 }
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => Promise.all(FILES.map((f) => fill(c, f)))).then(() => self.skipWaiting()));
+  // No skipWaiting here: the new version waits until the user taps «Обновить», so the open version keeps its cache.
+  e.waitUntil(caches.open(CACHE).then((c) => Promise.all(FILES.map((f) => fill(c, f)))));
+});
+self.addEventListener('message', (e) => {
+  if (e.data === 'skip-waiting') self.skipWaiting();
 });
 self.addEventListener('activate', (e) => {
   e.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k.startsWith('mw-') && k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));

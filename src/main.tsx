@@ -4,7 +4,9 @@ import { App } from './App';
 import { applyTheme } from './app/theme';
 import { ToastProvider } from './app/toast';
 import { WorldProvider } from './app/world';
+import { startUpdates } from './app/update';
 import { ErrorBoundary } from './ui/ErrorBoundary';
+import { UpdatePrompt } from './ui/UpdateCard';
 import './styles/tokens.css';
 import './styles/app.css';
 import './styles/screens.css';
@@ -24,16 +26,13 @@ createRoot(document.getElementById('root') as HTMLElement).render(
           <App />
         </ToastProvider>
       </WorldProvider>
+      <UpdatePrompt />
     </ErrorBoundary>
   </StrictMode>,
 );
 
-// Offline: the service worker keeps the app, geodata and flags in the cache (production build only).
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(() => undefined);
-  });
-}
+// Offline + updates: the service worker keeps the app in the cache; a new version waits for «Обновить» (production only).
+if (import.meta.env.PROD) startUpdates();
 
 // iOS: tapping outside a field closes the keyboard.
 document.addEventListener('pointerdown', (e) => {

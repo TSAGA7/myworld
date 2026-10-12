@@ -1,4 +1,7 @@
-import { Component, type ReactNode } from 'react';
+import { Component, type ReactNode, useEffect, useState } from 'react';
+import { applyUpdate, remoteNews } from '../app/update';
+import { isUpdateError } from '../domain/changes';
+import { CenterCard } from './UpdateCard';
 
 /** Last line of defence: shows what broke and keeps the user's data untouched. */
 export class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
@@ -7,21 +10,31 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, { error: E
     return { error };
   }
   override render() {
-    if (!this.state.error) return this.props.children;
+    const { error } = this.state;
+    if (!error) return this.props.children;
+    // The app was updated while this screen was open: offer the update instead of an error.
+    if (isUpdateError(error)) return <UpdatedMeanwhile />;
     return (
-      <div className="screen">
-        <div className="screen-inner">
-          <div className="card stack">
-            <h1 className="h2">Что-то пошло не так</h1>
-            <p className="muted" style={{ margin: 0 }}>
-              Экран не смог открыться. Ваши данные сохранены на устройстве. Ошибка: {this.state.error.message}
-            </p>
-            <button type="button" className="btn dark" onClick={() => (location.hash = '#/planet', location.reload())}>
-              Открыть карту заново
-            </button>
-          </div>
-        </div>
-      </div>
+      <CenterCard
+        title="Что-то пошло не так"
+        text={`Экран не смог открыться. Ваши данные сохранены на устройстве. Ошибка: ${error.message}`}
+        primary={{ label: 'Открыть карту заново', onClick: () => ((location.hash = '#/planet'), location.reload()) }}
+      />
     );
   }
+}
+
+function UpdatedMeanwhile() {
+  const [items, setItems] = useState<string[] | null>(null);
+  useEffect(() => {
+    void remoteNews().then(setItems);
+  }, []);
+  return (
+    <CenterCard
+      title="Вышло обновление"
+      text={items === null || items.length ? 'Добавилось:' : 'Исправления и улучшения. Данные останутся на месте.'}
+      items={items ?? []}
+      primary={{ label: 'Обновить', onClick: applyUpdate }}
+    />
+  );
 }
