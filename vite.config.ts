@@ -1,4 +1,5 @@
-import { readdirSync, statSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import react from '@vitejs/plugin-react';
 import { defineConfig, type Plugin } from 'vite';
@@ -28,11 +29,23 @@ function offlineWorker(): Plugin {
       walk(outDir);
       // OCR (~10 MB) and per-country region maps are fetched when first needed and cached then.
       const precache = files.filter((f) => !f.startsWith('ocr/') && !f.startsWith('data/regions/'));
-      const version = Date.now().toString(36);
+      // Each file is cached under "path?h=<content hash>": an update downloads only files that really changed
+      // (city catalog, borders and flags — ~15 MB — are copied from the previous cache instead of refetched over LTE).
+      const hashed = precache.map((f) => `${f}?h=${createHash('sha1').update(readFileSync(join(outDir, f))).digest('hex').slice(0, 10)}`);
+      const version = createHash('sha1').update(hashed.join()).digest('hex').slice(0, 10);
       const sw = `const CACHE = 'mw-${version}';
-const FILES = ${JSON.stringify(['./', ...precache])};
+const FILES = ${JSON.stringify(['./', ...hashed])};
+async function fill(c, f) {
+  if (f.includes('?h=')) {
+    const old = await caches.match(f);
+    if (old) return c.put(f, old);
+  }
+  const r = await fetch(new Request(f.split('?')[0], { cache: 'reload' }));
+  if (!r.ok) throw new Error(f);
+  return c.put(f, r);
+}
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => Promise.all(FILES.map((f) => fetch(new Request(f, { cache: 'reload' })).then((r) => { if (!r.ok) throw new Error(f); return c.put(f, r); })))).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE).then((c) => Promise.all(FILES.map((f) => fill(c, f)))).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', (e) => {
   e.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k.startsWith('mw-') && k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));

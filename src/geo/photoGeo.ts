@@ -32,11 +32,12 @@ export interface FoundPlace {
   region: string;
 }
 
+/** Lookup of photo points. `cityId` in the result is the row of the city in cities.tsv (names are read later). */
 export interface PhotoIndex {
   resolve(p: PhotoPoint): ResolvedPoint | null;
-  place(id: string): FoundPlace | undefined;
 }
 
+const MAGIC = 0x3150574d;
 const RADIUS = 30; // km: farther than this from any settlement → country only
 const CELL = 0.5; // degrees
 const COLS = 360 / CELL;
@@ -46,45 +47,23 @@ const cell = (lat: number, lon: number) => {
   return Math.floor(lat / CELL) * 10_000 + (c < -COLS / 2 ? c + COLS : c >= COLS / 2 ? c - COLS : c);
 };
 
-/**
- * Compact index of the city catalog (cities.tsv) and country borders for photo lookups. Numbers live in typed
- * arrays and a row's text is decoded only for the places actually found, so it stays light on a phone
- * (the search catalog keeps ~194 000 objects; this keeps a few arrays).
- */
-export function buildPhotoIndex(tsv: string, shapes: CountryShapes, regionNames: Record<string, string>, knownCountries: ReadonlySet<string>): PhotoIndex {
-  const starts: number[] = [];
-  for (let i = 0; i < tsv.length; ) {
-    starts.push(i);
-    const n = tsv.indexOf('\n', i);
-    if (n < 0) break;
-    i = n + 1;
-  }
-  const count = starts.length;
-  const lat = new Float32Array(count);
-  const lon = new Float32Array(count);
-  const weight = new Float32Array(count);
-  const country = new Uint16Array(count);
-  const countryIds: string[] = [];
-  const countryIdx = new Map<string, number>();
+/** Reads photo-index.bin (see scripts/photo-index.mjs) and the country borders into a lookup. */
+export function buildPhotoIndex(bin: ArrayBuffer, shapes: CountryShapes, knownCountries: ReadonlySet<string>): PhotoIndex {
+  const dv = new DataView(bin);
+  if (dv.getUint32(0, true) !== MAGIC) throw new Error('Справочник городов повреждён — обновите страницу');
+  const count = dv.getUint32(4, true);
+  const headLen = dv.getUint32(8, true);
+  const { countries: countryIds } = JSON.parse(new TextDecoder().decode(new Uint8Array(bin, 12, headLen))) as { countries: string[] };
+  let o = 12 + headLen;
+  const lat = new Float32Array(bin, o, count);
+  const lon = new Float32Array(bin, (o += count * 4), count);
+  const weight = new Float32Array(bin, (o += count * 4), count);
+  const country = new Uint16Array(bin, (o += count * 4), count);
+  const countryIdx = new Map(countryIds.map((id, i) => [id, i]));
+
   const grid = new Map<number, number[]>();
-  const rowText = (i: number) => tsv.slice(starts[i] ?? 0, (starts[i + 1] ?? tsv.length + 1) - 1);
   for (let i = 0; i < count; i++) {
-    const f = rowText(i).split('\t');
-    const cid = f[3];
-    if (!f[0] || !f[1] || !cid) {
-      weight[i] = 0;
-      continue;
-    }
-    let ci = countryIdx.get(cid);
-    if (ci === undefined) {
-      ci = countryIds.push(cid) - 1;
-      countryIdx.set(cid, ci);
-    }
-    country[i] = ci;
-    lat[i] = Number(f[4]);
-    lon[i] = Number(f[5]);
-    // Bigger places win over tiny neighbours a little closer, so a photo in a suburb lands on the city.
-    weight[i] = Math.pow(Math.max(Number(f[6]) || 0, 500) + (f[8] === '1' ? 5e6 : 0), 0.2);
+    if (country[i] === 0xffff) continue;
     const k = cell(lat[i] ?? 0, lon[i] ?? 0);
     const arr = grid.get(k);
     if (arr) arr.push(i);
@@ -125,10 +104,8 @@ export function buildPhotoIndex(tsv: string, shapes: CountryShapes, regionNames:
     return best;
   };
 
-  const found = new Map<string, FoundPlace>();
   const cache = new Map<string, { countryId: string; cityId: string | null } | null>();
   return {
-    place: (id) => found.get(id),
     resolve(p) {
       // Photos within ~1 km share one lookup: a holiday of 2 000 photos is a few dozen spots.
       const k = `${p.lat.toFixed(2)},${p.lon.toFixed(2)}`;
@@ -139,19 +116,51 @@ export function buildPhotoIndex(tsv: string, shapes: CountryShapes, regionNames:
         const countryId = countryOf(p.lon, p.lat, guess) ?? guess;
         const ci = countryId ? countryIdx.get(countryId) : undefined;
         const c = ci === undefined ? -1 : nearest(p.lat, p.lon, ci);
-        hit = null;
-        if (countryId && knownCountries.has(countryId)) {
-          let cityId: string | null = null;
-          if (c >= 0) {
-            const [id = '', ru = '', en = '', , y = '', x = '', , regionId = ''] = rowText(c).split('\t');
-            cityId = id;
-            if (!found.has(id)) found.set(id, { id, ru, en: en || ru, countryId, lat: Number(y), lon: Number(x), region: regionNames[regionId] ?? '' });
-          }
-          hit = { countryId, cityId };
-        }
+        hit = countryId && knownCountries.has(countryId) ? { countryId, cityId: c >= 0 ? String(c) : null } : null;
         cache.set(k, hit);
       }
       return hit ? { ...p, ...hit } : null;
     },
   };
+}
+
+/**
+ * Reads the given lines of cities.tsv while it streams in, without keeping the whole file:
+ * names of the few dozen places found, out of ~194 000.
+ */
+export async function readCatalogRows(
+  body: ReadableStream<Uint8Array> | null,
+  rows: ReadonlySet<number>,
+  regionNames: Record<string, string>,
+): Promise<Map<number, FoundPlace>> {
+  const out = new Map<number, FoundPlace>();
+  if (!body || rows.size === 0) return out;
+  const max = Math.max(...rows);
+  const reader = body.getReader();
+  const dec = new TextDecoder();
+  let rest = '';
+  let line = 0;
+  const take = (text: string) => {
+    if (!rows.has(line)) return;
+    const [id = '', ru = '', en = '', countryId = '', y = '', x = '', , regionId = ''] = text.split('\t');
+    if (id && ru && countryId) out.set(line, { id, ru, en: en || ru, countryId, lat: Number(y), lon: Number(x), region: regionNames[regionId] ?? '' });
+  };
+  for (;;) {
+    const { done, value } = await reader.read();
+    const text = rest + (done ? dec.decode() : dec.decode(value, { stream: true }));
+    let start = 0;
+    for (let n = text.indexOf('\n'); n >= 0; n = text.indexOf('\n', start)) {
+      take(text.slice(start, n));
+      start = n + 1;
+      if (++line > max) {
+        await reader.cancel().catch(() => undefined);
+        return out;
+      }
+    }
+    rest = text.slice(start);
+    if (done) {
+      if (rest) take(rest);
+      return out;
+    }
+  }
 }

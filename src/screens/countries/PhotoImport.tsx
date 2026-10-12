@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { holdLean } from '../../app/lean';
 import { useToast } from '../../app/toast';
 import { store, useToday, useWorld } from '../../app/world';
 import { countLabel, formatDate, formatRange, plural } from '../../domain/dates';
@@ -15,7 +16,9 @@ import { PlaceSearch } from '../../ui/PlaceSearch';
 
 type Step =
   | { kind: 'pick' }
-  | { kind: 'preparing' }
+  /** The photo picker is open or the phone is still handing the photos over. */
+  | { kind: 'waiting' }
+  | { kind: 'error'; message: string }
   | { kind: 'reading'; progress: ScanProgress }
   | { kind: 'result' }
   | { kind: 'saved'; countries: number; cities: number; trips: number };
@@ -46,38 +49,23 @@ export function PhotoImport({ onClose }: { onClose: () => void }) {
   const [confirmClose, setConfirmClose] = useState(false);
   const [busy, setBusy] = useState(false);
   const seen = useRef(new Set<string>());
-  const awaiting = useRef(false);
   const scanner = useMemo(() => createPhotoScanner(), []);
 
-  // The city index loads while the user is still choosing photos.
+  // While this window is open the 3D globe is taken down: iOS keeps the page alive behind its photo picker.
+  // The small city index (~3 MB) loads right away, so the analysis starts the moment the photos arrive.
   useEffect(() => {
-    scanner.warm();
-    return () => scanner.dispose();
-  }, [scanner]);
-
-  // The page gets focus back the moment the photo picker closes, often long before the phone hands the files over:
-  // show the scanning screen right away instead of a frozen sheet.
-  useEffect(() => {
-    const back = () => {
-      if (!awaiting.current || document.visibilityState === 'hidden') return;
-      window.setTimeout(() => {
-        if (awaiting.current) setStep((s) => (s.kind === 'pick' || s.kind === 'result' ? { kind: 'preparing' } : s));
-      }, 250);
-    };
-    window.addEventListener('focus', back);
-    document.addEventListener('visibilitychange', back);
+    const release = holdLean();
+    scanner.prepare().catch(() => undefined);
     return () => {
-      window.removeEventListener('focus', back);
-      document.removeEventListener('visibilitychange', back);
+      release();
+      scanner.dispose();
     };
-  }, []);
+  }, [scanner]);
 
   const hasResult = points.length > 0 || stats.total > 0;
   const backToList = () => setStep(hasResult ? { kind: 'result' } : { kind: 'pick' });
-  const cancelled = () => setStep((s) => (s.kind === 'preparing' ? (seen.current.size ? { kind: 'result' } : { kind: 'pick' }) : s));
 
   const pick = async (list: FileList | null) => {
-    awaiting.current = false;
     const key = (f: File) => `${f.name}|${f.size}|${f.lastModified}`;
     const files = [...(list ?? [])].filter((f) => !seen.current.has(key(f)));
     if (!files.length) {
@@ -98,8 +86,7 @@ export function PhotoImport({ onClose }: { onClose: () => void }) {
       setStats((s) => ({ total: s.total + files.length, located: s.located + r.located }));
       setStep({ kind: 'result' });
     } catch (e) {
-      toast(`Не удалось прочитать фото: ${e instanceof Error ? e.message : e}`);
-      backToList();
+      setStep({ kind: 'error', message: e instanceof Error ? e.message : String(e) });
     }
   };
 
@@ -171,35 +158,26 @@ export function PhotoImport({ onClose }: { onClose: () => void }) {
     else onClose();
   };
 
+  // One file input for the whole window that never unmounts: iPhone hands the photos over a moment after its picker
+  // closes, and an input removed in between (by a screen change) would lose them.
+  const input = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const el = input.current;
+    if (!el) return;
+    // "cancel" — the picker was closed without photos (not a React event for inputs yet).
+    const cancel = () => setStep((s) => (s.kind === 'waiting' ? (seen.current.size ? { kind: 'result' } : { kind: 'pick' }) : s));
+    el.addEventListener('cancel', cancel);
+    return () => el.removeEventListener('cancel', cancel);
+  }, []);
+  const openPicker = () => {
+    input.current?.click();
+    // The analysis screen is ready behind the picker: tapping ✓ lands straight on it.
+    setStep({ kind: 'waiting' });
+  };
   const picker = (label: string, cls: string) => (
-    <label
-      className={`btn ${cls}`}
-      onClick={() => {
-        awaiting.current = true;
-      }}
-    >
+    <button type="button" className={`btn ${cls}`} onClick={openPicker}>
       <Icon name="image" size={18} /> {label}
-      <input
-        type="file"
-        accept={ACCEPT}
-        multiple
-        className="sr"
-        onChange={(e) => {
-          void pick(e.target.files);
-          e.target.value = '';
-        }}
-        ref={(el) => {
-          // "cancel" (picker closed without photos) is not a React event for inputs yet.
-          if (el && !el.dataset.cancelHooked) {
-            el.dataset.cancelHooked = '1';
-            el.addEventListener('cancel', () => {
-              awaiting.current = false;
-              cancelled();
-            });
-          }
-        }}
-      />
-    </label>
+    </button>
   );
 
   const editRow = editing ? rows.find((r) => r.countryId === editing.countryId) : undefined;
@@ -207,14 +185,31 @@ export function PhotoImport({ onClose }: { onClose: () => void }) {
   let body: JSX.Element;
   let footer: JSX.Element | undefined;
   let heading = 'Отметить по фото';
-  if (step.kind === 'preparing' || step.kind === 'reading') {
+  if (step.kind === 'waiting' || step.kind === 'reading') {
     body = <Scanning progress={step.kind === 'reading' ? step.progress : null} />;
     footer =
-      step.kind === 'preparing' ? (
-        <button type="button" className="btn ghost grow" onClick={() => { awaiting.current = false; backToList(); }}>
+      step.kind === 'waiting' ? (
+        <button type="button" className="btn ghost grow" onClick={backToList}>
           Отмена
         </button>
       ) : undefined;
+  } else if (step.kind === 'error') {
+    body = (
+      <div className="stack">
+        <div className="card stack tight">
+          <b>Не получилось разобрать фото</b>
+          <p className="muted small" style={{ margin: 0 }}>{step.message}</p>
+        </div>
+      </div>
+    );
+    footer = (
+      <>
+        <button type="button" className="btn ghost" onClick={backToList}>
+          Назад
+        </button>
+        {picker('Выбрать снова', 'lime grow')}
+      </>
+    );
   } else if (step.kind === 'saved') {
     heading = 'Готово';
     body = (
@@ -352,6 +347,21 @@ export function PhotoImport({ onClose }: { onClose: () => void }) {
 
   return (
     <>
+      <input
+        ref={input}
+        type="file"
+        accept={ACCEPT}
+        multiple
+        className="sr"
+        tabIndex={-1}
+        aria-hidden="true"
+        onChange={(e) => {
+          const list = e.target.files;
+          void pick(list).finally(() => {
+            e.target.value = '';
+          });
+        }}
+      />
       <Sheet title={heading} onClose={close} footer={footer}>
         {body}
       </Sheet>

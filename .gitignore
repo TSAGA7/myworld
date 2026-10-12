@@ -3,3 +3,4 @@ dist
 *.tsbuildinfo
 .ne-cache
 public/ocr
+public/data/photo-index.bin

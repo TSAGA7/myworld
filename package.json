@@ -4,15 +4,16 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "npm run ocr-assets && vite",
-    "build": "npm run ocr-assets && tsc -p tsconfig.json && vite build",
+    "dev": "npm run ocr-assets && npm run photo-index && vite",
+    "build": "npm run ocr-assets && npm run photo-index && tsc -p tsconfig.json && vite build",
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.json",
     "lint": "eslint .",
-    "test": "vitest run",
+    "test": "npm run photo-index && vitest run",
     "check": "npm run typecheck && npm run lint && npm run test",
     "geodata": "python3 scripts/build_geodata.py",
-    "ocr-assets": "node scripts/ocr-assets.mjs"
+    "ocr-assets": "node scripts/ocr-assets.mjs",
+    "photo-index": "node scripts/photo-index.mjs"
   },
   "dependencies": {
     "@zxing/browser": "^0.1.5",

@@ -16,6 +16,7 @@ import type { MapApi, PlaceCollection, PoiCollection } from './MapView';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { PoiCard } from './PoiCard';
 import { PhotoImport } from '../countries/PhotoImport';
+import { useLean } from '../../app/lean';
 import { CityCard, CountryCard } from './PlaceCard';
 
 const MapView = lazy(() => import('./MapView').then((m) => ({ default: m.MapView })));
@@ -51,6 +52,7 @@ export function Planet({ active, onSettings }: { active: boolean; onSettings: ()
   const [selection, setSelection] = useState<Selection>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [photosOpen, setPhotosOpen] = useState(false);
+  const lean = useLean();
   const [picking, setPicking] = useState<Picking>(null);
   const [picked, setPicked] = useState<{ name: string; lon: number; lat: number; countryId: string | null; relocateId: string | null } | null>(null);
   const [detailOn, setDetailOn] = useState(false);
@@ -217,7 +219,9 @@ export function Planet({ active, onSettings }: { active: boolean; onSettings: ()
 
   return (
     <div className="planet">
-      {failure || settings.lite ? (
+      {lean ? (
+        <div className="map-canvas" />
+      ) : failure || settings.lite ? (
         <FallbackMap ref={api} {...mapProps} />
       ) : (
         <Suspense fallback={<div className="map-canvas map-loading"><span className="spinner" /></div>}>
