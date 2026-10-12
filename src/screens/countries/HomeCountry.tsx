@@ -1,18 +1,17 @@
-import { geoAzimuthalEqualArea, geoCentroid, geoContains, geoPath } from 'd3-geo';
-import type { Feature, FeatureCollection, MultiPolygon, Polygon } from 'geojson';
-import { useEffect, useMemo, useState } from 'react';
+import { geoAzimuthalEqualArea, geoCentroid, geoPath } from 'd3-geo';
+import type { FeatureCollection } from 'geojson';
+import { useMemo, useState } from 'react';
 import { markCity, unmarkCity } from '../../app/actions';
 import { useToast } from '../../app/toast';
 import { been, setSetting, useWorld } from '../../app/world';
 import { countLabel, plural } from '../../domain/dates';
 import type { CatalogCity } from '../../domain/search';
-import { type Catalog, catalogToCity, loadCatalog } from '../../geo/catalog';
-import { COUNTRIES, countryName, loadStatic, searchCountries } from '../../geo/reference';
+import { catalogToCity } from '../../geo/catalog';
+import { COUNTRIES, countryName, searchCountries } from '../../geo/reference';
 import { Icon } from '../../ui/Icon';
 import { Empty, Flag, Sheet } from '../../ui/kit';
+import { type Region, useHomeStats } from './homeStats';
 
-type Region = Feature<Polygon | MultiPolygon, { id: string; ru: string; en: string }>;
-const BIG = 100_000;
 
 /** The home country chosen in settings, or the country of the home city. */
 export function useHomeCountry(): string | null {
@@ -70,68 +69,9 @@ function PickCountry({ onDone, current }: { onDone: () => void; current: string 
 }
 
 function Tracker({ countryId, onChange }: { countryId: string; onChange: () => void }) {
-  const { world, cities } = useWorld();
-  const [regions, setRegions] = useState<Region[] | null>(null);
-  const [catalog, setCatalog] = useState<Catalog | null>(null);
-  const [failed, setFailed] = useState(false);
+  const { regions, local, failed, visited, openedRegions, total, opened, percent, bigVisited } = useHomeStats(countryId);
   const [open, setOpen] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
-
-  useEffect(() => {
-    let alive = true;
-    setRegions(null);
-    setFailed(false);
-    loadStatic<FeatureCollection<Polygon | MultiPolygon, Region['properties']>>(`data/regions/${countryId}.json`)
-      .then((fc) => alive && setRegions(fc.features as Region[]))
-      .catch(() => alive && setRegions([]));
-    loadCatalog()
-      .then((c) => alive && setCatalog(c))
-      .catch(() => alive && setFailed(true));
-    return () => {
-      alive = false;
-    };
-  }, [countryId]);
-
-  // Catalog cities of this country, by region.
-  const local = useMemo(() => {
-    if (!catalog) return null;
-    const list = catalog.list.filter((c) => c.countryId === countryId);
-    const byRegion = new Map<string, CatalogCity[]>();
-    for (const c of list) {
-      const arr = byRegion.get(c.regionId) ?? [];
-      arr.push(c);
-      byRegion.set(c.regionId, arr);
-    }
-    for (const arr of byRegion.values()) arr.sort((a, b) => b.pop - a.pop);
-    return { list, byRegion, big: list.filter((c) => c.pop >= BIG) };
-  }, [catalog, countryId]);
-
-  // The user's visited cities in this country, with their region.
-  const visited = useMemo(() => {
-    const out: Array<{ id: string; name: string; regionId: string; lat: number | null; lon: number | null }> = [];
-    for (const id of world.visitedCityIds) {
-      const c = cities.get(id);
-      if (!c || c.countryId !== countryId) continue;
-      let regionId = catalog?.byId.get(id)?.regionId ?? '';
-      if (!regionId && regions && c.lat !== null && c.lon !== null) {
-        const pt: [number, number] = [c.lon, c.lat];
-        regionId = regions.find((r) => geoContains(r, pt))?.properties.id ?? '';
-      }
-      out.push({ id, name: c.name, regionId, lat: c.lat, lon: c.lon });
-    }
-    return out;
-  }, [world.visitedCityIds, cities, countryId, catalog, regions]);
-
-  const openedRegions = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const v of visited) if (v.regionId) m.set(v.regionId, (m.get(v.regionId) ?? 0) + 1);
-    return m;
-  }, [visited]);
-
-  const total = regions?.length ?? 0;
-  const opened = regions ? regions.filter((r) => openedRegions.has(r.properties.id)).length : 0;
-  const percent = total ? Math.round((opened / total) * 1000) / 10 : 0;
-  const bigVisited = local ? local.big.filter((c) => world.visitedCityIds.has(c.id)).length : null;
 
   const map = useMemo(() => {
     if (!regions?.length) return null;

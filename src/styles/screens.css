@@ -521,3 +521,7 @@
 .scan-flags { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
 .scan-flag { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px 0 6px; border-radius: var(--r-pill); background: var(--glass-strong); border: 1px solid var(--glass-edge); font-size: 13.5px; font-weight: 600; animation: done-pop 0.4s var(--ease) both; }
 @media (prefers-reduced-motion: reduce) { .scan-globe *, .scan-ring, .scan-photo { animation: none !important; } }
+.share-scope { display: grid; width: 100%; }
+.share-scope button { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* The preview image is "compressible" in a grid row, so the row used to end before the picture did. */
+.sheet-body:has(.share-preview) { grid-auto-rows: max-content; }
