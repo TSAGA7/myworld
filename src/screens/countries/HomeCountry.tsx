@@ -164,9 +164,11 @@ function Tracker({ countryId, onChange }: { countryId: string; onChange: () => v
       <section className="stack tight">
         <div className="section-title">
           <h3 className="h3">Города</h3>
-          <button type="button" className="link-btn" onClick={() => setAdding((a) => !a)}>
-            {adding ? 'Готово' : '+ Добавить город'}
-          </button>
+          {adding && (
+            <button type="button" className="link-btn" onClick={() => setAdding(false)}>
+              Готово
+            </button>
+          )}
         </div>
         {adding ? (
           <PlaceSearch
