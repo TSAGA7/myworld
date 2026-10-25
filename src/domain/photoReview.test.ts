@@ -63,7 +63,7 @@ describe('photo review', () => {
       ] },
       { start: '2026-09-01', end: '2026-09-02', countryIds: ['KG'], photos: 1, stops: [] },
     ];
-    const out = tripsToSave(trips, places, { ...NO_EDITS, off: new Set(['t:1']), replace: new Map([['bal', KARAKOL]]) }, () => 'Киргизия');
+    const out = tripsToSave(trips, places, { ...NO_EDITS, off: new Set(['t:1']), replace: new Map([['bal', KARAKOL]]) }, () => 'Кыргызстан');
     expect(out).toHaveLength(1);
     expect(out[0]!.stops.map((s) => [s.city.name, s.startDate, s.endDate])).toEqual([
       ['Бишкек', '2026-07-29', '2026-07-30'],

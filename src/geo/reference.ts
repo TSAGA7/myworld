@@ -11,7 +11,7 @@ export const countryName = (id: string): string => COUNTRY_BY_ID.get(id)?.ru ?? 
 /** Flag image url (flag-icons, MIT) or null for territories without a flag file. */
 export const flagUrl = (id: string): string | null => (COUNTRY_BY_ID.get(id)?.flag ? `${import.meta.env.BASE_URL}flags/${id.toLowerCase()}.svg` : null);
 
-const index = indexItems(COUNTRIES, (c) => [c.ru, c.en, c.iso3, c.iso2]);
+const index = indexItems(COUNTRIES, (c) => [c.ru, c.en, c.iso3, c.iso2, ...(c.aka ?? [])]);
 export const searchCountries = (q: string, limit = 6): CountryRef[] => search(index, q, limit, (c) => (c.m195 ? 1 : 0));
 
 /** Shared lazy loader for static JSON files in public/: fetched once per session, then served from memory. */

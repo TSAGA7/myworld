@@ -18,6 +18,8 @@ export interface CountryRef {
   bbox: [number, number, number, number];
   small: boolean;
   flag: boolean;
+  /** Other names people search by: former or colloquial («Киргизия», «Голландия»). */
+  aka?: string[];
 }
 
 export type PlaceStatus = 'visited' | 'planned' | 'none';

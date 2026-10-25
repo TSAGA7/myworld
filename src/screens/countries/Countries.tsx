@@ -79,11 +79,13 @@ export function Countries({
 
   const rows = useMemo(() => {
     const nq = normalize(q);
-    let list = pool.filter(
-      (c) =>
-        (filter === "all" || status(c.id) === filter) &&
-        (!nq || normalize(c.ru).includes(nq) || normalize(c.en).includes(nq)),
-    );
+    // A search looks through every country and territory, whatever chip is on: «Ватикан» typed under
+    // «Посещённые» should still be found, not answered with «Пока нет посещённых стран».
+    let list = nq
+      ? COUNTRIES.filter((c) =>
+          [c.ru, c.en, ...(c.aka ?? [])].some((n) => normalize(n).includes(nq)),
+        )
+      : pool.filter((c) => filter === "all" || status(c.id) === filter);
     if (sort === "az")
       list = [...list].sort((a, b) => a.ru.localeCompare(b.ru, "ru"));
     else
@@ -242,8 +244,11 @@ export function Countries({
                   key={v}
                   type="button"
                   className="chip"
-                  aria-pressed={filter === v}
-                  onClick={() => setFilter(v)}
+                  aria-pressed={!q.trim() && filter === v}
+                  onClick={() => {
+                    setFilter(v);
+                    setQ("");
+                  }}
                 >
                   <span className="ellipsis">{label}</span> <span className="count num">{counts[v]}</span>
                 </button>
@@ -270,14 +275,16 @@ export function Countries({
               <Empty
                 icon="flag"
                 title={
-                  filter === "visited"
+                  q.trim()
+                    ? "Ничего не найдено"
+                    : filter === "visited"
                     ? "Пока нет посещённых стран"
                     : filter === "planned"
                       ? "Нет запланированных стран"
                       : "Ничего не найдено"
                 }
                 text={
-                  filter === "visited"
+                  !q.trim() && filter === "visited"
                     ? "Отметьте страну в списке или на карте — счётчик обновится сам."
                     : undefined
                 }

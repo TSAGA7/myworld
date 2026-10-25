@@ -8,7 +8,7 @@
 //                                      -simplify 4% keep-shapes -o admin1-s.json format=geojson precision=0.001
 //   airports.csv                       OurAirports (public domain)
 // Outputs:
-//   public/data/cities.tsv             id ru en country lat lon pop region flags
+//   public/data/cities.tsv             id ru en country lat lon pop region flags [aliases]
 //   public/data/regions/<country>.json regions of each country (polygons, Russian names)
 //   public/data/airports.json          IATA airports with city, coordinates and time zone
 //   public/data/labels.json            capitals and big cities for map labels
@@ -17,6 +17,7 @@
 import { readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { geoArea, geoBounds, geoContains } from 'd3-geo';
+import { applyCityFixes } from './city-fixes.mjs';
 
 const APP = dirname(dirname(new URL(import.meta.url).pathname));
 const CACHE = process.argv[2] ?? join(APP, '.ne-cache');
@@ -187,7 +188,9 @@ for (const p of ne.values()) {
 }
 rows.sort((a, b) => b[6] - a[6]);
 const clean = (s) => String(s).replace(/[\t\n|]/g, ' ');
-writeFileSync(join(APP, 'public/data/cities.tsv'), rows.map((r) => r.map(clean).join('\t')).join('\n'));
+// Hand-fixed Russian names, search aliases (10th column) and places GeoNames lacks — scripts/city-fixes.mjs.
+const fixed = applyCityFixes(rows.map((r) => r.map(clean)));
+writeFileSync(join(APP, 'public/data/cities.tsv'), fixed.map((r) => r.join('\t').replace(/\t+$/, '')).join('\n'));
 console.log('cities.tsv', rows.length);
 
 // labels: capitals and cities over 500k

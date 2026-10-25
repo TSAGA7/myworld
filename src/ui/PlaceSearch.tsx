@@ -90,7 +90,7 @@ export function PlaceSearch({
         </div>
       )}
       {(countryHits.length > 0 || customHits.length > 0 || cityHits.length > 0) && (
-        <div className="list">
+        <div className="list" data-keep-keyboard>
           {countryHits.map((c) => (
             <button key={c.id} type="button" className="list-row" onClick={() => onCountry?.(c)}>
               <Flag id={c.id} />
