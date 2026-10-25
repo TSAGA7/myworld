@@ -117,6 +117,7 @@ describe('WorldStore', () => {
 });
 
 import Dexie from 'dexie';
+import { createShortCode, openShortCode } from './shortLink';
 import { decodeBundle, encodeBundle, importBundle, packTrip, previewMerge, readTripFile, tripFile } from './shareTrip';
 
 describe('schema v2 and shared trips', () => {
@@ -181,6 +182,28 @@ describe('schema v2 and shared trips', () => {
     // A share link stays light: no files.
     expect((await decodeBundle(await encodeBundle(await packTrip(db, trip.id, '')))).files).toHaveLength(0);
     await expect(readTripFile(new File(['{"app":"myworld"}'], 'x.json'))).rejects.toThrow(/резервная копия/);
+  });
+
+  it('makes a short encrypted link and opens it', async () => {
+    const trip = await makeTrip();
+    const kept = new Map<string, string>();
+    const fake = (async (url: string, init?: RequestInit) => {
+      if (init?.method === 'POST') {
+        kept.set('abc123def', String(init.body));
+        return new Response('', { status: 201, headers: { Location: 'https://jsonblob.com/api/jsonBlob/abc123def' } });
+      }
+      const id = String(url).split('/').pop() ?? '';
+      return kept.has(id) ? new Response(kept.get(id), { status: 200 }) : new Response('', { status: 404 });
+    }) as typeof fetch;
+    const code = await createShortCode(await packTrip(db, trip.id, 'Андрей'), fake);
+    expect(code.length).toBeLessThan(40);
+    // The store holds only ciphertext: no trip title, no city names.
+    expect(kept.get('abc123def')).not.toMatch(/Италия|Рим/);
+    const b = await openShortCode(code, fake);
+    expect(b.trip.title).toBe('Италия и Швейцария');
+    expect(b.stops).toHaveLength(3);
+    await expect(openShortCode(code.replace(/\.[\w-]+$/, '.AAAAAAAAAAAAAAAAAAAAAA'), fake)).rejects.toThrow('повреждена');
+    await expect(openShortCode('s/zzzzzzzz.AAAAAAAAAAAAAAAAAAAAAA', fake)).rejects.toThrow('не найдена');
   });
 
   it('imports places from photos: new visits with dates, earlier dates win, trips with route and linked visits', async () => {

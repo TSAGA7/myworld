@@ -2,7 +2,8 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useState } from 'react';
 import { useToast } from '../../app/toast';
 import { db, useToday, useWorld } from '../../app/world';
-import { encodeBundle, packTrip } from '../../data/shareTrip';
+import { encodeBundle, packTrip, tripFile } from '../../data/shareTrip';
+import { createShortCode } from '../../data/shortLink';
 import type { Stamped } from '../../data/store';
 import { parseBooking, type ParsedBooking } from '../../domain/bookingParser';
 import { buildIcs, googleMapsUrl, type RoutePoint, twoGisUrl } from '../../domain/exportTrip';
@@ -215,45 +216,108 @@ function ImportSheet({ trip, onClose }: { trip: Trip; onClose: () => void }) {
 function ShareTripSheet({ trip, onClose }: { trip: Trip; onClose: () => void }) {
   const { settings } = useWorld();
   const toast = useToast();
-  const [busy, setBusy] = useState(false);
-  const share = async () => {
-    setBusy(true);
+  const [busy, setBusy] = useState<'link' | 'file' | null>(null);
+  // The link is made first and sent by a second tap: iPhone lets the share sheet open only right after a tap,
+  // and a short link needs a moment of internet.
+  const [link, setLink] = useState<string | null>(null);
+  const text = `Поездка «${trip.title}» в MY WORLD`;
+  const copy = async (url: string) => {
     try {
-      const code = await encodeBundle(await packTrip(db, trip.id, settings.name));
-      const url = `${location.origin}${location.pathname}#/join/${code}`;
-      const text = `Поездка «${trip.title}» в MY WORLD`;
-      if (navigator.share) {
-        try {
-          await navigator.share({ title: text, text, url });
-          return;
-        } catch (e) {
-          if (e instanceof DOMException && e.name === 'AbortError') return;
-        }
-      }
       await navigator.clipboard.writeText(url);
       toast('Ссылка скопирована');
+    } catch {
+      toast('Не получилось скопировать — нажмите на ссылку и скопируйте её');
+    }
+  };
+  const send = async (url: string) => {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: text, text, url });
+        return;
+      } catch (e) {
+        if (e instanceof DOMException && e.name === 'AbortError') return;
+      }
+    }
+    await copy(url);
+  };
+  const makeLink = async () => {
+    setBusy('link');
+    try {
+      const bundle = await packTrip(db, trip.id, settings.name);
+      const base = `${location.origin}${location.pathname}#/join/`;
+      let url: string;
+      try {
+        url = base + (await createShortCode(bundle));
+      } catch {
+        // No internet or the store is down: the long link carries everything itself and always works.
+        url = base + (await encodeBundle(bundle));
+        toast('Короткая ссылка сейчас недоступна — сделал полную');
+      }
+      setLink(url);
     } catch (e) {
       toast(`Не удалось: ${e instanceof Error ? e.message : e}`);
     } finally {
-      setBusy(false);
+      setBusy(null);
+    }
+  };
+  const shareFile = async () => {
+    setBusy('file');
+    try {
+      const file = await tripFile(db, trip.id, settings.name);
+      if (navigator.canShare?.({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title: trip.title });
+          return;
+        } catch (e) {
+            if (e instanceof DOMException && e.name === 'AbortError') return;
+        }
+      }
+      const href = URL.createObjectURL(file);
+      const a = document.createElement('a');
+      a.href = href;
+      a.download = file.name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.setTimeout(() => URL.revokeObjectURL(href), 30_000);
+      toast('Файл поездки сохранён');
+    } catch (e) {
+      toast(`Не удалось: ${e instanceof Error ? e.message : e}`);
+    } finally {
+      setBusy(null);
     }
   };
   return (
-    <Sheet title="Совместная поездка" onClose={onClose}>
+    <Sheet title="Поделиться поездкой" onClose={onClose}>
       <p className="muted" style={{ margin: 0 }}>
-        Отправьте попутчикам ссылку — у них откроется эта поездка со всем маршрутом, билетами, жильём, расходами и дневником. Когда кто-то внесёт изменения, пусть
-        пришлёт ссылку обратно: приложение объединит правки, ничего не задвоив.
+        Попутчики получат поездку со всем маршрутом, билетами, жильём, расходами и дневником. Если они что-то поменяют, пусть пришлют обратно — приложение объединит правки, ничего не задвоив.
       </p>
-      <div className="banner">
-        <Icon name="info" size={18} />
-        <span>
-          Всё передаётся внутри самой ссылки, без сервера. Фото и файлы не передаются. Изменения синхронизируются, когда вы обмениваетесь ссылками, а не в реальном
-          времени.
-        </span>
-      </div>
-      <button type="button" className="btn lime block" disabled={busy} onClick={() => void share()}>
-        <Icon name="share" size={18} /> Отправить ссылку на поездку
+      {link ? (
+        <div className="stack tight">
+          <input className="input" readOnly value={link} onFocus={(e) => e.target.select()} aria-label="Ссылка на поездку" />
+          <div className="row">
+            <button type="button" className="btn lime grow" onClick={() => void send(link)}>
+              <Icon name="share" size={18} /> Отправить
+            </button>
+            <button type="button" className="btn glass-btn grow" onClick={() => void copy(link)}>
+              Скопировать
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button type="button" className="btn lime block" disabled={!!busy} onClick={() => void makeLink()}>
+          {busy === 'link' ? <span className="spinner" /> : <Icon name="link" size={18} />} {busy === 'link' ? 'Готовлю ссылку…' : 'Получить ссылку'}
+        </button>
+      )}
+      <p className="faint small" style={{ margin: 0 }}>
+        Короткая ссылка. Поездка в ней зашифрована, ключ — только в самой ссылке. Фото и документы по ссылке не передаются.
+      </p>
+      <button type="button" className="btn glass-btn block" disabled={!!busy} onClick={() => void shareFile()}>
+        {busy === 'file' ? <span className="spinner" /> : <Icon name="download" size={18} />} Сохранить файлом
       </button>
+      <p className="faint small" style={{ margin: 0 }}>
+        Целиком, с обложкой, билетами и документами — чтобы перенести на другое устройство. Открыть: «Новое путешествие → Из файла».
+      </p>
       <p className="faint small" style={{ margin: 0 }}>
         Участники для деления расходов добавляются во вкладке «Расходы».
       </p>

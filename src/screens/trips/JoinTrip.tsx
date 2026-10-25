@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { go } from '../../app/router';
 import { useToast } from '../../app/toast';
 import { db } from '../../app/world';
+import { isShortCode, openShortCode } from '../../data/shortLink';
 import { decodeBundle, importBundle, type MergeSummary, pendingTrip, previewMerge, setPendingTrip, type TripBundle } from '../../data/shareTrip';
 import { countLabel, formatRange } from '../../domain/dates';
 import { countryName } from '../../geo/reference';
@@ -18,7 +19,12 @@ export function JoinTrip({ code }: { code: string }) {
 
   useEffect(() => {
     const fromFile = code === 'file';
-    (fromFile ? Promise.resolve(pendingTrip()).then((b) => b ?? Promise.reject(new Error('Файл поездки не выбран. Откройте его ещё раз.'))) : decodeBundle(code))
+    (fromFile
+      ? Promise.resolve(pendingTrip()).then((b) => b ?? Promise.reject(new Error('Файл поездки не выбран. Откройте его ещё раз.')))
+      : isShortCode(code)
+        ? openShortCode(code)
+        : decodeBundle(code)
+    )
       .then(async (b) => {
         setBundle(b);
         setPlan(await previewMerge(db, b));
