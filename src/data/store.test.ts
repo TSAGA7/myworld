@@ -117,7 +117,7 @@ describe('WorldStore', () => {
 });
 
 import Dexie from 'dexie';
-import { decodeBundle, encodeBundle, importBundle, packTrip, previewMerge } from './shareTrip';
+import { decodeBundle, encodeBundle, importBundle, packTrip, previewMerge, readTripFile, tripFile } from './shareTrip';
 
 describe('schema v2 and shared trips', () => {
   it('upgrades a v1 database without losing data', async () => {
@@ -156,6 +156,31 @@ describe('schema v2 and shared trips', () => {
     expect(mine).toHaveLength(1);
     expect(mine[0]?.amount).toBe(1500);
     await expect(decodeBundle('мусор')).rejects.toThrow();
+  });
+
+  it('moves a whole trip with its cover and documents to another device by file', async () => {
+    const trip = await makeTrip();
+    const cover = await store.addAttachment(trip.id, 'cover', trip.id, { name: 'cover.jpg', blob: new Blob([new Uint8Array([1, 2, 3, 250])], { type: 'image/jpeg' }) });
+    await store.addAttachment(trip.id, 'trip', trip.id, { name: 'visa.pdf', blob: new Blob(['%PDF-1.4 виза'], { type: 'application/pdf' }) });
+    const file = await tripFile(db, trip.id, 'Андрей');
+    expect(file.name).toBe('Италия и Швейцария.myworld.json');
+
+    const other = new WorldDb(`device-${n}`);
+    const bundle = await readTripFile(file);
+    expect(bundle.files).toHaveLength(2);
+    await importBundle(other, bundle);
+    const got = await other.trips.get(trip.id);
+    expect(got?.coverId).toBe(cover.id);
+    expect(await other.stops.count()).toBe(3);
+    const blob = (await other.blobs.get(cover.id))?.blob;
+    expect(new Uint8Array(await blob!.arrayBuffer())).toEqual(new Uint8Array([1, 2, 3, 250]));
+    expect(await other.attachments.count()).toBe(2);
+    // Importing the same file again changes nothing.
+    await importBundle(other, await readTripFile(file));
+    expect(await other.attachments.count()).toBe(2);
+    // A share link stays light: no files.
+    expect((await decodeBundle(await encodeBundle(await packTrip(db, trip.id, '')))).files).toHaveLength(0);
+    await expect(readTripFile(new File(['{"app":"myworld"}'], 'x.json'))).rejects.toThrow(/резервная копия/);
   });
 
   it('imports places from photos: new visits with dates, earlier dates win, trips with route and linked visits', async () => {

@@ -2,8 +2,9 @@ import { useMemo, useState } from 'react';
 import { go, goBack } from '../../app/router';
 import { useToast } from '../../app/toast';
 import { store, useWorld } from '../../app/world';
+import { readTripFile, setPendingTrip } from '../../data/shareTrip';
 import type { CityInput } from '../../data/store';
-import { nights } from '../../domain/dates';
+import { countLabel, nights } from '../../domain/dates';
 import { catalogToCity } from '../../geo/catalog';
 import { COUNTRIES, countryName, searchCountries } from '../../geo/reference';
 import { prepareFile } from '../../ui/files';
@@ -112,7 +113,30 @@ export function TripEditor({ tripId }: { tripId: string | null }) {
             <Icon name="back" size={20} />
           </button>
           <h1 className="h3 grow center-title">{existing ? 'Редактирование' : 'Новое путешествие'}</h1>
-          <span style={{ width: 48 }} />
+          {existing ? (
+            <span style={{ width: 48 }} />
+          ) : (
+            <label className="btn sm glass-btn" aria-label="Добавить поездку из файла">
+              <Icon name="upload" size={16} /> Из файла
+              <input
+                type="file"
+                accept="application/json,.json,.myworld,text/plain"
+                className="sr"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  e.target.value = '';
+                  if (!f) return;
+                  readTripFile(f).then(
+                    (b) => {
+                      setPendingTrip(b);
+                      go('join/file');
+                    },
+                    (err: unknown) => toast(err instanceof Error ? err.message : String(err)),
+                  );
+                }}
+              />
+            </label>
+          )}
         </header>
 
         <h2 className="h1">
@@ -127,14 +151,26 @@ export function TripEditor({ tripId }: { tripId: string | null }) {
           </Field>
           <div className="grid-2">
             <Field label="Начало">
-              <input className="input" type="date" value={startDate} onChange={(e) => setStart(e.target.value)} />
+              <input
+                className="input"
+                type="date"
+                value={startDate}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setStart(v);
+                  // The return date starts from the departure month: iOS opens its picker on the field's value.
+                  if (v && (!endDate || endDate < v)) setEnd(v);
+                }}
+              />
             </Field>
             <Field label="Окончание">
               <input className="input" type="date" value={endDate} min={startDate || undefined} onChange={(e) => setEnd(e.target.value)} />
             </Field>
           </div>
           {datesWrong && <div className="banner warn">Окончание раньше начала — проверьте даты.</div>}
-          {startDate && endDate && !datesWrong && <span className="faint small">{nights(startDate, endDate)} ночей в поездке</span>}
+          {startDate && endDate && !datesWrong && endDate > startDate && (
+            <span className="faint small">{countLabel(nights(startDate, endDate) ?? 0, 'ночь', 'ночи', 'ночей')} в поездке</span>
+          )}
         </div>
 
         <section className="stack">

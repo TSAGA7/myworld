@@ -2,13 +2,13 @@ import { useEffect, useState } from 'react';
 import { go } from '../../app/router';
 import { useToast } from '../../app/toast';
 import { db } from '../../app/world';
-import { decodeBundle, importBundle, type MergeSummary, previewMerge, type TripBundle } from '../../data/shareTrip';
+import { decodeBundle, importBundle, type MergeSummary, pendingTrip, previewMerge, setPendingTrip, type TripBundle } from '../../data/shareTrip';
 import { countLabel, formatRange } from '../../domain/dates';
 import { countryName } from '../../geo/reference';
 import { Icon } from '../../ui/Icon';
 import { Empty, Flag } from '../../ui/kit';
 
-/** Opened from a shared link (#/join/<data>): shows the trip and adds or updates it on this device. */
+/** Opened from a shared link (#/join/<data>) or a trip file (#/join/file): shows the trip and adds or updates it on this device. */
 export function JoinTrip({ code }: { code: string }) {
   const toast = useToast();
   const [bundle, setBundle] = useState<TripBundle | null>(null);
@@ -17,7 +17,8 @@ export function JoinTrip({ code }: { code: string }) {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    decodeBundle(code)
+    const fromFile = code === 'file';
+    (fromFile ? Promise.resolve(pendingTrip()).then((b) => b ?? Promise.reject(new Error('Файл поездки не выбран. Откройте его ещё раз.'))) : decodeBundle(code))
       .then(async (b) => {
         setBundle(b);
         setPlan(await previewMerge(db, b));
@@ -50,6 +51,7 @@ export function JoinTrip({ code }: { code: string }) {
     setBusy(true);
     try {
       await importBundle(db, bundle);
+      setPendingTrip(null);
       toast(plan.isNew ? 'Поездка добавлена' : 'Поездка обновлена');
       go(`trips/${t.id}`, true);
     } catch (e) {
@@ -63,9 +65,9 @@ export function JoinTrip({ code }: { code: string }) {
     <div className="screen">
       <div className="screen-inner">
         <h1 className="h1">
-          <span className="thin">{bundle.from ? `${bundle.from} делится` : 'Вам прислали'}</span>
+          <span className="thin">{code === 'file' ? 'Поездка' : bundle.from ? `${bundle.from} делится` : 'Вам прислали'}</span>
           <br />
-          поездкой
+          {code === 'file' ? 'из файла' : 'поездкой'}
         </h1>
         <div className="card stack">
           <h2 className="h2">{t.title}</h2>
@@ -80,7 +82,12 @@ export function JoinTrip({ code }: { code: string }) {
           {cityNames.length > 0 && <p className="muted" style={{ margin: 0 }}>{cityNames.join(' → ')}</p>}
           <p className="faint small" style={{ margin: 0 }}>
             {countLabel(bundle.transport.length, 'билет', 'билета', 'билетов')}, {countLabel(bundle.stays.length, 'жильё', 'жилья', 'жилья')},{' '}
-            {countLabel(bundle.expenses.length, 'расход', 'расхода', 'расходов')}, {countLabel(bundle.diary.length, 'запись', 'записи', 'записей')} дневника. Файлы и фото по ссылке не передаются.
+            {countLabel(bundle.expenses.length, 'расход', 'расхода', 'расходов')}, {countLabel(bundle.diary.length, 'запись', 'записи', 'записей')} дневника.{' '}
+            {bundle.files.length > 0
+              ? `Фото и документы: ${bundle.files.length}${bundle.trip.coverId ? ', с обложкой' : ''}.`
+              : code === 'file'
+                ? 'Фото и документов в файле нет.'
+                : 'Файлы и фото по ссылке не передаются.'}
           </p>
         </div>
         <div className="banner">
@@ -94,7 +101,14 @@ export function JoinTrip({ code }: { code: string }) {
         <button type="button" className="btn lime block" disabled={busy} onClick={() => void run()}>
           {plan.isNew ? 'Добавить поездку' : 'Обновить поездку'}
         </button>
-        <button type="button" className="btn ghost block" onClick={() => go('trips', true)}>
+        <button
+          type="button"
+          className="btn ghost block"
+          onClick={() => {
+            setPendingTrip(null);
+            go('trips', true);
+          }}
+        >
           Отмена
         </button>
       </div>

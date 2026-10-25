@@ -1,5 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useState } from 'react';
+import { useToast } from '../../app/toast';
+import { tripFile } from '../../data/shareTrip';
 import { focusOnMap, go, goBack } from '../../app/router';
 import { db, store, useToday, useWorld } from '../../app/world';
 import { countLabel, formatRange, nights, tripStatus } from '../../domain/dates';
@@ -82,6 +84,7 @@ export function TripPage({ trip }: { trip: Trip }) {
             <Icon name="back" size={20} />
           </button>
           <span className="h3 grow center-title">Путешествие</span>
+          <ShareFileButton trip={trip} />
           <button
             type="button"
             className={`circle-btn fav-filter ${trip.favorite ? 'on' : ''}`}
@@ -171,5 +174,47 @@ export function TripPage({ trip }: { trip: Trip }) {
       {sync === 'add' && <AddToMapSheet trip={trip} onClose={() => setSync(null)} />}
       {sync === 'visited' && <MarkVisitedSheet trip={trip} onClose={() => setSync(null)} />}
     </div>
+  );
+}
+
+/**
+ * Saves the whole trip — route, tickets, stays, expenses, diary, guides, cover and documents — as one file to open on
+ * another device («Новое путешествие → Из файла»). On a phone it opens the share sheet (AirDrop, Telegram, Files).
+ */
+function ShareFileButton({ trip }: { trip: Trip }) {
+  const { settings } = useWorld();
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  const run = async () => {
+    setBusy(true);
+    try {
+      const file = await tripFile(db, trip.id, settings.name);
+      if (navigator.canShare?.({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title: trip.title });
+          return;
+        } catch (e) {
+          if (e instanceof DOMException && e.name === 'AbortError') return;
+        }
+      }
+      const url = URL.createObjectURL(file);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
+      toast('Файл поездки сохранён');
+    } catch (e) {
+      toast(`Не удалось: ${e instanceof Error ? e.message : e}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <button type="button" className="circle-btn" disabled={busy} onClick={() => void run()} aria-label="Поделиться файлом поездки">
+      {busy ? <span className="spinner" /> : <Icon name="share" size={20} />}
+    </button>
   );
 }
