@@ -67,3 +67,22 @@ export const plural = (n: number, one: string, few: string, many: string): strin
 };
 
 export const countLabel = (n: number, one: string, few: string, many: string): string => `${n} ${plural(n, one, few, many)}`;
+
+/**
+ * Status line of a trip card with the countdown: «Через 53 дня», «Завтра», «День 2 из 5», «Завершено».
+ * An upcoming trip without dates stays «Предстоит».
+ */
+export const tripCountdown = (start: string | null, end: string | null, today: string): string => {
+  const status = tripStatus(start, end, today);
+  if (status === 'completed') return STATUS_LABEL.completed;
+  if (status === 'upcoming') {
+    if (!start) return STATUS_LABEL.upcoming;
+    const d = daysBetween(today, start);
+    return d === 1 ? 'Завтра' : `Через ${countLabel(d, 'день', 'дня', 'дней')}`;
+  }
+  if (!start) return STATUS_LABEL.ongoing;
+  const day = daysBetween(start, today) + 1;
+  const total = end ? daysBetween(start, end) + 1 : null;
+  if (total === 1) return 'Сегодня';
+  return total ? `День ${day} из ${total}` : `День ${day}`;
+};

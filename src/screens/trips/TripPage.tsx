@@ -99,7 +99,7 @@ export function TripPage({ trip }: { trip: Trip }) {
         <div className="trip-hero">
           {cover ? <img className="cover" src={cover} alt="" /> : <RouteMap points={points} width={680} height={300} pois={pois} />}
           <div className="trip-visual-top">
-            <TripStatusPill status={status} />
+            <TripStatusPill trip={trip} />
             {points.length > 0 && (
               <button type="button" className="pill dark" onClick={() => focusOnMap({ kind: 'trip', id: trip.id })}>
                 <Icon name="planet" size={14} /> На карте

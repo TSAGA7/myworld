@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import { useWorld } from '../../app/world';
-import { STATUS_LABEL, type TripStatus } from '../../domain/dates';
+import { useToday, useWorld } from '../../app/world';
+import { type TripStatus, tripCountdown, tripStatus } from '../../domain/dates';
 import type { City, Trip, TripStop } from '../../domain/model';
 import type { IconName } from '../../ui/Icon';
 
@@ -24,9 +24,12 @@ export function useRoute(tripId: string | null): RouteStop[] {
   );
 }
 
-export function TripStatusPill({ status }: { status: TripStatus }) {
+/** Trip status with the countdown: «Через 53 дня», «Завтра», «День 2 из 5». Recounts at midnight (useToday). */
+export function TripStatusPill({ trip }: { trip: Pick<Trip, 'startDate' | 'endDate'> }) {
+  const today = useToday();
+  const status: TripStatus = tripStatus(trip.startDate, trip.endDate, today);
   const cls = status === 'ongoing' ? 'lime' : status === 'upcoming' ? 'dark' : '';
-  return <span className={`pill ${cls}`}>{STATUS_LABEL[status]}</span>;
+  return <span className={`pill num ${cls}`}>{tripCountdown(trip.startDate, trip.endDate, today)}</span>;
 }
 
 export const MODE_LABEL = { flight: 'Самолёт', train: 'Поезд', bus: 'Автобус', ferry: 'Паром', car: 'Аренда авто', other: 'Другое' } as const;

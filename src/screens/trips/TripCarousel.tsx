@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { go } from '../../app/router';
 import { useToast } from '../../app/toast';
 import { store, useWorld } from '../../app/world';
-import { countLabel, formatRange, nights, type TripStatus } from '../../domain/dates';
+import { countLabel, formatRange, nights } from '../../domain/dates';
 import type { Trip } from '../../domain/model';
 import { cardPose, dragPos, DRAG_PX, fitWallet, wheelOffset, wheelStep } from '../../domain/wheel';
 import { countryName } from '../../geo/reference';
@@ -21,7 +21,7 @@ const DECIDE_PX = 8; // finger travel before we know whether it is a horizontal 
  * it follows the finger; flick it and it keeps turning by inertia, slows down and settles on a card.
  * Tap the front card to open the trip, tap a peeking one to turn the wheel to it.
  */
-export function TripCarousel({ trips, statusOf, totalOf }: { trips: Trip[]; statusOf: (t: Trip) => TripStatus; totalOf: (id: string) => string | null }) {
+export function TripCarousel({ trips, totalOf }: { trips: Trip[]; totalOf: (id: string) => string | null }) {
   const n = trips.length;
   // The stack is sized to end above the soft bar, so the front card's info is never under it.
   const [fit, setFit] = useState(() => fitWallet(560, n));
@@ -305,7 +305,6 @@ export function TripCarousel({ trips, statusOf, totalOf }: { trips: Trip[]; stat
           index={i}
           refCb={(el) => (cards.current[i] = el)}
           trip={t}
-          status={statusOf(t)}
           total={totalOf(t.id)}
           onKey={() => go(`trips/${t.id}`)}
         />
@@ -336,14 +335,12 @@ export function TripCarousel({ trips, statusOf, totalOf }: { trips: Trip[]; stat
 
 function WalletCard({
   trip,
-  status,
   total,
   index,
   refCb,
   onKey,
 }: {
   trip: Trip;
-  status: TripStatus;
   total: string | null;
   index: number;
   refCb: (el: HTMLDivElement | null) => void;
@@ -385,7 +382,7 @@ function WalletCard({
       <div className="wcard-info">
         <div className="row between">
           <h3 className="wcard-title ellipsis">{trip.title}</h3>
-          <TripStatusPill status={status} />
+          <TripStatusPill trip={trip} />
         </div>
         <div className="ccard-meta">
           <span>

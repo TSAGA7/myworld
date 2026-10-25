@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { daysBetween, formatRange, nights, plural, tripStatus } from './dates';
+import { daysBetween, formatRange, nights, plural, tripCountdown, tripStatus } from './dates';
 import type { PlannedMark, Trip, TripStop, Visit } from './model';
 import { indexItems, normalize, search } from './search';
 import { buildAddToMap, buildMarkVisited, previewAddToMap, previewMarkVisited, tripPlaces } from './tripToMap';
@@ -223,5 +223,19 @@ describe('money', () => {
   it('formats', () => {
     expect(formatMoney(12500, 'RUB').replace(/\s/g, ' ')).toBe('12 500 ₽');
     expect(formatMoney(1250.5, 'USD').replace(/\s/g, ' ')).toBe('1 250,5 $');
+  });
+});
+
+describe('tripCountdown', () => {
+  it('counts days to the trip and days inside it', () => {
+    expect(tripCountdown('2026-12-17', '2026-12-21', '2026-10-25')).toBe('Через 53 дня');
+    expect(tripCountdown('2026-10-26', '2026-10-30', '2026-10-25')).toBe('Завтра');
+    expect(tripCountdown('2026-10-27', null, '2026-10-25')).toBe('Через 2 дня');
+    expect(tripCountdown('2026-11-30', null, '2026-10-25')).toBe('Через 36 дней');
+    expect(tripCountdown('2026-11-15', null, '2026-10-25')).toBe('Через 21 день');
+    expect(tripCountdown('2026-10-24', '2026-10-28', '2026-10-25')).toBe('День 2 из 5');
+    expect(tripCountdown('2026-10-25', '2026-10-25', '2026-10-25')).toBe('Сегодня');
+    expect(tripCountdown('2026-10-01', '2026-10-05', '2026-10-25')).toBe('Завершено');
+    expect(tripCountdown(null, null, '2026-10-25')).toBe('Предстоит');
   });
 });

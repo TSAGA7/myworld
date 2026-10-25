@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import { go } from '../../app/router';
 import { db, setSetting, useToday, useWorld } from '../../app/world';
 import { TripCarousel } from './TripCarousel';
-import { countLabel, formatRange, type TripStatus, tripStatus } from '../../domain/dates';
+import { countLabel, formatRange, tripStatus } from '../../domain/dates';
 import type { Trip } from '../../domain/model';
 import { Icon } from '../../ui/Icon';
 import { useAttachmentUrl } from '../../ui/files';
@@ -123,14 +123,13 @@ function TripList() {
             text={favOnly ? 'Нажмите ♥ на карточке поездки — любимые поездки будут первыми в списке и появятся в профиле.' : undefined}
           />
         ) : settings.tripsView === 'carousel' ? (
-          <TripCarousel trips={list} statusOf={statusOf} totalOf={totalOf} />
+          <TripCarousel trips={list} totalOf={totalOf} />
         ) : (
           <div className="trip-grid">
             {list.map((t) => (
               <TripCard
                 key={t.id}
                 trip={t}
-                status={statusOf(t)}
                 tickets={transport.get(t.id) ?? 0}
                 stays={stays.get(t.id) ?? 0}
                 bookings={bookings.get(t.id) ?? 0}
@@ -161,7 +160,7 @@ function useTripRecords() {
   return { trips, ...(counts ?? EMPTY_COUNTS) };
 }
 
-function TripCard({ trip, status, tickets, stays, bookings, total }: { trip: Trip; status: TripStatus; tickets: number; stays: number; bookings: number; total: string | null }) {
+function TripCard({ trip, tickets, stays, bookings, total }: { trip: Trip; tickets: number; stays: number; bookings: number; total: string | null }) {
   const route = useRoute(trip.id);
   const { world } = useWorld();
   const cover = useAttachmentUrl(trip.coverId);
@@ -175,7 +174,7 @@ function TripCard({ trip, status, tickets, stays, bookings, total }: { trip: Tri
         {cover ? <img src={cover} alt="" className="cover" /> : <RouteMap points={points} width={420} height={170} numbered={false} />}
         <div className="trip-visual-top">
           <span className="row" style={{ gap: 6 }}>
-            <TripStatusPill status={status} />
+            <TripStatusPill trip={trip} />
             {trip.favorite && (
               <span className="heart mini on" aria-label="В избранном">
                 <Icon name="heart" size={15} weight={2} />
