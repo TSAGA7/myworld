@@ -24,6 +24,12 @@ export async function unmarkCity(toast: Toast, city: City | CityInput, what: 'vi
   withUndo(toast, `${city.name}: отметка снята`, undo);
 }
 
+/** A tap on a city in search: marks it visited, or takes the mark off when it is already visited. */
+export async function toggleCityVisited(toast: Toast, city: City | CityInput, visited: boolean) {
+  if (visited) await unmarkCity(toast, city, 'visited');
+  else await markCity(toast, city, 'visited');
+}
+
 export async function markCountry(toast: Toast, countryId: string, status: 'visited' | 'planned') {
   await store.markCountry(countryId, status);
   toast(status === 'visited' ? `${countryName(countryId)}: посещена` : `${countryName(countryId)}: запланирована`);

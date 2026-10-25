@@ -1,7 +1,7 @@
 import { geoAzimuthalEqualArea, geoCentroid, geoPath } from 'd3-geo';
 import type { FeatureCollection } from 'geojson';
 import { useMemo, useState } from 'react';
-import { markCity, unmarkCity } from '../../app/actions';
+import { markCity, toggleCityVisited, unmarkCity } from '../../app/actions';
 import { useToast } from '../../app/toast';
 import { been, setSetting, useWorld } from '../../app/world';
 import { countLabel, plural } from '../../domain/dates';
@@ -75,6 +75,7 @@ function Tracker({ countryId, onChange }: { countryId: string; onChange: () => v
   const [showAll, setShowAll] = useState(false);
   const [adding, setAdding] = useState(false);
   const toast = useToast();
+  const { cityStatus } = useWorld().world;
 
   const map = useMemo(() => {
     if (!regions?.length) return null;
@@ -175,7 +176,10 @@ function Tracker({ countryId, onChange }: { countryId: string; onChange: () => v
             countryFilter={countryId}
             withCountries={false}
             placeholder={`Город: ${countryName(countryId)}`}
-            onCity={(p) => void markCity(toast, p.kind === 'catalog' ? catalogToCity(p.city) : p.city, 'visited')}
+            onCity={(p) => {
+              const city = p.kind === 'catalog' ? catalogToCity(p.city) : p.city;
+              void toggleCityVisited(toast, city, cityStatus.get(city.id) === 'visited');
+            }}
           />
         ) : (
           <button type="button" className="btn lime block" onClick={() => setAdding(true)}>

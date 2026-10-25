@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { markCity, markCountry, tripsForCountry, unmarkCity, unmarkCountry } from '../../app/actions';
+import { markCity, toggleCityVisited, markCountry, tripsForCountry, unmarkCity, unmarkCountry } from '../../app/actions';
 import { focusOnMap, go } from '../../app/router';
 import { useToast } from '../../app/toast';
 import { been, useWorld } from '../../app/world';
@@ -100,7 +100,7 @@ export function CountrySheet({ countryId, onClose }: { countryId: string; onClos
             placeholder={`Город в стране ${c.ru}`}
             onCity={(p) => {
               const city = p.kind === 'catalog' ? catalogToCity(p.city) : p.city;
-              void markCity(toast, city, 'visited');
+              void toggleCityVisited(toast, city, world.cityStatus.get(city.id) === 'visited');
             }}
           />
         )}
