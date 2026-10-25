@@ -49,6 +49,11 @@
 .status-dot.planned { background: transparent; border: 2px dashed var(--ink-2); }
 .status-dot.none { background: var(--line-strong); }
 .city-dot { width: 34px; height: 26px; display: grid; place-items: center; color: var(--ink-3); flex: none; }
+.city-mark { width: 30px; height: 30px; margin: 0 2px; border-radius: 50%; display: grid; place-items: center; flex: none; }
+.city-mark.on { background: var(--lime); color: var(--lime-ink); box-shadow: 0 0 0 2px var(--lime-deep) inset; animation: city-mark-in 0.32s var(--ease) both; }
+.city-mark.planned { border: 2px dashed var(--ink-2); width: 26px; height: 26px; margin: 0 4px; }
+@keyframes city-mark-in { 0% { transform: scale(0.4); } 70% { transform: scale(1.12); } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .city-mark.on { animation: none; } }
 .block { display: block; }
 .btn.block { display: flex; }
 .center { text-align: center; }

@@ -211,7 +211,8 @@ button.list-row:active, .list-row.tap:active { background: var(--line); }
 @keyframes dialog-in { from { opacity: 0; transform: translateY(calc(50% + 24px)); } }
 
 /* ============ toast */
-.toast-wrap { position: fixed; z-index: 80; left: 0; right: 0; bottom: calc(var(--bar-h) + var(--safe-b) + 22px); display: grid; justify-items: center; pointer-events: none; padding: 0 16px; }
+/* --kb: height of the on-screen keyboard (main.tsx), so a toast shows above it instead of under it. */
+.toast-wrap { position: fixed; z-index: 80; left: 0; right: 0; bottom: max(calc(var(--bar-h) + var(--safe-b) + 22px), calc(var(--kb, 0px) + 12px)); display: grid; justify-items: center; pointer-events: none; padding: 0 16px; }
 .toast { pointer-events: auto; display: flex; align-items: center; gap: 12px; max-width: 520px; padding: 12px 12px 12px 18px; border-radius: 22px; background: var(--graphite); color: var(--graphite-ink); box-shadow: 0 12px 30px rgba(0,0,0,.25); animation: toast-in 0.3s var(--ease) both; font-size: 15px; }
 .toast button { border: 0; background: var(--lime); color: var(--lime-ink); font-weight: 650; border-radius: var(--r-pill); height: 34px; padding: 0 14px; flex: none; }
 @keyframes toast-in { from { opacity: 0; transform: translateY(12px) scale(0.98); } }

@@ -102,33 +102,33 @@ export function PlaceSearch({
             </button>
           ))}
           {customHits.map((c) => (
-            <button key={c.id} type="button" className="list-row" onClick={() => onCity({ kind: 'saved', city: c })}>
-              <Flag id={c.countryId} />
+            <button key={c.id} type="button" className="list-row" aria-pressed={world.cityStatus.get(c.id) === 'visited'} onClick={() => onCity({ kind: 'saved', city: c })}>
+              <CityMark status={world.cityStatus.get(c.id)} />
               <span className="grow">
-                <span className="t">{c.name}</span>
+                <span className="t block ellipsis">{c.name}</span>
                 <span className="s block">
                   {countryName(c.countryId)}, добавлен вами{c.lat === null ? ', без координат' : ''}
                 </span>
               </span>
-              <StatusDot status={world.cityStatus.get(c.id)} />
             </button>
           ))}
-          {cityHits.map((c) => (
-            <button key={c.id} type="button" className="list-row" onClick={() => onCity({ kind: 'catalog', city: c })}>
-              <span className="city-dot" aria-hidden="true">
-                <Icon name="pin" size={18} />
-              </span>
-              <span className="grow">
-                <span className="t">{c.ru}</span>
-                <span className="s block ellipsis">
-                  {COUNTRY_BY_ID.get(c.countryId)?.ru ?? c.countryId}
-                  {c.region && c.region !== c.en ? `, ${c.region}` : ''}
-                  {c.en && c.en !== c.ru ? ` (${c.en})` : ''}
+          {cityHits.map((c) => {
+            const st = world.cityStatus.get(c.id);
+            return (
+              <button key={c.id} type="button" className="list-row" aria-pressed={st === 'visited'} onClick={() => onCity({ kind: 'catalog', city: c })}>
+                <CityMark status={st} />
+                <span className="grow">
+                  <span className="t block ellipsis">{c.ru}</span>
+                  <span className="s block ellipsis">
+                    {st === 'visited' ? 'Отмечен · ' : st === 'planned' ? 'В планах · ' : ''}
+                    {COUNTRY_BY_ID.get(c.countryId)?.ru ?? c.countryId}
+                    {c.region && c.region !== c.en ? `, ${c.region}` : ''}
+                    {c.en && c.en !== c.ru ? ` (${c.en})` : ''}
+                  </span>
                 </span>
-              </span>
-              <StatusDot status={world.cityStatus.get(c.id)} />
-            </button>
-          ))}
+              </button>
+            );
+          })}
         </div>
       )}
       {nothing && <p className="muted small" style={{ margin: '0 4px' }}>Ничего не найдено. Проверьте написание или добавьте город вручную.</p>}
@@ -138,6 +138,22 @@ export function PlaceSearch({
         </button>
       )}
     </div>
+  );
+}
+
+/** Left mark of a city row: a pin, or a big lime tick once the city is marked — visible however long the name. */
+function CityMark({ status }: { status?: 'visited' | 'planned' | 'none' }) {
+  if (status === 'visited')
+    return (
+      <span className="city-mark on" aria-label="посещено">
+        <Icon name="check" size={18} />
+      </span>
+    );
+  if (status === 'planned') return <span className="city-mark planned" aria-label="запланировано" />;
+  return (
+    <span className="city-dot" aria-hidden="true">
+      <Icon name="pin" size={18} />
+    </span>
   );
 }
 

@@ -53,3 +53,16 @@ document.addEventListener('click', (e) => {
   if (!active || !target || target.closest('input, textarea, select, label, [data-keep-keyboard]')) return;
   if (target.closest('button, a, [role="button"]')) active.blur();
 });
+
+// iOS: the keyboard covers the bottom of the page without resizing it. Its height goes to --kb, so toasts
+// («Город отмечен») rise above the keyboard instead of hiding under it.
+const vv = window.visualViewport;
+if (vv) {
+  const syncKeyboard = () => {
+    const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    document.documentElement.style.setProperty('--kb', kb > 80 ? `${Math.round(kb)}px` : '0px');
+  };
+  vv.addEventListener('resize', syncKeyboard);
+  vv.addEventListener('scroll', syncKeyboard);
+  syncKeyboard();
+}
