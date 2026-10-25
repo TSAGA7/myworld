@@ -60,6 +60,20 @@ export function PlaceSearch({
   const customHits = q.trim() ? search(customIndex, q, 4).filter((c) => !countryFilter || c.countryId === countryFilter) : [];
   const cityHits = q.trim() && catalog ? catalog.search(q, 10, countryFilter ?? undefined) : [];
 
+  // Places sharing a name in one region (three «Верея» near Moscow) get «у Наро-Фоминска · 12 км».
+  const twins = new Set<string>();
+  {
+    const seen = new Map<string, number>();
+    for (const c of cityHits) seen.set(`${c.ru}|${c.regionId}`, (seen.get(`${c.ru}|${c.regionId}`) ?? 0) + 1);
+    for (const c of cityHits) if ((seen.get(`${c.ru}|${c.regionId}`) ?? 0) > 1) twins.add(c.id);
+  }
+  const nearLabel = (c: CatalogCity): string => {
+    if (!catalog || !twins.has(c.id)) return '';
+    const n = catalog.near(c);
+    if (!n) return '';
+    return ` · рядом ${n.city.ru}, ${Math.max(1, n.km)} км`;
+  };
+
   const nothing = q.trim().length > 1 && catalog && countryHits.length + customHits.length + cityHits.length === 0;
 
   return (
@@ -123,7 +137,7 @@ export function PlaceSearch({
                     {st === 'visited' ? 'Отмечен · ' : st === 'planned' ? 'В планах · ' : ''}
                     {COUNTRY_BY_ID.get(c.countryId)?.ru ?? c.countryId}
                     {c.region && c.region !== c.en ? `, ${c.region}` : ''}
-                    {c.en && c.en !== c.ru ? ` (${c.en})` : ''}
+                    {twins.has(c.id) ? nearLabel(c) : c.en && c.en !== c.ru ? ` (${c.en})` : ''}
                   </span>
                 </span>
               </button>

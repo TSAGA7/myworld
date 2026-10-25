@@ -7,6 +7,8 @@ export interface Catalog {
   list: CatalogCity[];
   regionNames: Record<string, string>;
   search(q: string, limit?: number, countryId?: string): CatalogCity[];
+  /** The nearest town of 15 000+ people in the same country, to tell apart places with one name («Верея · рядом Раменское»). */
+  near(c: CatalogCity): { city: CatalogCity; km: number } | null;
 }
 
 let catalog: Promise<Catalog> | null = null;
@@ -73,6 +75,21 @@ export function parseCatalog(text: string, regionNames: Record<string, string>):
     regionNames,
     byId: new Map(list.map((c) => [c.id, c])),
     // One letter searches only the big cities, so the list stays meaningful and fast.
+    near: (c) => {
+      let best: CatalogCity | null = null;
+      let bestD = Infinity;
+      const cos = Math.cos((c.lat * Math.PI) / 180);
+      for (const { item: b } of big) {
+        if (b.countryId !== c.countryId || b.id === c.id || b.ru === c.ru) continue;
+        // A town of the same region reads better than a closer one across the border (Ruza, not Gagarin).
+        const d = Math.hypot((b.lat - c.lat) * 111, (b.lon - c.lon) * 111 * cos) * (b.regionId === c.regionId ? 1 : 1.6);
+        if (d < bestD) {
+          bestD = d;
+          best = b;
+        }
+      }
+      return best ? { city: best, km: Math.round(Math.hypot((best.lat - c.lat) * 111, (best.lon - c.lon) * 111 * cos)) } : null;
+    },
     search: (q, limit = 8, countryId) => {
       const pool = countryId ? (byCountry.get(countryId) ?? []) : normalize(q).length < 2 ? big : index;
       return search(pool, q, limit, weight);

@@ -63,3 +63,25 @@ describe('romanToRussian', () => {
     expect(romanToRussian('Sovetskoye')).toBe('Советское');
   });
 });
+
+describe('Russian names', () => {
+  it.each([
+    ['Мытищи', 'Mytishchi'], ['Люберцы', 'Lyubertsy'], ['Одинцово', 'Odintsovo'], ['Луховицы', 'Lukhovitsy'], ['Можайск', 'Mozhaysk'],
+    ['Волоколамск', 'Volokolamsk'], ['Бронницы', 'Bronnitsy'], ['Голицыно', 'Golitsyno'], ['Раменское', 'Ramenskoye'], ['Лыткарино', 'Lytkarino'],
+  ])('%s', (ru, en) => {
+    const hit = catalog.search(ru, 5, 'RU')[0];
+    expect(hit?.ru).toBe(ru);
+    expect(hit?.en).toBe(en);
+  });
+  it('keeps ё and names whose Latin form is loose', () => {
+    expect(catalog.search('Артём', 3, 'RU')[0]?.ru).toBe('Артём');
+    expect(catalog.search('Кронштадт', 3, 'RU')[0]?.ru).toBe('Кронштадт');
+    expect(catalog.search('Межгорье', 3, 'RU')[0]?.ru).toBe('Межгорье');
+  });
+  it('tells apart three Vereya near Moscow by the nearest town', () => {
+    const v = catalog.search('Верея', 5, 'RU').filter((c) => c.ru === 'Верея');
+    expect(v.length).toBe(3);
+    const near = v.map((c) => catalog.near(c)?.city.ru);
+    expect(new Set(near).size).toBe(3);
+  });
+});
