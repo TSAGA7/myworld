@@ -10,6 +10,7 @@ import { catalogToCity } from '../../geo/catalog';
 import { COUNTRIES, countryName, searchCountries } from '../../geo/reference';
 import { Icon } from '../../ui/Icon';
 import { Empty, Flag, Sheet } from '../../ui/kit';
+import { PlaceSearch } from '../../ui/PlaceSearch';
 import { type Region, useHomeStats } from './homeStats';
 
 
@@ -72,6 +73,8 @@ function Tracker({ countryId, onChange }: { countryId: string; onChange: () => v
   const { regions, local, failed, visited, openedRegions, total, opened, percent, bigVisited } = useHomeStats(countryId);
   const [open, setOpen] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const toast = useToast();
 
   const map = useMemo(() => {
     if (!regions?.length) return null;
@@ -158,6 +161,27 @@ function Tracker({ countryId, onChange }: { countryId: string; onChange: () => v
         </p>
       </section>
 
+      <section className="stack tight">
+        <div className="section-title">
+          <h3 className="h3">Города</h3>
+          <button type="button" className="link-btn" onClick={() => setAdding((a) => !a)}>
+            {adding ? 'Готово' : '+ Добавить город'}
+          </button>
+        </div>
+        {adding ? (
+          <PlaceSearch
+            countryFilter={countryId}
+            withCountries={false}
+            placeholder={`Город: ${countryName(countryId)}`}
+            onCity={(p) => void markCity(toast, p.kind === 'catalog' ? catalogToCity(p.city) : p.city, 'visited')}
+          />
+        ) : (
+          <button type="button" className="btn lime block" onClick={() => setAdding(true)}>
+            <Icon name="plus" size={18} /> Отметить города
+          </button>
+        )}
+      </section>
+
       {failed && <p className="muted small">Справочник городов не загрузился — проверьте интернет и откройте раздел ещё раз.</p>}
 
       {rows.length > 0 && (
@@ -188,7 +212,7 @@ function Tracker({ countryId, onChange }: { countryId: string; onChange: () => v
         </>
       )}
       {rows.length === 0 && regions !== null && visited.length === 0 && (
-        <Empty icon="pin" title="Пока ни одного города" text="Отметьте города своей страны на карте или в поездках — здесь появится прогресс." />
+        <Empty icon="pin" title="Пока ни одного города" text="Отметьте города кнопкой выше, на карте или в поездках — здесь появится прогресс." />
       )}
 
       {region && <RegionSheet region={region} cities={local?.byRegion.get(region.properties.id) ?? []} visited={visited.filter((v) => v.regionId === region.properties.id)} onClose={() => setOpen(null)} />}
