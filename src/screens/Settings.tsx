@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { setSplashOff } from '../ui/Splash';
 import { getThemeChoice, setThemeChoice, type ThemeChoice } from '../app/theme';
 import { useToast } from '../app/toast';
+import { useInstall } from '../app/install';
 import { been, db, setSetting, useWorld } from '../app/world';
 import { CURRENCIES, CURRENCY_NAME, CURRENCY_SIGN } from '../domain/money';
 import { formatDate } from '../domain/dates';
@@ -65,6 +66,7 @@ export function Settings({ onClose }: { onClose: () => void }) {
 
   return (
     <Sheet title="Настройки" onClose={onClose}>
+      <InstallCard />
       <section className="stack">
         <h3 className="h3">Оформление</h3>
         <Segmented
@@ -284,5 +286,37 @@ function RatesEditor() {
         </button>
       </div>
     </div>
+  );
+}
+
+/** How to put the app on the home screen, so it opens full screen like a regular app. Hidden once installed. */
+function InstallCard() {
+  const { installed, canPrompt, platform, prompt } = useInstall();
+  const toast = useToast();
+  if (installed) return null;
+  return (
+    <section className="card flat stack">
+      <h3 className="h3">Приложение на телефоне</h3>
+      <p className="muted small" style={{ margin: 0 }}>
+        Установите MY WORLD на главный экран: откроется на весь экран, без адресной строки, и работает без интернета.
+      </p>
+      {canPrompt ? (
+        <button type="button" className="btn lime block" onClick={() => void prompt().then((ok) => ok && toast('Готово — значок на главном экране'))}>
+          <Icon name="download" size={18} /> Установить приложение
+        </button>
+      ) : platform === 'ios' ? (
+        <p className="small" style={{ margin: 0 }}>
+          В Safari: кнопка «Поделиться» внизу → «На экран Домой» → «Добавить».
+        </p>
+      ) : platform === 'android' ? (
+        <p className="small" style={{ margin: 0 }}>
+          В Chrome: меню ⋮ справа вверху → «Установить приложение» (или «Добавить на главный экран»). В других браузерах лучше открыть сайт в Chrome.
+        </p>
+      ) : (
+        <p className="small" style={{ margin: 0 }}>
+          В Chrome или Edge: значок установки в адресной строке справа.
+        </p>
+      )}
+    </section>
   );
 }
