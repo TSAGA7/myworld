@@ -1,15 +1,19 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useToast } from '../../app/toast';
-import { db, store } from '../../app/world';
-import { formatDate } from '../../domain/dates';
-import type { Trip } from '../../domain/model';
+import { db, store, useWorld } from '../../app/world';
+import { formatDate, formatRange } from '../../domain/dates';
+import { guideBlocks, type GuideBlock } from '../../domain/guideBlocks';
+import type { Guide, Trip } from '../../domain/model';
 import { fetchWikivoyage } from '../../geo/online';
 import { COUNTRY_BY_ID } from '../../geo/reference';
 import { parseWikivoyage } from '../../geo/wikivoyage';
 import { Icon } from '../../ui/Icon';
-import { Empty } from '../../ui/kit';
+import { Empty, Flag } from '../../ui/kit';
 import { MODE_LABEL, type RouteStop } from './common';
+
+/** Emoji of each guide section — the same in the app and in the PDF. */
+const SECTION_ICON: Record<string, string> = { intro: '✨', understand: '📖', see: '📍', do: '🎯', eat: '🍽️', drink: '🌙', getaround: '🚌', safe: '🛡️', connect: '📶' };
 
 const addDays = (d: string, n: number) => {
   const [y, m, day] = d.split('-').map(Number);
@@ -34,6 +38,11 @@ export function GuideSection({ trip, route }: { trip: Trip; route: RouteStop[] }
   );
   const [busy, setBusy] = useState<string | null>(null);
   const [open, setOpen] = useState<Record<string, boolean>>({});
+  const { settings } = useWorld();
+  const [pdf, setPdf] = useState<{ kind: 'idle' } | { kind: 'busy'; page: number } | { kind: 'ready'; file: File; pages: number }>({ kind: 'idle' });
+  // Blocks of every saved section, parsed once per guide version.
+  const parsed = useMemo(() => new Map(guides.flatMap((g) => g.sections.map((s) => [`${g.id}:${s.key}`, guideBlocks(s.html)] as const))), [guides]);
+  const blocksOf = (g: Guide, key: string): GuideBlock[] => parsed.get(`${g.id}:${key}`) ?? [];
   const unique = route.filter((r, i, a) => r.city && a.findIndex((x) => x.stop.cityId === r.stop.cityId) === i);
 
   const build = async () => {
@@ -78,30 +87,94 @@ export function GuideSection({ trip, route }: { trip: Trip; route: RouteStop[] }
     }
   }
 
+  const makePdf = async () => {
+    setPdf({ kind: 'busy', page: 0 });
+    try {
+      const { renderGuidePdf } = await import('./guidePdf');
+      const cities = unique.flatMap((r) => {
+        const g = guides.find((x) => x.cityId === r.stop.cityId);
+        if (!g || !r.city) return [];
+        return [
+          {
+            name: r.city.name,
+            countryId: r.city.countryId,
+            source: `По материалам Wikivoyage «${g.title}» (CC BY-SA), ${g.url}. Обновлено ${formatDate(g.fetchedAt.slice(0, 10))}.`,
+            sections: g.sections.map((s) => ({ icon: SECTION_ICON[s.key] ?? '•', title: s.title, blocks: blocksOf(g, s.key) })),
+          },
+        ];
+      });
+      const { blob, pages } = await renderGuidePdf(
+        {
+          tripTitle: trip.title,
+          dates: trip.startDate ? formatRange(trip.startDate, trip.endDate) : '',
+          author: settings.name,
+          days: days.map((d, i) => ({ label: `День ${i + 1} · ${formatDate(d.date, false)}`, city: d.city, items: d.items.map((it) => ({ time: it.time, text: it.text })) })),
+          cities,
+        },
+        (page) => setPdf({ kind: 'busy', page }),
+      );
+      const name = `MY WORLD — ${trip.title.replace(/[\\/:*?"<>|]+/g, ' ').trim() || 'путеводитель'}.pdf`;
+      setPdf({ kind: 'ready', file: new File([blob], name, { type: 'application/pdf' }), pages });
+    } catch (e) {
+      setPdf({ kind: 'idle' });
+      toast(`Не удалось собрать PDF: ${e instanceof Error ? e.message : e}`);
+    }
+  };
+
+  /** Called right from the tap: iOS shows the share sheet only for a user gesture (Files, Telegram, AirDrop…). */
+  const sharePdf = async (file: File) => {
+    if (navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: file.name });
+        return;
+      } catch (e) {
+        if (e instanceof DOMException && e.name === 'AbortError') return;
+      }
+    }
+    const href = URL.createObjectURL(file);
+    const a = document.createElement('a');
+    a.href = href;
+    a.download = file.name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.setTimeout(() => URL.revokeObjectURL(href), 60_000);
+  };
+
   return (
     <section className="stack guide">
-      <div className="section-title no-print">
+      <div className="section-title">
         <h3 className="h2">Путеводитель</h3>
         {guides.length > 0 && (
-          <button type="button" className="btn sm glass-btn" onClick={() => window.print()}>
-            <Icon name="download" size={16} /> PDF
+          <button type="button" className="btn sm lime" disabled={pdf.kind === 'busy'} onClick={() => void makePdf()}>
+            {pdf.kind === 'busy' ? <span className="spinner sm" /> : <Icon name="download" size={16} />} {pdf.kind === 'busy' ? `Страница ${pdf.page}` : 'Сохранить PDF'}
           </button>
         )}
       </div>
-
-      <div className="guide-print-title print-only">
-        <h1>{trip.title}</h1>
-      </div>
+      {pdf.kind === 'ready' && (
+        <div className="card guide-pdf-ready">
+          <span className="guide-pdf-ic" aria-hidden="true">📄</span>
+          <span className="grow">
+            <b className="block">PDF готов</b>
+            <span className="muted small">
+              {pdf.pages} стр. · {(pdf.file.size / 1024 / 1024).toFixed(1)} МБ
+            </span>
+          </span>
+          <button type="button" className="btn sm dark" onClick={() => void sharePdf(pdf.file)}>
+            <Icon name="share" size={16} /> Сохранить
+          </button>
+        </div>
+      )}
 
       {days.length > 0 && (
         <div className="card stack">
-          <h4 className="h3">План по дням</h4>
+          <h4 className="guide-title">🗓️ План по дням</h4>
           <ol className="day-plan">
             {days.map((d, i) => (
               <li key={d.date}>
                 <div className="row between">
-                  <b>
-                    День {i + 1} · {formatDate(d.date, false)}
+                  <b className="row" style={{ gap: 8 }}>
+                    <span className="guide-num">{i + 1}</span> {formatDate(d.date, false)}
                   </b>
                   {d.city && <span className="muted small">{d.city}</span>}
                 </div>
@@ -125,7 +198,7 @@ export function GuideSection({ trip, route }: { trip: Trip; route: RouteStop[] }
       {unique.length === 0 ? (
         <Empty icon="book" title="Нет городов" text="Добавьте города в маршрут — для каждого соберётся мини-путеводитель." />
       ) : (
-        <button type="button" className="btn lime block no-print" disabled={!!busy} onClick={() => void build()}>
+        <button type="button" className="btn glass-btn block" disabled={!!busy} onClick={() => void build()}>
           {busy ? (
             <>
               <span className="spinner" /> {busy}…
@@ -138,7 +211,7 @@ export function GuideSection({ trip, route }: { trip: Trip; route: RouteStop[] }
         </button>
       )}
       {guides.length === 0 && unique.length > 0 && (
-        <p className="faint small no-print" style={{ margin: 0 }}>
+        <p className="faint small" style={{ margin: 0 }}>
           Для каждого города соберутся «что посмотреть», еда, транспорт и безопасность. Нужен интернет один раз — потом всё доступно офлайн.
         </p>
       )}
@@ -148,22 +221,24 @@ export function GuideSection({ trip, route }: { trip: Trip; route: RouteStop[] }
         if (!g) return null;
         return (
           <article key={g.id} className="card guide-city">
-            <header className="row between">
-              <h4 className="h2">{r.city?.name}</h4>
-              <span className="faint tiny">{g.lang === 'en' ? 'на английском' : ''}</span>
+            <header className="guide-city-head">
+              {r.city && <Flag id={r.city.countryId} />}
+              <h4 className="grow">{r.city?.name}</h4>
+              {g.lang === 'en' && <span className="pill">англ.</span>}
             </header>
             {g.sections.map((s) => {
               const key = `${g.id}:${s.key}`;
               const isOpen = open[key] ?? (s.key === 'intro' || s.key === 'see');
               return (
                 <section key={s.key} className="guide-sec">
-                  <button type="button" className="guide-sec-head no-print" aria-expanded={isOpen} onClick={() => setOpen((o) => ({ ...o, [key]: !isOpen }))}>
+                  <button type="button" className="guide-sec-head" aria-expanded={isOpen} onClick={() => setOpen((o) => ({ ...o, [key]: !isOpen }))}>
+                    <span className="guide-sec-ic" aria-hidden="true">
+                      {SECTION_ICON[s.key] ?? '•'}
+                    </span>
                     <span className="grow strong">{s.title}</span>
                     <Icon name={isOpen ? 'chevronUp' : 'chevronDown'} size={18} />
                   </button>
-                  <h5 className="print-only">{s.title}</h5>
-                  {/* Sanitised by parseWikivoyage: allow-listed tags only, no attributes. */}
-                  <div className={`guide-body ${isOpen ? '' : 'collapsed'}`} dangerouslySetInnerHTML={{ __html: s.html }} />
+                  {isOpen && <GuideBody blocks={blocksOf(g, s.key)} />}
                 </section>
               );
             })}
@@ -193,5 +268,35 @@ export function GuideSection({ trip, route }: { trip: Trip; route: RouteStop[] }
         );
       })}
     </section>
+  );
+}
+
+/** One guide section as cards: paragraphs, sub-headings, bullet items and numbered places. */
+function GuideBody({ blocks }: { blocks: GuideBlock[] }) {
+  return (
+    <div className="guide-body">
+      {blocks.map((b, i) =>
+        b.kind === 'p' ? (
+          <p key={i}>{b.text}</p>
+        ) : b.kind === 'h' ? (
+          <h5 key={i} className="guide-h">
+            {b.text}
+          </h5>
+        ) : b.kind === 'li' ? (
+          <div key={i} className="guide-li">
+            {b.text}
+          </div>
+        ) : (
+          <div key={i} className="guide-place">
+            <span className="guide-num">{b.n ?? '•'}</span>
+            <div className="grow">
+              <b>{b.name}</b>
+              {b.info && <span className="guide-info">{b.info}</span>}
+              {b.text && <p>{b.text}</p>}
+            </div>
+          </div>
+        ),
+      )}
+    </div>
   );
 }

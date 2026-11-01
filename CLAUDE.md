@@ -44,6 +44,10 @@ public/data   cities.tsv (~194 тыс. городов GeoNames), regions/<стр
 чек-лист, бюджет ₽/$/€, импорт брони, «Отметить по фото» (EXIF-геометки → страны/города/поездки в Web Worker: src/geo/photoWorker.ts, photoScan.ts, photoGeo.ts, photoClient.ts; индекс городов — public/data/photo-index.bin из scripts/photo-index.mjs (собирается сам, не коммитится); один file input не размонтируется — iOS отдаёт фото с задержкой; на время окна глобус выгружается (app/lean.ts); проверка и правка дат/городов — domain/photoReview.ts; веб не даёт доступа ко всей галерее — пользователь выбирает фото сам), экспорт в календарь/Google/2ГИС, совместные поездки; профиль — статус (тексты владельца по числу стран),
 достижения, карточка для соцсетей; заставка с планетой и самолётами при запуске.
 
+## Путеводитель
+- `domain/guideBlocks.ts` превращает сохранённый HTML Wikivoyage в блоки (абзацы, места с номером/адресом/телефоном); экран и PDF рисуют одни и те же блоки.
+- PDF: `trips/guidePdf.ts` рисует страницы A4 на canvas в стиле приложения, `domain/pdf.ts` склеивает их в PDF без библиотек. `window.print()` в установленном PWA на iPhone не работает — не возвращать. Поделиться — отдельной кнопкой (iOS требует жест пользователя).
+
 ## Лента (вкладка «Лента»: дайджест, новости, выгодные билеты)
 - Данные не в сборке, а в ветке `data` (`feed/news.json`, `digest.json`, `deals.json`), приложение читает их с raw.githubusercontent.com (`src/feed/client.ts`), копия — в localStorage.
 - `.github/workflows/feed.yml` каждый час: `scripts/feed/collect.ts` (Telegram t.me/s + RSS, источники — `src/feed/sources.ts`) и `scripts/feed/prices.ts` (Travelpayouts, секреты `TRAVELPAYOUTS_TOKEN`, `TRAVELPAYOUTS_MARKER`). Ветка `data` — один коммит, перезаписывается.

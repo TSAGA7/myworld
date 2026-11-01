@@ -24,7 +24,8 @@ function clean(node: Node, doc: Document): Node | null {
   if (node.nodeType !== 1) return null;
   const el = node as Element;
   if (el.matches('.mw-editsection, sup, style, script, figure, img, table, .noprint, .mw-empty-elt, .metadata, .thumb, .gallery, .mapframe, .mw-kartographer-container, .listing-metadata, .listing-coordinates')) return null;
-  const tag = el.tagName === 'H5' || el.tagName === 'H6' ? 'H4' : el.tagName;
+  // A listing (place card) outside a list becomes its own list item instead of melting into the paragraph.
+  const tag = el.matches('.vcard, .listing') && !el.parentElement?.closest('li, .vcard, .listing') ? 'LI' : el.tagName === 'H5' || el.tagName === 'H6' ? 'H4' : el.tagName;
   const kids = [...el.childNodes].map((c) => clean(c, doc)).filter((c): c is Node => !!c);
   if (!ALLOWED.has(tag)) {
     const frag = doc.createDocumentFragment();
