@@ -147,6 +147,22 @@ export function Settings({ onClose }: { onClose: () => void }) {
       </section>
 
       <section className="stack">
+        <h3 className="h3">Путешествия</h3>
+        <div className="list">
+          <label className="list-row tap">
+            <span className="grow">
+              <span className="t">Учитывать путешествия</span>
+              <span className="s block">
+                Выключите, если приложение нужно только для увлечений: страны и города перестанут отмечаться, глобус, курорты, споты и новости останутся.
+                Уже отмеченное не удаляется.
+              </span>
+            </span>
+            <input type="checkbox" className="switch" checked={settings.travelTracking} onChange={(e) => void setSetting('travelTracking', e.target.checked)} />
+          </label>
+        </div>
+      </section>
+
+      <section className="stack">
         <h3 className="h3">Карта</h3>
         <div className="list">
           <label className="list-row tap">

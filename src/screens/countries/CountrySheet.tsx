@@ -66,9 +66,11 @@ export function CountrySheet({ countryId, onClose }: { countryId: string; onClos
       )}
       <div className="row">
         {status !== 'visited' ? (
-          <button type="button" className="btn lime grow" onClick={() => void markCountry(toast, countryId, 'visited')}>
-            <Icon name="flag" size={18} /> Отметить посещённой
-          </button>
+          settings.travelTracking && (
+            <button type="button" className="btn lime grow" onClick={() => void markCountry(toast, countryId, 'visited')}>
+              <Icon name="flag" size={18} /> Отметить посещённой
+            </button>
+          )
         ) : (
           <button type="button" className="btn ghost grow" onClick={() => (visitedCities > 0 ? setConfirm(true) : void unmarkCountry(toast, countryId, 'visited', false))}>
             Снять отметку

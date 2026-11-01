@@ -80,9 +80,9 @@ export function CityCard({ city, onClose }: { city: CityInput; onClose: () => vo
       <div className="row card-actions">
         {status === 'none' && (
           <>
-            <button type="button" className="btn lime grow" onClick={() => void markCity(toast, city, 'visited')}>
+            {settings.travelTracking && <button type="button" className="btn lime grow" onClick={() => void markCity(toast, city, 'visited')}>
               <Icon name="flag" size={18} /> {been(settings.gender).here}
-            </button>
+            </button>}
             <button type="button" className="btn glass-btn grow" onClick={() => void markCity(toast, city, 'planned')}>
               Запланировать
             </button>
@@ -90,9 +90,11 @@ export function CityCard({ city, onClose }: { city: CityInput; onClose: () => vo
         )}
         {status === 'planned' && (
           <>
-            <button type="button" className="btn lime grow" onClick={() => void markCity(toast, city, 'visited')}>
-              <Icon name="check" size={18} /> Отметить посещённым
-            </button>
+            {settings.travelTracking && (
+              <button type="button" className="btn lime grow" onClick={() => void markCity(toast, city, 'visited')}>
+                <Icon name="check" size={18} /> Отметить посещённым
+              </button>
+            )}
             <button type="button" className="btn ghost" onClick={() => void unmarkCity(toast, city, 'planned')} aria-label="Убрать из планов">
               <Icon name="trash" size={18} />
             </button>
@@ -139,7 +141,7 @@ export function CountryCard({ countryId, onClose }: { countryId: string; onClose
       </div>
       <TripLinks ids={related} />
       <div className="row card-actions">
-        {status !== 'visited' && (
+        {status !== 'visited' && settings.travelTracking && (
           <button type="button" className="btn lime grow" onClick={() => void markCountry(toast, countryId, 'visited')}>
             <Icon name="flag" size={18} /> {been(settings.gender).here}
           </button>

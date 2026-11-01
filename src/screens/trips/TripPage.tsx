@@ -23,7 +23,7 @@ type Section = 'route' | 'tickets' | 'stays' | 'bookings' | 'expenses' | 'diary'
 
 export function TripPage({ trip }: { trip: Trip }) {
   const today = useToday();
-  const { world } = useWorld();
+  const { world, settings } = useWorld();
   const route = useRoute(trip.id);
   const cover = useAttachmentUrl(trip.coverId);
   const status = tripStatus(trip.startDate, trip.endDate, today);
@@ -131,9 +131,11 @@ export function TripPage({ trip }: { trip: Trip }) {
           <button type="button" className="btn lime block" disabled={places === 0} onClick={() => setSync('add')}>
             <Icon name="pin" size={18} /> Добавить города на карту
           </button>
-          <button type="button" className="btn dark block" disabled={!canVisit || places === 0} onClick={() => setSync('visited')}>
-            <Icon name="check" size={18} /> Отметить города посещёнными
-          </button>
+          {settings.travelTracking && (
+            <button type="button" className="btn dark block" disabled={!canVisit || places === 0} onClick={() => setSync('visited')}>
+              <Icon name="check" size={18} /> Отметить города посещёнными
+            </button>
+          )}
           <p className="faint small" style={{ margin: 0 }}>
             {places === 0
               ? 'Добавьте в маршрут города или страны — их можно будет перенести на карту.'

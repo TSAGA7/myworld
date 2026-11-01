@@ -233,6 +233,12 @@ export function Countries({
                   </span>
                 </div>
               </div>
+              {!settings.travelTracking && (
+                <button type="button" className="method-note" onClick={onSettings}>
+                  <Icon name="info" size={16} />
+                  <span>Учёт путешествий выключен: новые страны и города не отмечаются, история сохранена. Включить</span>
+                </button>
+              )}
               <button
                 type="button"
                 className="method-note"
@@ -246,6 +252,7 @@ export function Countries({
               </button>
             </section>
 
+            {settings.travelTracking && (
             <button
               type="button"
               className="btn glass-btn photo-btn"
@@ -258,6 +265,7 @@ export function Countries({
               </span>
               <Icon name="chevron" size={18} className="faint" />
             </button>
+            )}
 
             <label className="search">
               <Icon name="search" size={20} />

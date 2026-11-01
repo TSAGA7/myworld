@@ -1,7 +1,7 @@
 import type { CityInput, Undo } from '../data/store';
 import type { City, Trip, TripStop } from '../domain/model';
 import { countryName } from '../geo/reference';
-import { store } from './world';
+import { setSetting, store } from './world';
 
 type Toast = (text: string, action?: { label: string; run: () => void }) => void;
 
@@ -10,7 +10,15 @@ const withUndo = (toast: Toast, text: string, undo: Undo) => {
   toast(text, { label: 'Вернуть', run: () => void store.undo(undo) });
 };
 
+/** «Учитывать путешествия» off: nothing new becomes visited (plans still work, history stays). */
+async function trackingOff(toast: Toast): Promise<boolean> {
+  if (await store.getSetting('travelTracking', true)) return false;
+  toast('Учёт путешествий выключен — посещения не записываются', { label: 'Включить', run: () => void setSetting('travelTracking', true) });
+  return true;
+}
+
 export async function markCity(toast: Toast, city: CityInput, status: 'visited' | 'planned', date: string | null = null) {
+  if (status === 'visited' && (await trackingOff(toast))) return;
   try {
     await store.markCity(city, status, date);
     toast(status === 'visited' ? `${city.name}: посещён` : `${city.name}: запланирован`);
@@ -31,6 +39,7 @@ export async function toggleCityVisited(toast: Toast, city: City | CityInput, vi
 }
 
 export async function markCountry(toast: Toast, countryId: string, status: 'visited' | 'planned') {
+  if (status === 'visited' && (await trackingOff(toast))) return;
   await store.markCountry(countryId, status);
   toast(status === 'visited' ? `${countryName(countryId)}: посещена` : `${countryName(countryId)}: запланирована`);
 }

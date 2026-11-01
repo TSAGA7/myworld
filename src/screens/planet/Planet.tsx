@@ -371,15 +371,18 @@ export function Planet({ active, onSettings }: { active: boolean; onSettings: ()
             <button type="button" className="btn lime" onClick={() => setSearchOpen(true)}>
               <Icon name="search" size={18} /> Найти город
             </button>
-            <button type="button" className="btn glass-btn" onClick={() => setPhotosOpen(true)}>
-              <Icon name="image" size={18} /> Отметить по фото
-            </button>
+            {settings.travelTracking && (
+              <button type="button" className="btn glass-btn" onClick={() => setPhotosOpen(true)}>
+                <Icon name="image" size={18} /> Отметить по фото
+              </button>
+            )}
           </div>
         </div>
       )}
 
       {searchOpen && (
         <Sheet title="Поиск" onClose={() => setSearchOpen(false)}>
+          {settings.travelTracking && (
           <button
             type="button"
             className="btn glass-btn photo-btn"
@@ -394,6 +397,7 @@ export function Planet({ active, onSettings }: { active: boolean; onSettings: ()
               <small>Страны и города — по геометкам снимков</small>
             </span>
           </button>
+          )}
           <PlaceSearch
             onCountry={(c) => {
               setSearchOpen(false);
@@ -441,7 +445,8 @@ function CustomCitySheet({
   const { cities } = useWorld();
   const [name, setName] = useState(picked.name);
   const [countryId, setCountryId] = useState(picked.countryId ?? '');
-  const [status, setStatus] = useState<'visited' | 'planned' | 'none'>(picked.relocateId ? 'none' : 'visited');
+  const { settings } = useWorld();
+  const [status, setStatus] = useState<'visited' | 'planned' | 'none'>(picked.relocateId ? 'none' : settings.travelTracking ? 'visited' : 'planned');
   const sorted = useMemo(() => [...COUNTRIES].sort((a, b) => a.ru.localeCompare(b.ru, 'ru')), []);
   const save = async () => {
     if (!name.trim() || !countryId) return;
@@ -497,9 +502,9 @@ function CustomCitySheet({
           value={status}
           onChange={setStatus}
           options={[
-            { value: 'visited', label: 'Посещён' },
-            { value: 'planned', label: 'В планах' },
-            { value: 'none', label: 'Без отметки' },
+            ...(settings.travelTracking ? [{ value: 'visited' as const, label: 'Посещён' }] : []),
+            { value: 'planned' as const, label: 'В планах' },
+            { value: 'none' as const, label: 'Без отметки' },
           ]}
         />
       )}
