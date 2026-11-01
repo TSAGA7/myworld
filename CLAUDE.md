@@ -56,7 +56,7 @@ public/data   cities.tsv (~194 тыс. городов GeoNames), regions/<стр
 - Утром и вечером вторая задача по `scripts/feed/EDITORIAL.md`: переводит зарубежные новости (`lang: 'en'` в sources.ts → `translations.json`, без перевода новость скрыта) и собирает «Интересное» из авторских каналов (`STORY_LIST` → `stories.json` → `interesting.json`). Логика — `src/feed/editorial.ts`.
 - Дубли: `dedupe` в `src/feed/text.ts` (редкие слова, заголовки, флаги стран; авиакомпании/аэропорты/перевозчики друг с другом не склеиваются), регрессия на реальных постах — в тестах.
 - Все источники приложения показываются в «Настройки → Источники» (`src/screens/SourcesSheet.tsx`, берёт список из sources.ts).
-- Вкладки ленты (Интересное · Дайджест · Новости · Билеты) — `src/screens/feed/*`, по файлу на раздел, свайп — в `Feed.tsx`.
+- Вкладки ленты (Билеты · Интересное · Дайджест · Новости) — `src/screens/feed/*`, по файлу на раздел, свайп — в `Feed.tsx`.
 - «Проверить цену»: `supabase/functions/price-check` + переменные репозитория `PRICE_CHECK_URL`, `PRICE_CHECK_KEY` (пусто → показывается время последнего часового скана).
 - Логика — `src/feed/*.ts` (импорты с `.ts`, скрипты запускаются `node --experimental-strip-types`), тесты — `src/feed/feed.test.ts`.
 
@@ -69,6 +69,8 @@ Headless Chromium (Playwright, swiftshader) в песочнице рисует �
 - Отметки — таблица `hobby` (Dexie v3): `key` = `${what}:${kind}:${placeId}`, what = 'visit' | 'fav', kind = 'resort' | 'spot'. Выключение увлечения их не трогает. «Был здесь» при включённом учёте путешествий отмечает и страну (`store.markHobby`).
 - Каталоги не в сборке: `.github/workflows/catalog.yml` раз в неделю собирает `catalog/resorts.json` (OpenSkiMap + Wikidata: русское имя, Telegram P3789, сайт) и `catalog/spots.json` (координаты только из OSM по `scripts/catalog/spots-seed.json`) в ветку `data`; отчёты — `catalog/*-report.json`. Приложение читает их через `geo/hobbyCatalog.ts`, копия — в таблице `catalog`.
 - Ручные правки/камеры/выключение объектов — `scripts/catalog/resorts-extra.json`, `spots-extra.json` (только с источником). Id курорта стабилен: при смене берётся прежний, старые — в `alt`.
+- Свайп между вкладками (лента, «Мой мир») — общий хук `ui/useSwipe.ts` + класс `.swipeable` (touch-action: pan-y); жест не перехватывается только у реально прокручиваемых вбок рядов, полей, карт и шторок.
+- Поиск курортов: `aliases` (resorts-extra, с источником) и `towns` (ближайшие города из cities.tsv при сборке каталога) + `placeSoundsLike` — совпадение по звучанию для любого написания.
 - «Мой мир»: вкладки `rider`/`surf` — `screens/countries/HobbyWorld.tsx`, страница места — `PlaceSheet.tsx` (маршрут `#/countries/@resort/<id>`, `@spot`). На карте — слой `hobby-dots`.
 - «Учитывать путешествия» (`travelTracking`): при выключении `app/actions.ts` не даёт отметить страну/город посещёнными (тост «Включить»), кнопки «Был здесь», «Отметить по фото», «Отметить города посещёнными» скрыты; планы, история, глобус и увлечения работают.
 - Лента по увлечениям: разделы `Горы`/`Сёрф` в `src/feed/sources.ts` (или `hobby` у автора в `STORY_LIST`) видны только при включённом Rider/Surf или настройке `sportNews`; скрытые источники — `hiddenSources`. Логика — `src/feed/visibility.ts`. В дайджест спортивные новости не попадают (`scripts/feed/digest.ts`).

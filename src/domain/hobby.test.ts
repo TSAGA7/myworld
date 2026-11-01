@@ -10,6 +10,7 @@ import {
   hobbyProgress,
   indexPlaces,
   placeMatches,
+  placeSoundsLike,
   RIDER_JOKE,
   type Resort,
   resortFacts,
@@ -57,6 +58,19 @@ describe('hobbies', () => {
     expect(placeMatches(r, 'франц', name)).toBe(true);
     expect(placeMatches(r, 'рона', name)).toBe(true);
     expect(placeMatches(r, 'церматт', name)).toBe(false);
+    // By sound, whatever the spelling; by the mountains and the town next to the slopes.
+    const plain = resort('x', 'Courchevel', 'FR');
+    expect(placeMatches(plain, 'Куршавель', name)).toBe(false);
+    expect(placeSoundsLike(plain, 'Куршавель')).toBe(true);
+    expect(placeSoundsLike(plain, 'куршев')).toBe(true);
+    expect(placeSoundsLike(resort('z', 'Zermatt - Breuil-Cervinia', 'CH'), 'Церматт')).toBe(true);
+    expect(placeSoundsLike(resort('k', 'Kitzbühel', 'AT'), 'Кицбюэль')).toBe(true);
+    expect(placeSoundsLike(resort('i', 'Ischgl', 'AT'), 'Ишгль')).toBe(true);
+    expect(placeSoundsLike(plain, 'Шамони')).toBe(false);
+    expect(placeSoundsLike(plain, 'ку')).toBe(false);
+    const bw = resort('b', 'Большой Вудъявр', 'RU', { aliases: ['Хибины'], towns: ['Кировск'] });
+    expect(placeMatches(bw, 'кировск', name)).toBe(true);
+    expect(placeMatches(bw, 'хибины', name)).toBe(true);
     const spots = [spot('id-uluwatu', 'Uluwatu', 'ID', 'Бали'), spot('id-g-land', 'G-Land', 'ID', 'Ява'), spot('id-canggu', 'Canggu', 'ID', 'Бали')];
     const [g] = groupByCountry(spots, new Set(['id-canggu']), name);
     expect(g?.visited).toBe(1);

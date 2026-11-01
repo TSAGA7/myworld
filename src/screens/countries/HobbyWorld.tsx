@@ -4,7 +4,7 @@ import { go } from '../../app/router';
 import { useToast } from '../../app/toast';
 import { useWorld } from '../../app/world';
 import { countLabel, plural } from '../../domain/dates';
-import { groupByCountry, type HobbyKind, hobbyProgress, inRussia, type Place, placeMatches, placeTitle, RIDER_FULL, type Resort, type Spot, visitedIn } from '../../domain/hobby';
+import { groupByCountry, type HobbyKind, hobbyProgress, inRussia, type Place, placeMatches, placeSoundsLike, placeTitle, RIDER_FULL, type Resort, type Spot, visitedIn } from '../../domain/hobby';
 import { reloadCatalog, useCatalog } from '../../geo/hobbyCatalog';
 import { countryName } from '../../geo/reference';
 import { Icon } from '../../ui/Icon';
@@ -49,7 +49,13 @@ export function HobbyWorld({ kind }: { kind: HobbyKind }) {
     () => active.filter((p) => (filter === 'ru' ? inRussia(p) : filter === 'world' ? !inRussia(p) : filter === 'mine' ? visited.has(p.id) : true)),
     [active, filter, visited],
   );
-  const found = useMemo(() => (q.trim() ? active.filter((p) => placeMatches(p, q, countryName)).slice(0, 80) : []), [active, q]);
+  // Exact spelling first, then names that sound alike («Куршавель» → Courchevel).
+  const found = useMemo(() => {
+    if (!q.trim()) return [];
+    const exact = active.filter((p) => placeMatches(p, q, countryName));
+    const seen = new Set(exact.map((p) => p.id));
+    return [...exact, ...active.filter((p) => !seen.has(p.id) && placeSoundsLike(p, q))].slice(0, 80);
+  }, [active, q]);
   const groups = useMemo(() => groupByCountry(pool, visited, countryName), [pool, visited]);
 
   const toggle = (p: Place) =>

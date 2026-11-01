@@ -1,6 +1,12 @@
 {
   "_": "Ручные правки каталога курортов: { id, ...поля } — меняет поля курорта (id из resorts.json или его alt); { id, active: false } — убрать из каталога; новый курорт — id, name, countryId, lat, lon и источник в src. Камеры: cams: [{ name, place, url, kind: \"iframe\" | \"hls\" | \"image\" | \"link\" }] — только официальные, проверенные. telegram здесь = официальный канал, проверен (src).",
   "items": [
+    { "id": "skimap-1951", "aliases": ["Хибины", "Big Wood", "Кировск"], "src": "ru.wikipedia: «Большой Вудъявр» — горнолыжный курорт в Хибинах, город Кировск" },
+    { "id": "skimap-1011", "aliases": ["Санкт-Мориц", "St. Moritz", "Корвилья"], "src": "ru.wikipedia: «Санкт-Мориц»; Corviglia — главная зона катания Санкт-Морица" },
+    { "id": "skimap-17107", "aliases": ["Санкт-Мориц", "St. Moritz", "Корвач"], "src": "ru.wikipedia: «Санкт-Мориц»; Corvatsch — зона катания Санкт-Морица" },
+    { "id": "skimap-17105", "aliases": ["Санкт-Мориц", "St. Moritz", "Диаволецца"], "src": "ru.wikipedia: «Санкт-Мориц»; Diavolezza — зона катания у Санкт-Морица" },
+    { "id": "osm-relation-21355703", "nameRu": "Куршевель", "aliases": ["Три долины"], "src": "ru.wikipedia: «Куршевель»" },
+    { "id": "skimap-1079", "nameRu": "Три долины", "aliases": ["Куршевель", "Мерибель", "Валь-Торанс", "Courchevel", "Méribel", "Val Thorens"], "src": "ru.wikipedia: «Три долины» (Куршевель, Мерибель, Валь-Торанс)" },
     { "id": "skimap-2678", "telegram": "rosakhutoralerts", "website": "https://rosakhutor.ru/", "src": "t.me/rosakhutoralerts: «Официальный канал Горного курорта Роза Хутор», сайт rosakhutor.ru; проверено 2026-11-01" },
     { "id": "skimap-1947", "telegram": "gazprom_resort", "src": "t.me/gazprom_resort: «Курорт «Газпром Поляна»», активен; проверено 2026-11-01" },
     { "id": "skimap-5850", "telegram": "manzherok_resort", "src": "t.me/manzherok_resort: «Курорт Манжерок», активен; проверено 2026-11-01" }

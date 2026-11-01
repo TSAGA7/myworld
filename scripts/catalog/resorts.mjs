@@ -158,6 +158,31 @@ for (const it of items) {
   }
 }
 
+// Towns next to the slopes, so «Кировск» finds «Большой Вудъявр»: GeoNames (CC BY 4.0) from the app's city catalog,
+// up to 4 nearest within 15 km, Russian and Latin names.
+{
+  const rows = (await readFile(join(APP, 'public/data/cities.tsv'), 'utf8')).split('\n').map((l) => l.split('\t'));
+  const grid = new Map();
+  for (const r of rows) {
+    const lat = Number(r[4]);
+    const lon = Number(r[5]);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+    const k = `${Math.floor(lat * 4)}:${Math.floor(lon * 4)}`;
+    grid.set(k, [...(grid.get(k) ?? []), { ru: r[1], en: r[2], lat, lon }]);
+  }
+  for (const it of items) {
+    const near = [];
+    for (let a = -1; a <= 1; a++)
+      for (let b = -1; b <= 1; b++)
+        for (const c of grid.get(`${Math.floor(it.lat * 4) + a}:${Math.floor(it.lon * 4) + b}`) ?? []) {
+          const km = Math.hypot((c.lat - it.lat) * 111.2, (c.lon - it.lon) * 111.2 * Math.cos((it.lat * Math.PI) / 180));
+          if (km <= 15) near.push({ ...c, km });
+        }
+    near.sort((x, y) => x.km - y.km);
+    it.towns = [...new Set(near.slice(0, 4).flatMap((c) => [c.ru, c.en]).filter(Boolean))];
+  }
+}
+
 // Manual layer: fixes, Telegram channels, cameras, switched-off resorts, resorts OSM lacks.
 const extra = readJson(join(APP, 'scripts/catalog/resorts-extra.json'), { items: [] });
 for (const e of extra.items ?? []) {

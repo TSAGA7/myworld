@@ -59,6 +59,10 @@ export const resortSchema = z.object({
   tgSource: z.enum(['official', 'wikidata']).nullish().transform((v) => v ?? null),
   cams: z.array(cameraSchema).default([]),
   active: z.boolean().default(true),
+  /** Other names people search by: the mountains («Хибины»), Russian spellings («Куршевель»). From resorts-extra.json. */
+  aliases: z.array(z.string()).default([]),
+  /** Towns next to the slopes (GeoNames, ≤ 20 km): «Кировск» finds «Большой Вудъявр». */
+  towns: z.array(z.string()).default([]),
 });
 export type Resort = z.infer<typeof resortSchema>;
 
@@ -125,11 +129,45 @@ const RUSSIA = 'RU';
 export const inRussia = (p: Place): boolean => p.countryId === RUSSIA;
 
 /** Search by name, country and region (countryName resolves the Russian country name). */
+const namesOf = (p: Place): string[] =>
+  [p.name, 'nameRu' in p ? p.nameRu : null, ...('aliases' in p ? p.aliases : []), ...('towns' in p ? p.towns : [])].filter((x): x is string => !!x);
+
 export function placeMatches(p: Place, q: string, countryName: (id: string) => string): boolean {
   const nq = normalize(q);
   if (!nq) return true;
-  const hay = [p.name, 'nameRu' in p ? p.nameRu : null, countryName(p.countryId), p.region, 'group' in p ? p.group : null].filter((x): x is string => !!x);
+  const hay = [...namesOf(p), countryName(p.countryId), p.region, 'group' in p ? p.group : null].filter((x): x is string => !!x);
   return hay.some((h) => normalize(h).includes(nq));
+}
+
+const CYR: Record<string, string> = { а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ж: 'zh', з: 'z', и: 'i', й: 'i', к: 'k', л: 'l', м: 'm', н: 'n', о: 'o', п: 'p', р: 'r', с: 's', т: 't', у: 'u', ф: 'f', х: 'kh', ц: 'ts', ч: 'ch', ш: 'sh', щ: 'sh', ы: 'y', ю: 'yu', я: 'ya' };
+
+/**
+ * Sound skeleton of a word, the same for Russian and Latin spelling: «Куршавель», «Куршевель» and «Courchevel» → krsvl,
+ * «Церматт» and «Zermatt» → srmt, «Кицбюэль» and «Kitzbühel» → ksbl. Sibilants merge, vowels and h drop.
+ */
+export function soundKey(word: string): string {
+  const latin = [...normalize(word)].map((c) => CYR[c] ?? c).join('');
+  return latin
+    .replace(/tsch|sch|ch|sh|zh|kh|j/g, 's')
+    .replace(/ts|tz|z|x/g, 's')
+    .replace(/c(?=[eiy])/g, 's')
+    .replace(/ck|c|q/g, 'k')
+    .replace(/ph/g, 'f')
+    .replace(/th/g, 't')
+    .replace(/w/g, 'v')
+    .replace(/[^a-z0-9]/g, '')
+    .replace(/[aeiouyh]/g, '')
+    .replace(/(.)\1+/g, '$1');
+}
+
+/** Spelling-tolerant match by sound: every word of the query (3+ consonants) starts a word of one of the names. */
+export function placeSoundsLike(p: Place, q: string): boolean {
+  const qk = normalize(q).split(' ').map(soundKey).filter(Boolean);
+  if (!qk.length || qk.join('').length < 3) return false;
+  return namesOf(p).some((n) => {
+    const words = normalize(n).split(' ').map(soundKey);
+    return qk.every((k) => words.some((w) => w.startsWith(k)));
+  });
 }
 
 export interface PlaceGroup<T extends Place> {
