@@ -21,7 +21,7 @@ export function writeJson(name: string, data: unknown, pretty = false): void {
 const UA = 'Mozilla/5.0 (compatible; MyWorldFeed/1.0; +https://tsaga7.github.io/myworld/)';
 
 export async function fetchText(url: string, init: RequestInit = {}, timeoutMs = 20_000): Promise<string> {
-  const r = await fetch(url, { ...init, headers: { 'user-agent': UA, 'accept-language': 'ru,en;q=0.8', ...(init.headers ?? {}) }, signal: AbortSignal.timeout(timeoutMs) });
+  const r = await fetch(url, { ...init, headers: { 'user-agent': UA, accept: 'text/html,application/rss+xml,application/xml;q=0.9,*/*;q=0.8', 'accept-language': 'ru,en;q=0.8', ...(init.headers ?? {}) }, signal: AbortSignal.timeout(timeoutMs) });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   return r.text();
 }
