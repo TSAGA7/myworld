@@ -25,19 +25,6 @@ async function get(url) {
   return { ok: r.ok, status: r.status, url: r.url, body, xfo: r.headers.get('x-frame-options'), csp: r.headers.get('content-security-policy') };
 }
 
-/** A live HLS playlist: answers 200 with #EXTM3U to a request from the app's site. */
-async function playable(url, page) {
-  try {
-    const r = await fetch(url, { headers: { 'user-agent': UA, referer: 'https://tsaga7.github.io/', origin: 'https://tsaga7.github.io' }, signal: AbortSignal.timeout(10_000) });
-    const head = (await r.text()).slice(0, 200);
-    if (r.ok && head.startsWith('#EXTM3U')) return true;
-    void page;
-    return false;
-  } catch {
-    return false;
-  }
-}
-
 /** Links of a page with their text. */
 function links(html, base) {
   const out = [];
@@ -80,15 +67,26 @@ for (const r of queue) {
     if (!p.ok) throw new Error(`камеры: HTTP ${p.status}`);
     const cams = [{ name: 'Камеры курорта', place: null, url: p.url, kind: 'link' }];
     // Addresses inside page scripts are JSON-escaped («https:\/\/…m3u8?token=…\"»): unescape, never keep the backslash.
-    const found = [...new Set([...p.body.replace(/\\\//g, '/').matchAll(/https:\/\/[^"'\s<>\\]+?\.m3u8[^"'\s<>\\]*/gi)].map((m) => m[0]))];
-    // Only streams that answer now: an https page can't play an http stream, a dead or token-expired one is no camera.
+    // Only https streams (an https app can't play http), skipped when the page itself marks the camera as switched off;
+    // the camera's own title on the page («Главная площадь», «Высота 2300») is taken when it sits next to the address.
+    // Streams are not test-played from here: camera servers often answer only to viewers in their country.
+    const text = p.body.replace(/\\\//g, '/').replace(/\\"/g, '"');
     const hls = [];
-    for (const u of found) {
-      if (hls.length >= 6) break;
-      if (await playable(u, p.url)) hls.push(u);
-      else report.errors.push(`${r.nameRu ?? r.name}: поток не отвечает ${u}`);
+    const names = new Map();
+    const pages = new Map();
+    for (const m of text.matchAll(/https:\/\/[^"'\s<>\\]+?\.m3u8[^"'\s<>\\]*/gi)) {
+      const u = m[0];
+      if (hls.includes(u) || hls.length >= 12) continue;
+      const near = text.slice(m.index + u.length, m.index + u.length + 700).split(/https:\/\/[^"'\s]+\.m3u8/)[0];
+      if (/"(operation_state|state|status)"\s*:\s*"(disabled|inactive|off)"/i.test(near)) continue;
+      const title = near.match(/"(?:title|name)"\s*:\s*"([^"]{2,60})"/)?.[1]?.trim();
+      const elev = near.match(/"elevation"[\s\S]{0,200}?"title"\s*:\s*"(\d{3,4})"/)?.[1];
+      hls.push(u);
+      const slug = text.slice(Math.max(0, m.index - 400), m.index).match(/"slug"\s*:\s*"([\w-]{1,40})"[^{}]*$/)?.[1];
+      if (slug && /\/webcams?\//.test(p.url)) pages.set(u, p.url.replace(/(\/webcams?\/).*$/, `$1${slug}`));
+      if (title) names.set(u, elev && !title.includes(elev) ? `${title} · ${elev} м` : title);
     }
-    hls.forEach((u, i) => cams.push({ name: hls.length > 1 ? `Трансляция ${i + 1}` : 'Трансляция', place: null, url: u, kind: 'hls' }));
+    hls.forEach((u, i) => cams.push({ name: names.get(u) ?? (hls.length > 1 ? `Трансляция ${i + 1}` : 'Трансляция'), place: null, url: u, kind: 'hls', ...(pages.has(u) ? { page: pages.get(u) } : {}) }));
     if (!hls.length) {
       const imgs = [...new Set([...p.body.matchAll(/(?:src|data-src)="([^"]+?(?:webcam|cam)[^"]*?\.jpe?g[^"]*)"/gi)].map((m) => new URL(m[1].replace(/&amp;/g, '&'), p.url).href))]
         .filter((u) => !/(thumb|icon|logo|teaser|preview|poster|banner|placeholder|_small|-small)/i.test(u))

@@ -34,6 +34,8 @@ export const cameraSchema = z.object({
   url: z.string().url(),
   /** iframe — official embed; hls — public stream; image — official snapshot that refreshes; link — opens the official page. */
   kind: z.enum(['iframe', 'hls', 'image', 'link']),
+  /** The camera's own page on the resort site — opened when the stream plays only there. */
+  page: z.string().url().nullish(),
 });
 export type Camera = z.infer<typeof cameraSchema>;
 

@@ -38,7 +38,7 @@ export function Cameras({ cams, resortName }: { cams: readonly Camera[]; resortN
           </a>
         )}
       </div>
-      {open && <CameraView cam={open} page={page?.url ?? null} title={`${resortName}: ${open.name}`} onClose={() => setOpen(null)} />}
+      {open && <CameraView cam={open} page={open.page ?? page?.url ?? null} title={`${resortName}: ${open.name}`} onClose={() => setOpen(null)} />}
     </section>
   );
 }
@@ -60,11 +60,15 @@ function CameraView({ cam, page, title, onClose }: { cam: Camera; page: string |
           <span className="circle-btn" aria-hidden="true">
             <Icon name="cloud" />
           </span>
-          <h3 className="h3">Камера сейчас недоступна</h3>
-          <p>Курорт мог выключить её или изменить адрес. Попробуйте на сайте курорта.</p>
+          <h3 className="h3">{cam.kind === 'hls' && page ? 'Трансляция открывается только на сайте курорта' : 'Камера сейчас недоступна'}</h3>
+          <p>
+            {cam.kind === 'hls' && page
+              ? 'Курорт разрешает смотреть поток только у себя на сайте — откроем эту камеру там.'
+              : 'Курорт мог выключить её или изменить адрес. Попробуйте на сайте курорта.'}
+          </p>
           {page && (
-            <a className="btn glass-btn" href={page} target="_blank" rel="noopener noreferrer">
-              <Icon name="external" size={18} /> Открыть сайт
+            <a className="btn lime" href={page} target="_blank" rel="noopener noreferrer">
+              <Icon name="external" size={18} /> {cam.page ? 'Смотреть на сайте курорта' : 'Открыть сайт'}
             </a>
           )}
         </div>
