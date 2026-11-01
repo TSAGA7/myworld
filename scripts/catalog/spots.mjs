@@ -54,13 +54,14 @@ const GEO = new Set(['natural', 'place', 'leisure', 'sport', 'boundary', 'waterw
 /** Names that are also ordinary words: found only next to their region, never anywhere in the country. */
 const GENERIC = new Set(['restaurants', 'chickens', 'sultans', 'cokes', 'the bay', 'cathedral', 'backdoor', 'pipeline', 'rifles', 'telescopes', 'jaws', 'dungeons', 'main point', 'malibu', 'rincon', 'trestles', 'impossibles', 'dreamland', 'supertubes', 'supertubos', 'jailbreaks', 'honkys']);
 /** Search English Wikipedia; take the first article with coordinates inside the region box (or the country when there is no box). */
-async function wikipedia(query, anchor, cc) {
+async function wikipedia(query, anchor, cc, want) {
   const url = `https://en.wikipedia.org/w/api.php?action=query&format=json&generator=search&gsrlimit=6&gsrsearch=${encodeURIComponent(query)}&prop=coordinates|info&inprop=url&colimit=max`;
   const j = await getJson(url, {}, 2, 30_000);
   const pages = Object.values(j.query?.pages ?? {}).sort((a, b) => a.index - b.index);
   for (const p of pages) {
     const c = p.coordinates?.[0];
-    if (!c) continue;
+    // The article must be about the spot itself (its title names it), not the island / region / an event held there.
+    if (!c || !fold(p.title).includes(want)) continue;
     if (anchor ? inBox(anchor.box, c.lat, c.lon, 0.7) : countryAt(c.lon, c.lat) === cc) return { lat: c.lat, lon: c.lon, url: p.fullurl };
   }
   return null;
@@ -87,7 +88,7 @@ for (const g of seed.spots) {
     const id = `${g.c.toLowerCase()}-${slug(s.name)}`;
     const base = { id, name: s.name, countryId: g.c, continent: countryContinent.get(g.c) ?? null, group: g.region, area: !!s.area };
     const old = prev.get(id);
-    let hit = old && Number.isFinite(old.lat) && ['osm-surf', 'osm-place', 'wikipedia', 'manual'].includes(old.by) ? { lat: old.lat, lon: old.lon, osm: old.osm ?? null, by: old.by, src: old.src ?? null } : null;
+    let hit = old && Number.isFinite(old.lat) && ['osm-surf', 'osm-place', 'manual'].includes(old.by) ? { lat: old.lat, lon: old.lon, osm: old.osm ?? null, by: old.by, src: old.src ?? null } : null;
     const q = s.q ?? s.name;
     if (!hit && !s.area) {
       const want = fold(q);
@@ -113,7 +114,7 @@ for (const g of seed.spots) {
     if (!hit) {
       // Last resort: the Wikipedia article of the spot (its coordinates), only when it lies in the spot's region.
       try {
-        const w = await wikipedia(`${q} surf ${g.near}`, anchor, g.c);
+        const w = await wikipedia(`${q} surf ${g.near}`, anchor, g.c, fold(q).trim());
         if (w) hit = { lat: w.lat, lon: w.lon, osm: null, by: 'wikipedia', src: w.url };
       } catch (e) {
         report.errors.push(`Wikipedia ${s.name}: ${e.message}`);
