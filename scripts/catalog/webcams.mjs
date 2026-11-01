@@ -25,6 +25,19 @@ async function get(url) {
   return { ok: r.ok, status: r.status, url: r.url, body, xfo: r.headers.get('x-frame-options'), csp: r.headers.get('content-security-policy') };
 }
 
+/** A live HLS playlist: answers 200 with #EXTM3U to a request from the app's site. */
+async function playable(url, page) {
+  try {
+    const r = await fetch(url, { headers: { 'user-agent': UA, referer: 'https://tsaga7.github.io/', origin: 'https://tsaga7.github.io' }, signal: AbortSignal.timeout(10_000) });
+    const head = (await r.text()).slice(0, 200);
+    if (r.ok && head.startsWith('#EXTM3U')) return true;
+    void page;
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 /** Links of a page with their text. */
 function links(html, base) {
   const out = [];
@@ -66,7 +79,15 @@ for (const r of queue) {
     const p = await get(page.url);
     if (!p.ok) throw new Error(`камеры: HTTP ${p.status}`);
     const cams = [{ name: 'Камеры курорта', place: null, url: p.url, kind: 'link' }];
-    const hls = [...new Set([...p.body.matchAll(/https?:\/\/[^"'\s<>]+?\.m3u8[^"'\s<>]*/gi)].map((m) => m[0]))].slice(0, 6);
+    // Addresses inside page scripts are JSON-escaped («https:\/\/…m3u8?token=…\"»): unescape, never keep the backslash.
+    const found = [...new Set([...p.body.replace(/\\\//g, '/').matchAll(/https:\/\/[^"'\s<>\\]+?\.m3u8[^"'\s<>\\]*/gi)].map((m) => m[0]))];
+    // Only streams that answer now: an https page can't play an http stream, a dead or token-expired one is no camera.
+    const hls = [];
+    for (const u of found) {
+      if (hls.length >= 6) break;
+      if (await playable(u, p.url)) hls.push(u);
+      else report.errors.push(`${r.nameRu ?? r.name}: поток не отвечает ${u}`);
+    }
     hls.forEach((u, i) => cams.push({ name: hls.length > 1 ? `Трансляция ${i + 1}` : 'Трансляция', place: null, url: u, kind: 'hls' }));
     if (!hls.length) {
       const imgs = [...new Set([...p.body.matchAll(/(?:src|data-src)="([^"]+?(?:webcam|cam)[^"]*?\.jpe?g[^"]*)"/gi)].map((m) => new URL(m[1].replace(/&amp;/g, '&'), p.url).href))]
