@@ -52,6 +52,9 @@ describe('parsing', () => {
     expect(tagsOf('«Победа» объявила распродажу со скидкой 10% на рейсы в Турцию')).toEqual(['deal', 'air']);
     expect(tagsOf('Индия отменила безвиз для граждан')).toEqual(['visa']);
     expect(tagsOf('РЖД пустит новые поезда «Ласточка»')).toEqual(['rail']);
+    expect(tagsOf('Массовые акции протеста могут осложнить путешествия')).toEqual([]);
+    expect(tagsOf('Билеты на ж/д до Казани')).toEqual(['rail']);
+    expect(tagsOf('Победа над жадностью: между делом')).toEqual([]);
   });
 });
 

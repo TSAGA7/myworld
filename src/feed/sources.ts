@@ -21,8 +21,6 @@ export const SOURCES: readonly SourceDef[] = [
   { id: 'flyextraspace', name: 'ExtraSpace', kind: 'telegram', ref: 'flyextraspace' },
   { id: 'journal_provodnika', name: 'Журнал проводника', kind: 'telegram', ref: 'journal_provodnika' },
   { id: 'tourdom', name: 'Турдом', kind: 'rss', ref: 'https://www.tourdom.ru/rss/' },
-  { id: 'interfax-tourism', name: 'Интерфакс-Туризм', kind: 'rss', ref: 'https://tourism.interfax.ru/ru/rss/' },
-  { id: 'ria-tourism', name: 'РИА Новости · Туризм', kind: 'rss', ref: 'https://ria.ru/export/rss2/tourism/index.xml' },
 ];
 
 export const sourceUrl = (s: SourceDef): string => (s.kind === 'telegram' ? `https://t.me/s/${s.ref}` : s.ref);
