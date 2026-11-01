@@ -3,6 +3,7 @@
  *   node --experimental-strip-types scripts/feed/digest.ts input            → news of the last 24 h for the AI, one per line
  *   node --experimental-strip-types scripts/feed/digest.ts publish <draft>  → checks the draft and writes feed/digest.json
  */
+import { hobbyOfSource } from '../../src/feed/visibility.ts';
 import { readFileSync } from 'node:fs';
 import { addDigest, buildDigest, DraftSchema, moscowDate } from '../../src/feed/digest.ts';
 import { localize } from '../../src/feed/editorial.ts';
@@ -17,7 +18,8 @@ if (!news) {
   process.exit(1);
 }
 // Foreign news take part once translated.
-const items = localize(news.items, readJson<TranslationsFile>('translations.json'));
+// Ski and surf news are for riders / surfers only: the daily digest is for everyone, so they stay out of it.
+const items = localize(news.items, readJson<TranslationsFile>('translations.json')).filter((i) => !hobbyOfSource(i.sourceId));
 const [cmd, arg] = process.argv.slice(2);
 
 if (cmd === 'input') {
