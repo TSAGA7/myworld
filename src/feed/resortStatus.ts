@@ -10,7 +10,7 @@ export type StatusLevel = 'critical' | 'info';
 
 const RULES: ReadonlyArray<{ level: StatusLevel; re: RegExp }> = [
   // Closed / stopped: runs, lifts, the whole resort; dangerous weather.
-  { level: 'critical', re: /(закрыт[аоы]?|закрыли|закрывается|не работа[ею]т|остановлен[аоы]?|приостановлен[аоы]?|временно не|не запуска)[^.!?\n]{0,60}(трасс|подъ[её]мник|канатн|кресел|гондол|бугел|склон|курорт|катани)/i },
+  { level: 'critical', re: /(закрыт[аоы]?|закрыли|закрыва[ею]тся|закроются|закроем|не работа[ею]т|остановлен[аоы]?|приостановлен[аоы]?|временно не|не запуска)[^.!?\n]{0,60}(трасс|подъ[её]мник|канатн|кресел|гондол|бугел|склон|курорт|катани)/i },
   { level: 'critical', re: /(трасс|подъ[её]мник|канатн|кресел|гондол|бугел|склон|катани)[^.!?\n]{0,60}(закрыт[аоы]?|не работа[ею]т|остановлен[аоы]?|приостановлен[аоы]?|отменен[оа]?|отменяется)/i },
   { level: 'critical', re: /(лавинн[а-я]* опасност|штормов[а-я]* предупрежд|ураганн|сильн[а-я]* ветр|метел|буран|экстренн)/i },
   { level: 'critical', re: /\b(closed|on (wind )?hold|not operating|suspended)\b[^.!?\n]{0,40}\b(lifts?|runs?|slopes?|gondola|resort)\b|\b(lifts?|runs?|slopes?|gondola)\b[^.!?\n]{0,40}\b(closed|on (wind )?hold|not operating|suspended)\b|avalanche (danger|warning)/i },
@@ -18,12 +18,15 @@ const RULES: ReadonlyArray<{ level: StatusLevel; re: RegExp }> = [
   { level: 'info', re: /(откры[лтв][а-я]*|запуска[ею]т|запустили|возобнов[а-я]*|начина[ею]т работу)[^.!?\n]{0,60}(трасс|подъ[её]мник|канатн|сезон|катани|склон|работу)/i },
   { level: 'info', re: /(снегопад|выпал[оа]? [^.!?\n]{0,20}снег|см (свежего )?снега|свежий снег|пауд[еэ]р)/i },
   { level: 'info', re: /(расписани|режим работы|часы работы|вечернее катание|ночное катание)/i },
+  // Daily lift reports: «Работа канатных дорог… Канатная дорога Лаура работает…».
+  { level: 'info', re: /(работа|режим) (канатн[а-я]* дорог|подъ[её]мник)|(канатн[а-я]* дорог[а-я]*|подъ[её]мник[а-я]*)[^.!?\n]{0,60}\bработа[ею]т\b/i },
   { level: 'info', re: /\b(now open|opening day|reopen|fresh snow|new snow|snowfall)\b/i },
 ];
 
 /** Notice level of a post, or null when the post is not about the state of the runs and lifts. */
 export function classifyStatus(text: string): StatusLevel | null {
-  const t = text.replace(/\s+/g, ' ');
+  // «До открытия сезона осталось…», «ждём открытия» — anticipation, not a state of the runs.
+  const t = text.replace(/\s+/g, ' ').replace(/(до|ждём|ждем|в ожидании|скоро) открыти[яе][^.!?]*/gi, '');
   for (const r of RULES) if (r.level === 'critical' && r.re.test(t)) return 'critical';
   for (const r of RULES) if (r.level === 'info' && r.re.test(t)) return 'info';
   return null;

@@ -349,6 +349,10 @@ describe('resort notices', () => {
     expect(classifyStatus('Gondola on wind hold this morning')).toBe('critical');
     expect(classifyStatus('Скидка 20% на ски-пасс для студентов до конца недели')).toBeNull();
     expect(classifyStatus('Поздравляем с Новым годом!')).toBeNull();
+    // Real posts, 2026-11-01:
+    expect(classifyStatus('❄️ До открытия сезона осталось совсем немного. Делимся зимними кадрами курорта «Манжерок»')).toBeNull();
+    expect(classifyStatus('с 9 ноября на плановые регламентные работы закрываются канатные дороги «Олимпия»')).toBe('critical');
+    expect(classifyStatus('Работа канатных дорог на курорте «Газпром Поляна». Канатная дорога Лаура работает в прогулочном режиме')).toBe('info');
   });
   it('shows only fresh notices of the chosen resorts, without reposts', () => {
     const now = new Date('2026-12-10T12:00:00Z');
