@@ -137,3 +137,22 @@ describe('hobby marks in the database', () => {
     db.close();
   });
 });
+
+import { resortWatch } from './hobby';
+describe('«Сейчас тут»', () => {
+  const idx = new Map([
+    ['r1', { id: 'r1' }],
+    ['old-r2', { id: 'r2' }],
+    ['r2', { id: 'r2' }],
+    ['r3', { id: 'r3' }],
+  ]);
+  const now = new Date('2026-12-10T12:00:00Z');
+  const m = (what: string, placeId: string, until: string | null = null) => ({ what, kind: 'resort', placeId, until });
+  it('turns notices on while here, off when muted or expired; manual notices work without being here', () => {
+    const w = resortWatch([m('here', 'r1', '2026-12-15T00:00:00Z'), m('here', 'old-r2', '2026-12-01T00:00:00Z'), m('notify', 'r3'), m('here', 'r3', '2026-12-12T00:00:00Z'), m('mute', 'r3')], idx, now);
+    expect([...w.here].sort()).toEqual(['r1', 'r3']);
+    expect(w.expired).toEqual(['r2']);
+    expect([...w.notify].sort()).toEqual(['r1', 'r3']);
+    expect(resortWatch([m('here', 'r1', '2026-12-15T00:00:00Z'), m('mute', 'r1')], idx, now).notify.size).toBe(0);
+  });
+});

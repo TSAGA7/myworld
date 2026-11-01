@@ -163,6 +163,30 @@ export function Settings({ onClose }: { onClose: () => void }) {
       </section>
 
       <section className="stack">
+        <h3 className="h3">Лента</h3>
+        <div className="list">
+          <label className="list-row tap">
+            <span className="grow">
+              <span className="t">Спортивные новости</span>
+              <span className="s block">Горы и сёрфинг в ленте, даже если увлечение не включено в профиле. С включённым Rider или Surf они показываются и так.</span>
+            </span>
+            <input type="checkbox" className="switch" checked={settings.sportNews} onChange={(e) => void setSetting('sportNews', e.target.checked)} />
+          </label>
+          {settings.hiddenSources.length > 0 && (
+            <div className="list-row">
+              <span className="grow">
+                <span className="t">Скрытые источники: {settings.hiddenSources.length}</span>
+                <span className="s block">Скрыть источник — в новости нажмите на неё и «Скрыть источник».</span>
+              </span>
+              <button type="button" className="btn sm glass-btn" onClick={() => void setSetting('hiddenSources', [])}>
+                Вернуть все
+              </button>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="stack">
         <h3 className="h3">Карта</h3>
         <div className="list">
           <label className="list-row tap">

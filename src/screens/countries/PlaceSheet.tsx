@@ -9,6 +9,8 @@ import { countryName } from '../../geo/reference';
 import { Icon } from '../../ui/Icon';
 import { Flag, Sheet } from '../../ui/kit';
 import { useHobbyVisited } from './HobbyWorld';
+import { ResortLive } from './ResortWatch';
+import { Cameras } from './Cameras';
 
 const host = (url: string): string => {
   try {
@@ -110,6 +112,9 @@ export function PlaceSheet({ kind, id, onClose }: { kind: HobbyKind; id: string;
           </button>
         )}
       </div>
+
+      {r && <ResortLive resort={r} visited={on} />}
+      {r && <Cameras cams={r.cams} resortName={placeTitle(r)} />}
 
       <div className="list">
         {r?.website && (

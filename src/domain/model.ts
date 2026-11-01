@@ -72,10 +72,13 @@ export type PlannedMark = z.infer<typeof planSchema>;
 export const hobbyMarkSchema = z.object({
   id: z.string(),
   key: z.string(),
-  what: z.enum(['visit', 'fav']),
+  /** visit — «Был здесь»; fav — favourite; here — «Сейчас тут» (until `until`); notify — notices on without «Сейчас тут»; mute — notices off while here. */
+  what: z.enum(['visit', 'fav', 'here', 'notify', 'mute']),
   kind: z.enum(['resort', 'spot']),
   placeId: z.string(),
   date: optDate,
+  /** «Сейчас тут» ends at this moment unless confirmed again. */
+  until: iso.nullable().default(null),
   ...stamps,
 });
 export type HobbyMark = z.infer<typeof hobbyMarkSchema>;

@@ -10,6 +10,7 @@ import { mergeNews, toItem } from '../../src/feed/news.ts';
 import { parseFeed, parseTelegram, type RawPost } from '../../src/feed/parse.ts';
 import type { FeedSource, NewsFile, NewsItem } from '../../src/feed/schema.ts';
 import { SOURCES, STORY_SOURCES, sourceUrl, type SourceDef } from '../../src/feed/sources.ts';
+import { classifyStatus, type ResortNotice, type ResortSourceState, type ResortStatusFile } from '../../src/feed/resortStatus.ts';
 import { fetchText, readJson, writeJson } from './io.ts';
 
 const now = new Date();
@@ -74,3 +75,31 @@ function publish(name: string, defs: readonly SourceDef[], freshItems: NewsItem[
 }
 publish('news.json', SOURCES, fresh, 72);
 publish('stories.json', STORY_SOURCES, freshStories, STORY_KEEP_HOURS);
+
+// ---------------------------------------------------------------- ski resort notices
+// Official Telegram channels of resorts from the catalog (catalog/resorts.json in this same `data` branch):
+// a post that clearly reports closed/stopped/opened runs and lifts or snowfall becomes a notice. Nothing else.
+type CatalogResort = { id: string; telegram?: string | null; tgSource?: 'official' | 'wikidata' | null; active?: boolean };
+const catalog = (readJson<{ items: CatalogResort[] }>('../catalog/resorts.json')?.items ?? []).filter((r) => r.active !== false && r.telegram);
+const prevStatus = readJson<ResortStatusFile>('resort-status.json');
+const prevSync = new Map((prevStatus?.sources ?? []).map((s) => [`${s.resortId}|${s.channel}`, s.lastSyncAt]));
+const notices: ResortNotice[] = [];
+const resortSources: ResortSourceState[] = [];
+for (const r of catalog) {
+  const channel = String(r.telegram);
+  const base = { resortId: r.id, channel, verification: r.tgSource === 'official' ? ('official' as const) : ('wikidata' as const) };
+  try {
+    const { posts } = parseTelegram(await fetchText(`https://t.me/s/${channel}`), channel);
+    if (!posts.length) throw new Error('нет постов');
+    for (const p of posts) {
+      if (now.getTime() - Date.parse(p.at) > 72 * 3_600_000) continue;
+      const level = classifyStatus(p.text);
+      if (level) notices.push({ id: `${channel.toLowerCase()}:${p.id}`, resortId: r.id, level, text: p.text.replace(/\s+/g, ' ').slice(0, 400), url: p.url, at: p.at, source: channel });
+    }
+    resortSources.push({ ...base, ok: true, lastSyncAt: now.toISOString() });
+  } catch (e) {
+    resortSources.push({ ...base, ok: false, error: e instanceof Error ? e.message : String(e), lastSyncAt: prevSync.get(`${r.id}|${channel}`) ?? null });
+  }
+}
+writeJson('resort-status.json', { updatedAt: now.toISOString(), sources: resortSources, items: notices } satisfies ResortStatusFile);
+console.log(`resort-status.json: ${notices.length} уведомлений из ${resortSources.filter((s) => s.ok).length}/${resortSources.length} каналов курортов`);

@@ -33,22 +33,11 @@ jobs:
           fi
       - name: Курорты
         run: node --max-old-space-size=6144 scripts/catalog/resorts.mjs
+      - name: Камеры курортов
+        run: node scripts/catalog/webcams.mjs
+      - name: Публикация курортов
+        run: bash scripts/catalog/publish.sh
       - name: Споты
         run: node scripts/catalog/spots.mjs
-      - name: Публикация
-        working-directory: feed-data
-        run: |
-          git config user.name Claude
-          git config user.email noreply@anthropic.com
-          cp -r catalog /tmp/catalog
-          for i in 1 2 3; do
-            git fetch -q --depth 1 origin data && git reset -q --hard origin/data || true
-            rm -rf catalog && cp -r /tmp/catalog catalog
-            git checkout -q --orphan next
-            git add -A
-            git commit -q -m "Каталоги $(date -u +%FT%H:%MZ)"
-            if git push -q --force-with-lease=data:$(git rev-parse origin/data 2>/dev/null || echo '') origin next:data; then exit 0; fi
-            git checkout -q -B data origin/data || true; git branch -D next || true
-            sleep 20
-          done
-          exit 1
+      - name: Публикация спотов
+        run: bash scripts/catalog/publish.sh

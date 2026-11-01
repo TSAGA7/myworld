@@ -59,6 +59,14 @@ export const SOURCE_LIST = {
     Курорты: [],
     Представительства: [],
   },
+  // Новости увлечений: видны только тем, у кого включён Rider / Surf (или «Спортивные новости» в настройках).
+  Горы: {
+    Курорты: [],
+    'СМИ и блогеры': [],
+  },
+  Сёрф: {
+    'СМИ и блогеры': [],
+  },
 } satisfies Record<string, Record<string, readonly SourceEntry[]>>;
 
 /**
@@ -72,8 +80,11 @@ export const STORY_LIST: readonly SourceEntry[] = [
   { name: 'Врен о Японии', url: 'https://t.me/wrenjapan' },
 ];
 
-type SourceEntry = { name: string; url: string; only?: readonly string[]; lang?: 'en' };
+type SourceEntry = { name: string; url: string; only?: readonly string[]; lang?: 'en'; hobby?: FeedHobby };
 export type Section = keyof typeof SOURCE_LIST | 'Интересное';
+/** Hobby a source belongs to: its news are for riders / surfers only. */
+export type FeedHobby = 'rider' | 'surf';
+export const HOBBY_SECTION: Partial<Record<Section, FeedHobby>> = { Горы: 'rider', Сёрф: 'surf' };
 
 export interface SourceDef {
   id: string;
@@ -85,6 +96,7 @@ export interface SourceDef {
   group: string;
   only?: readonly string[];
   lang?: 'en';
+  hobby?: FeedHobby;
 }
 
 const TG = /^https?:\/\/t\.me\/(?:s\/)?([A-Za-z0-9_]+)\/?$/;
@@ -94,7 +106,8 @@ function toDef(s: SourceEntry, section: Section, group: string): SourceDef {
   const tg = s.url.match(TG);
   const ref = tg ? (tg[1] as string) : s.url;
   const id = tg ? ref.toLowerCase() : (new URL(s.url).hostname.replace(/^www\./, '').split('.')[0] as string);
-  return { id, name: s.name, kind: tg ? 'telegram' : 'rss', ref, section, group, ...(s.only ? { only: s.only } : {}), ...(s.lang ? { lang: s.lang } : {}) };
+  const hobby = s.hobby ?? HOBBY_SECTION[section];
+  return { id, name: s.name, kind: tg ? 'telegram' : 'rss', ref, section, group, ...(s.only ? { only: s.only } : {}), ...(s.lang ? { lang: s.lang } : {}), ...(hobby ? { hobby } : {}) };
 }
 
 /** The news list above as flat records; ids are channel names or site hosts. */

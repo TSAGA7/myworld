@@ -9,6 +9,7 @@ import { reloadCatalog, useCatalog } from '../../geo/hobbyCatalog';
 import { countryName } from '../../geo/reference';
 import { Icon } from '../../ui/Icon';
 import { Empty, Flag } from '../../ui/kit';
+import { WatchedNotices } from './ResortWatch';
 
 type Filter = 'all' | 'ru' | 'world' | 'mine';
 const WORD: Record<HobbyKind, readonly [string, string, string]> = {
@@ -138,6 +139,8 @@ export function HobbyWorld({ kind }: { kind: HobbyKind }) {
           </p>
         )}
       </section>
+
+      {kind === 'resort' && <WatchedNotices />}
 
       <label className="search">
         <Icon name="search" size={20} />

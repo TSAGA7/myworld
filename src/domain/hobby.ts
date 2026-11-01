@@ -55,6 +55,8 @@ export const resortSchema = z.object({
   elevMax: num,
   website: str,
   telegram: str,
+  /** official — channel checked by hand; wikidata — taken from Wikidata. */
+  tgSource: z.enum(['official', 'wikidata']).nullish().transform((v) => v ?? null),
   cams: z.array(cameraSchema).default([]),
   active: z.boolean().default(true),
 });
@@ -171,3 +173,41 @@ export function resortFacts(r: Resort): Array<{ label: string; value: string }> 
 }
 
 export const mapLink = (p: Place): string => ('osm' in p && p.osm ? `https://www.openstreetmap.org/${p.osm}` : `https://www.openstreetmap.org/?mlat=${p.lat}&mlon=${p.lon}#map=13/${p.lat}/${p.lon}`);
+
+// ---------- «Сейчас тут» and resort notices
+
+export interface WatchMark {
+  what: string;
+  kind: string;
+  placeId: string;
+  until: string | null;
+}
+export interface ResortWatch {
+  /** Resorts where the user is now (status not expired). */
+  here: Set<string>;
+  /** «Сейчас тут» whose time ran out: the app asks «Вы ещё тут?». */
+  expired: string[];
+  /** Resorts whose notices the user gets: here (not muted) or switched on by hand. */
+  notify: Set<string>;
+}
+
+/** Ids are resolved through the catalog index, so a mark made under an old id still works. */
+export function resortWatch(marks: readonly WatchMark[], index: ReadonlyMap<string, { id: string }>, now: Date): ResortWatch {
+  const id = (m: WatchMark) => index.get(m.placeId)?.id ?? null;
+  const of = (what: string) => marks.filter((m) => m.kind === 'resort' && m.what === what);
+  const here = new Set<string>();
+  const expired: string[] = [];
+  for (const m of of('here')) {
+    const r = id(m);
+    if (!r) continue;
+    if (m.until && Date.parse(m.until) < now.getTime()) expired.push(r);
+    else here.add(r);
+  }
+  const muted = new Set(of('mute').map(id).filter((x): x is string => !!x));
+  const notify = new Set<string>([...here].filter((r) => !muted.has(r)));
+  for (const m of of('notify')) {
+    const r = id(m);
+    if (r) notify.add(r);
+  }
+  return { here, expired, notify };
+}

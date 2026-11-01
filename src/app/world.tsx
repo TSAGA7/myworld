@@ -4,6 +4,7 @@ import { WorldDb } from '../data/db';
 import { WorldStore } from '../data/store';
 import type { City, HobbyMark, Methodology, PlannedMark, Trip, TripStop, Visit } from '../domain/model';
 import type { RiderType } from '../domain/hobby';
+import type { FeedPrefs } from '../feed/visibility';
 import { deriveWorld, type WorldState } from '../domain/world';
 import { type Currency, DEFAULT_RATES, DEFAULT_RATES_DATE, type Rates } from '../domain/money';
 
@@ -49,6 +50,10 @@ export interface Settings {
   surf: boolean;
   /** «Учитывать путешествия»: off = countries and cities are not marked any more (history is kept, the globe stays). */
   travelTracking: boolean;
+  /** «Лента»: ski and surf news even when the hobby is off. */
+  sportNews: boolean;
+  /** «Лента»: sources the reader hid (ids from src/feed/sources.ts). */
+  hiddenSources: string[];
 }
 const DEFAULTS: Settings = {
   methodology: 'm195',
@@ -73,6 +78,8 @@ const DEFAULTS: Settings = {
   riderType: null,
   surf: false,
   travelTracking: true,
+  sportNews: false,
+  hiddenSources: [],
 };
 
 /** Texts that depend on the user's gender. */
@@ -141,6 +148,9 @@ export function WorldProvider({ children }: { children: ReactNode }) {
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
+
+/** Feed preferences from the settings (hobbies, sport news, hidden sources). */
+export const feedPrefs = (s: Settings): FeedPrefs => ({ rider: !!s.riderType, surf: s.surf, sportNews: s.sportNews, hidden: s.hiddenSources });
 
 export const setSetting = <K extends keyof Settings>(key: K, value: Settings[K]): Promise<void> => store.setSetting(key, value);
 

@@ -136,7 +136,10 @@ for (const it of items) {
   const w = it.wd ? wdInfo.get(it.wd) : null;
   if (!w) continue;
   if (w.ru && !it.nameRu && w.ru !== it.name) it.nameRu = w.ru;
-  if (w.tg) it.telegram = String(w.tg).replace(/^@/, '');
+  if (w.tg) {
+    it.telegram = String(w.tg).replace(/^@/, '');
+    it.tgSource = 'wikidata';
+  }
   if (!it.website && w.site) it.website = w.site;
 }
 
@@ -159,7 +162,7 @@ for (const it of items) {
 const extra = readJson(join(APP, 'scripts/catalog/resorts-extra.json'), { items: [] });
 for (const e of extra.items ?? []) {
   const hit = items.find((i) => i.id === e.id || i.alt.includes(e.id));
-  if (hit) Object.assign(hit, { ...e, id: hit.id });
+  if (hit) Object.assign(hit, { ...e, id: hit.id }, e.telegram ? { tgSource: 'official' } : {});
   else if (e.name && Number.isFinite(e.lat) && Number.isFinite(e.lon) && e.countryId) items.push({ alt: [], wd: null, nameRu: null, region: regionAt(e.countryId, e.lon, e.lat), pisteKm: null, lifts: null, elevMin: null, elevMax: null, website: null, telegram: null, cams: [], active: true, ...e });
   else report.errors.push(`resorts-extra: не найден ${e.id}`);
 }

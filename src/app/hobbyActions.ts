@@ -35,3 +35,30 @@ export async function toggleFavorite(kind: HobbyKind, p: Place, on: boolean): Pr
   if (on) await store.markHobby('fav', kind, ids(p));
   else await store.unmarkHobby('fav', kind, ids(p));
 }
+
+const HERE_MS = 7 * 24 * 3_600_000;
+const until = () => new Date(Date.now() + HERE_MS).toISOString();
+
+/** «Сейчас тут»: the resort is marked visited and its notices are on for a week (then the app asks again). */
+export async function startHere(toast: Toast, p: Place, opts: { travelTracking: boolean; visited: boolean }): Promise<void> {
+  try {
+    await store.setHere(p.id, until());
+    await store.setFlag('mute', 'resort', ids(p), false);
+    if (!opts.visited) await store.markHobby('visit', 'resort', ids(p), opts.travelTracking ? p.countryId : null);
+    toast(`${placeTitle(p)}: вы здесь. Оперативные сообщения курорта — в «Моём мире»`);
+  } catch (e) {
+    toast(`Не удалось сохранить: ${e instanceof Error ? e.message : e}`);
+  }
+}
+
+/** Another week at the resort. */
+export const extendHere = (p: { id: string }): Promise<void> => store.setHere(p.id, until());
+
+/** «Завершить пребывание»: notices go off (unless switched on by hand); the visit stays in the history. */
+export async function endHere(p: Place): Promise<void> {
+  await store.setFlag('here', 'resort', ids(p), false);
+  await store.setFlag('mute', 'resort', ids(p), false);
+}
+
+export const setNotify = (p: Place, on: boolean): Promise<void> => store.setFlag('notify', 'resort', ids(p), on);
+export const setMute = (p: Place, on: boolean): Promise<void> => store.setFlag('mute', 'resort', ids(p), on);

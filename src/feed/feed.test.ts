@@ -309,3 +309,57 @@ describe('duplicates on real posts', () => {
     expect(merged[0]?.sourceId).toBe('atorus');
   });
 });
+
+import { orderStories, sourceVisible } from './visibility';
+import { STORY_SOURCES as STORIES_ALL } from './sources';
+describe('feed visibility', () => {
+  const off = { rider: false, surf: false, sportNews: false, hidden: [] as string[] };
+  it('hides hidden sources and keeps ordinary ones', () => {
+    const any = SOURCES[0]?.id ?? 'x';
+    expect(sourceVisible(any, off)).toBe(true);
+    expect(sourceVisible(any, { ...off, hidden: [any] })).toBe(false);
+  });
+  it('shows sport sources only to riders / surfers or with «Спортивные новости»', () => {
+    for (const s of [...SOURCES, ...STORIES_ALL].filter((x) => x.hobby)) {
+      expect(sourceVisible(s.id, off)).toBe(false);
+      expect(sourceVisible(s.id, { ...off, sportNews: true })).toBe(true);
+      expect(sourceVisible(s.id, { ...off, rider: s.hobby === 'rider', surf: s.hobby === 'surf' })).toBe(true);
+    }
+  });
+  it('puts stories of the reader’s hobbies first', () => {
+    const sport = [...SOURCES, ...STORIES_ALL].find((x) => x.hobby === 'rider');
+    const plain = STORIES_ALL.find((x) => !x.hobby);
+    if (!sport || !plain) return;
+    const items = [{ storyIds: [`${plain.id}:1`] }, { storyIds: [`${sport.id}:2`] }];
+    expect(orderStories(items, { ...off, rider: true }).map((s) => s.storyIds[0])).toEqual([`${sport.id}:2`, `${plain.id}:1`]);
+    expect(orderStories(items, off).map((s) => s.storyIds[0])).toEqual([`${plain.id}:1`]);
+  });
+});
+
+import { classifyStatus, currentNotices } from './resortStatus';
+describe('resort notices', () => {
+  it('recognises closures, openings and snow; ignores everything else', () => {
+    expect(classifyStatus('Уважаемые гости! Из-за сильного ветра трасса А временно закрыта.')).toBe('critical');
+    expect(classifyStatus('Сегодня временно приостановлена работа подъёмников на секторе Е')).toBe('critical');
+    expect(classifyStatus('Канатная дорога «Олимпия» не работает до 12:00')).toBe('critical');
+    expect(classifyStatus('Объявлена лавинная опасность, внетрассовое катание запрещено')).toBe('critical');
+    expect(classifyStatus('Курорт возобновил работу после непогоды, все подъёмники открыты')).toBe('info');
+    expect(classifyStatus('За ночь выпало 30 см свежего снега!')).toBe('info');
+    expect(classifyStatus('Открыли ещё две трассы на верхних отметках')).toBe('info');
+    expect(classifyStatus('Gondola on wind hold this morning')).toBe('critical');
+    expect(classifyStatus('Скидка 20% на ски-пасс для студентов до конца недели')).toBeNull();
+    expect(classifyStatus('Поздравляем с Новым годом!')).toBeNull();
+  });
+  it('shows only fresh notices of the chosen resorts, without reposts', () => {
+    const now = new Date('2026-12-10T12:00:00Z');
+    const n = (id: string, resortId: string, level: 'critical' | 'info', at: string, text = 'Трасса А закрыта') => ({ id, resortId, level, text, url: 'u', at, source: 'c' });
+    const items = [
+      n('c:1', 'r1', 'critical', '2026-12-10T08:00:00Z'),
+      n('c:2', 'r1', 'critical', '2026-12-10T09:00:00Z'),
+      n('c:3', 'r1', 'critical', '2026-12-08T08:00:00Z', 'Подъёмник остановлен'),
+      n('c:4', 'r1', 'info', '2026-12-08T08:00:00Z', 'Выпало 20 см снега'),
+      n('c:5', 'r2', 'critical', '2026-12-10T10:00:00Z'),
+    ];
+    expect(currentNotices(items, new Set(['r1']), now).map((x) => x.id)).toEqual(['c:2', 'c:4']);
+  });
+});

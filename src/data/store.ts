@@ -412,12 +412,29 @@ export class WorldStore {
       const keys = ids.map((id) => hobbyKey(what, kind, id));
       if (!(await this.db.hobby.where('key').anyOf(keys).count())) {
         const now = this.now();
-        await this.db.hobby.add({ id: this.newId(), key: keys[0] as string, what, kind, placeId, date: null, createdAt: now, updatedAt: now });
+        await this.db.hobby.add({ id: this.newId(), key: keys[0] as string, what, kind, placeId, date: null, until: null, createdAt: now, updatedAt: now });
       }
       if (!countryId || (await this.db.visits.where('countryId').equals(countryId).count())) return { countryAdded: false };
       await this.mark(visitKey(null, countryId), null, countryId, 'visited', null);
       return { countryAdded: true };
     });
+  }
+
+  /** «Сейчас тут» on a resort until `until` (repeat = extend). Notices of the resort switch on unless muted. */
+  async setHere(placeId: string, until: string): Promise<void> {
+    await this.db.transaction('rw', this.db.hobby, async () => {
+      const key = hobbyKey('here', 'resort', placeId);
+      const now = this.now();
+      const row = await this.db.hobby.where('key').equals(key).first();
+      if (row) await this.db.hobby.put({ ...row, until, updatedAt: now });
+      else await this.db.hobby.add({ id: this.newId(), key, what: 'here', kind: 'resort', placeId, date: now.slice(0, 10), until, createdAt: now, updatedAt: now });
+    });
+  }
+
+  /** Turns one hobby flag (here / notify / mute / fav) on or off for a place. */
+  async setFlag(what: 'here' | 'notify' | 'mute' | 'fav', kind: HobbyMark['kind'], ids: readonly string[], on: boolean): Promise<void> {
+    if (on) await this.markHobby(what, kind, ids);
+    else await this.unmarkHobby(what, kind, ids);
   }
 
   /** Removes the mark (under every id of the place). The country stays visited. Returns the removed records for «Отменить». */

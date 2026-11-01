@@ -6,6 +6,9 @@ import { TAG_LABEL, TAGS, type FeedSource, type NewsItem } from '../../feed/sche
 import { Icon } from '../../ui/Icon';
 import { Empty } from '../../ui/kit';
 import { Loading, PostImage, StatusLine, useNow } from './common';
+import { feedPrefs, setSetting, useWorld } from '../../app/world';
+import { useToast } from '../../app/toast';
+import { type FeedHobby, hobbyOfSource, sourceVisible } from '../../feed/visibility';
 
 /* ===================== Новости */
 
@@ -14,12 +17,24 @@ const PAGE = 25;
 export function NewsView() {
   const state = useFeedFile('news');
   const now = useNow();
-  const [filter, setFilter] = useState<NewsFilter>('all');
+  const { settings } = useWorld();
+  const toast = useToast();
+  const prefs = feedPrefs(settings);
+  const [filter, setFilter] = useState<NewsFilter | FeedHobby>('all');
   const [open, setOpen] = useState<string | null>(null);
   const translations = useFeedFile('translations');
-  const items = useMemo(() => localize(state.data?.items ?? [], translations.data), [state.data, translations.data]);
+  const items = useMemo(
+    () => localize(state.data?.items ?? [], translations.data).filter((i) => sourceVisible(i.sourceId, prefs)),
+    [state.data, translations.data, prefs.rider, prefs.surf, prefs.sportNews, prefs.hidden],
+  );
+  const hideSource = (id: string, name: string) => {
+    const before = settings.hiddenSources;
+    void setSetting('hiddenSources', [...before, id]);
+    toast(`«${name}» скрыт из ленты`, { label: 'Вернуть', run: () => void setSetting('hiddenSources', before) });
+  };
   const sources = useMemo(() => new Map((state.data?.sources ?? []).map((s) => [s.id, s])), [state.data]);
-  const filtered = useMemo(() => filterNews(items, filter), [items, filter]);
+  const filtered = useMemo(() => (filter === 'rider' || filter === 'surf' ? items.filter((i) => hobbyOfSource(i.sourceId) === filter) : filterNews(items, filter)), [items, filter]);
+  const hobbyCounts = useMemo(() => ({ rider: items.filter((i) => hobbyOfSource(i.sourceId) === 'rider').length, surf: items.filter((i) => hobbyOfSource(i.sourceId) === 'surf').length }), [items]);
   // A page of news at a time: hundreds of cards with photos at once is what made iPhones reload the page.
   const [limit, setLimit] = useState(PAGE);
   useEffect(() => setLimit(PAGE), [filter]);
@@ -57,6 +72,13 @@ export function NewsView() {
         <button type="button" className="chip" aria-pressed={filter === 'all'} onClick={() => setFilter('all')}>
           Все <span className="count">{items.length}</span>
         </button>
+        {(['rider', 'surf'] as const)
+          .filter((h) => hobbyCounts[h] > 0)
+          .map((h) => (
+            <button key={h} type="button" className="chip" aria-pressed={filter === h} onClick={() => setFilter(h)}>
+              {h === 'rider' ? 'Горы' : 'Сёрф'} <span className="count">{hobbyCounts[h]}</span>
+            </button>
+          ))}
         {TAGS.filter((t) => (counts[t] ?? 0) > 0).map((t) => (
           <button key={t} type="button" className="chip" aria-pressed={filter === t} onClick={() => setFilter(t)}>
             {TAG_LABEL[t]} <span className="count">{counts[t]}</span>
@@ -65,7 +87,7 @@ export function NewsView() {
       </div>
       <div className="news-list">
         {shown.map((n) => (
-          <NewsCard key={n.id} item={n} source={sources.get(n.sourceId)} sources={sources} now={now} open={open === n.id} onToggle={() => setOpen(open === n.id ? null : n.id)} />
+          <NewsCard key={n.id} item={n} source={sources.get(n.sourceId)} sources={sources} now={now} open={open === n.id} onToggle={() => setOpen(open === n.id ? null : n.id)} onHide={() => hideSource(n.sourceId, sources.get(n.sourceId)?.name ?? n.sourceId)} />
         ))}
       </div>
       {limit < filtered.length && <div ref={more} className="feed-more" aria-hidden="true"><span className="spinner sm" /></div>}
@@ -73,7 +95,7 @@ export function NewsView() {
   );
 }
 
-function NewsCard({ item, source, sources, now, open, onToggle }: { item: NewsItem; source: FeedSource | undefined; sources: Map<string, FeedSource>; now: Date; open: boolean; onToggle: () => void }) {
+function NewsCard({ item, source, sources, now, open, onToggle, onHide }: { item: NewsItem; source: FeedSource | undefined; sources: Map<string, FeedSource>; now: Date; open: boolean; onToggle: () => void; onHide: () => void }) {
   const isTg = item.url.startsWith('https://t.me/');
   return (
     <article className={`card tight news-card ${open ? 'open' : ''}`}>
@@ -105,6 +127,11 @@ function NewsCard({ item, source, sources, now, open, onToggle }: { item: NewsIt
               ещё в {item.also.length} {item.also.length === 1 ? 'источнике' : 'источниках'}
             </button>
           ))}
+        {open && (
+          <button type="button" className="src-link ghost" onClick={onHide}>
+            Скрыть источник
+          </button>
+        )}
       </div>
     </article>
   );

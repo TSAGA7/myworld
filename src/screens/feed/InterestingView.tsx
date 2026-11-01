@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { setSetting, useWorld, type Settings } from '../../app/world';
+import { feedPrefs, setSetting, useWorld, type Settings } from '../../app/world';
+import { type FeedPrefs, orderStories } from '../../feed/visibility';
 import { useFeedFile } from '../../feed/client';
 import { dayMonthFull, greeting } from '../../feed/format';
 import type { Edition, StoryItem } from '../../feed/schema';
@@ -59,7 +60,7 @@ export function InterestingView() {
     <>
       {head}
       {editions.slice(0, 8).map((e) => (
-        <Edition key={e.id} edition={e} photo={settings.storiesPhoto} cards={settings.storiesCards} />
+        <Edition key={e.id} edition={e} photo={settings.storiesPhoto} cards={settings.storiesCards} prefs={feedPrefs(settings)} />
       ))}
       <p className="faint tiny feed-sources">Пересказываем коротко — подробности, фото и видео у авторов по ссылкам.</p>
     </>
@@ -86,13 +87,15 @@ function StoriesSetup({ onClose }: { onClose: () => void }) {
   );
 }
 
-function Edition({ edition, photo, cards }: { edition: Edition; photo: Settings['storiesPhoto']; cards: boolean }) {
+function Edition({ edition, photo, cards, prefs }: { edition: Edition; photo: Settings['storiesPhoto']; cards: boolean; prefs: FeedPrefs }) {
+  const ordered = orderStories(edition.items, prefs);
+  if (!ordered.length) return null;
   const title = (
     <h3 className="stories-date">
       <span aria-hidden="true">{edition.part === 'morning' ? '☕️' : '🌙'}</span> {edition.part === 'morning' ? 'Утро' : 'Вечер'} · {dayMonthFull(edition.date)}
     </h3>
   );
-  const items = edition.items.map((s) => <Story key={s.storyIds.join()} story={s} photo={photo} card={cards} />);
+  const items = ordered.map((s) => <Story key={s.storyIds.join()} story={s} photo={photo} card={cards} />);
   if (cards)
     return (
       <section className="stories-cards">

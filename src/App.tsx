@@ -6,6 +6,8 @@ import { Settings } from './screens/Settings';
 import { SoftBar, type Tab } from './ui/SoftBar';
 import { Splash, splashOff } from './ui/Splash';
 
+const HereCheck = lazy(() => import('./screens/countries/ResortWatch').then((m) => ({ default: m.HereCheck })));
+
 const Countries = lazy(() => import('./screens/countries/Countries').then((m) => ({ default: m.Countries })));
 const Profile = lazy(() => import('./screens/profile/Profile').then((m) => ({ default: m.Profile })));
 const JoinTrip = lazy(() => import('./screens/trips/JoinTrip').then((m) => ({ default: m.JoinTrip })));
@@ -73,6 +75,11 @@ export function App() {
       )}
       <SoftBar current={tab} />
       {settings && <Settings onClose={() => setSettings(false)} />}
+      {ready && !splash && (
+        <Suspense fallback={null}>
+          <HereCheck />
+        </Suspense>
+      )}
       {splash && <Splash onDone={() => setSplash(false)} />}
     </div>
   );

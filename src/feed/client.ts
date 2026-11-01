@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { ResortStatusFileSchema, type ResortStatusFile } from './resortStatus';
 import type { ZodType } from 'zod';
 import { DealsFileSchema, DigestFileSchema, InterestingFileSchema, NewsFileSchema, TranslationsFileSchema, type DealsFile, type DigestFile, type InterestingFile, type NewsFile, type TranslationsFile } from './schema';
 
@@ -8,14 +9,15 @@ export const FEED_BASE = 'https://raw.githubusercontent.com/TSAGA7/myworld/data/
 export const PRICE_CHECK_URL: string = import.meta.env.VITE_PRICE_CHECK_URL ?? '';
 export const PRICE_CHECK_KEY: string = import.meta.env.VITE_PRICE_CHECK_KEY ?? '';
 
-export type FeedName = 'news' | 'digest' | 'deals' | 'translations' | 'interesting';
-type FileOf = { news: NewsFile; digest: DigestFile; deals: DealsFile; translations: TranslationsFile; interesting: InterestingFile };
+export type FeedName = 'news' | 'digest' | 'deals' | 'translations' | 'interesting' | 'resort-status';
+type FileOf = { news: NewsFile; digest: DigestFile; deals: DealsFile; translations: TranslationsFile; interesting: InterestingFile; 'resort-status': ResortStatusFile };
 const SCHEMA: { [K in FeedName]: ZodType<FileOf[K]> } = {
   news: NewsFileSchema,
   digest: DigestFileSchema,
   deals: DealsFileSchema,
   translations: TranslationsFileSchema,
   interesting: InterestingFileSchema,
+  'resort-status': ResortStatusFileSchema,
 };
 
 const storeKey = (n: FeedName) => `mw-feed-${n}`;
