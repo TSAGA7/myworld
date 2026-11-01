@@ -11,7 +11,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { readFile } from 'node:fs/promises';
 import { geoCentroid } from 'd3-geo';
-import { APP, COUNTRY_IDS, OUT, UA, countryAt, getJson, readJson, regionAt, round, writeOut } from './common.mjs';
+import { APP, COUNTRY_IDS, OUT, UA, countryAt, getJson, readJson, regionAt, round, splitName, writeOut } from './common.mjs';
 
 const SKI_AREAS = 'https://tiles.openskimap.org/geojson/ski_areas.geojson';
 /** «Полноценный» курорт: столько км горнолыжных трасс и подъёмников (без бугелей-верёвок и травалаторов) — не меньше. */
@@ -57,12 +57,13 @@ for (const f of fc.features) {
   if (!ids.length) { skip('без идентификатора'); continue; }
   const minE = st?.minElevation ?? st?.runs?.minElevation ?? null;
   const maxE = st?.maxElevation ?? st?.runs?.maxElevation ?? null;
+  const nm = splitName(p.name);
   items.push({
     id: ids[0],
     alt: ids.slice(1),
     wd: p.wikidataID ?? null,
-    name: p.name.trim(),
-    nameRu: null,
+    name: nm.name,
+    nameRu: nm.ru && nm.ru !== nm.name ? nm.ru : null,
     countryId,
     region: regionAt(countryId, lon, lat),
     lat: round(lat, 4),
@@ -83,7 +84,7 @@ const near = (a, b) => Math.abs(a.lat - b.lat) < 0.05 && Math.abs(a.lon - b.lon)
 items.sort((a, b) => (b.pisteKm ?? 0) - (a.pisteKm ?? 0));
 const kept = [];
 for (const it of items) {
-  const dup = kept.find((k) => near(k, it) && (k.name.toLowerCase() === it.name.toLowerCase() || (k.wd && k.wd === it.wd)));
+  const dup = kept.find((k) => near(k, it) && (k.name.toLowerCase() === it.name.toLowerCase() || (!!k.nameRu && k.nameRu === it.nameRu) || (k.wd && k.wd === it.wd)));
   if (dup) { dup.alt.push(it.id, ...it.alt); skip('дубль'); continue; }
   kept.push(it);
 }
@@ -109,7 +110,7 @@ for (let i = 0; i < wds.length; i += 250) {
 for (const it of items) {
   const w = it.wd ? wdInfo.get(it.wd) : null;
   if (!w) continue;
-  if (w.ru && w.ru !== it.name) it.nameRu = w.ru;
+  if (w.ru && !it.nameRu && w.ru !== it.name) it.nameRu = w.ru;
   if (w.tg) it.telegram = String(w.tg).replace(/^@/, '');
   if (!it.website && w.site) it.website = w.site;
 }

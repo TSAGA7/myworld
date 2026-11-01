@@ -63,3 +63,10 @@ public/data   cities.tsv (~194 тыс. городов GeoNames), regions/<стр
 ## Проверка
 Headless Chromium (Playwright, swiftshader) в песочнице рисует очень медленно — скриншот до 40 с, рывки анимации там нормальны.
 Логику проверять юнит-тестами, скриншоты — только ключевых экранов (iPhone 390×844). Внешние сайты из песочницы недоступны — мокать.
+
+## Увлечения (Rider / Surf)
+- Настройки `riderType` ('ski' | 'snowboard' | null — лыжи и борд одновременно невозможны по типу), `surf`, `travelTracking` (в `Settings`). Профиль — `screens/profile/Hobbies.tsx` (выбор, шутки владельца в `domain/hobby.ts` → `RIDER_JOKE`, не использовать как советы).
+- Отметки — таблица `hobby` (Dexie v3): `key` = `${what}:${kind}:${placeId}`, what = 'visit' | 'fav', kind = 'resort' | 'spot'. Выключение увлечения их не трогает. «Был здесь» при включённом учёте путешествий отмечает и страну (`store.markHobby`).
+- Каталоги не в сборке: `.github/workflows/catalog.yml` раз в неделю собирает `catalog/resorts.json` (OpenSkiMap + Wikidata: русское имя, Telegram P3789, сайт) и `catalog/spots.json` (координаты только из OSM по `scripts/catalog/spots-seed.json`) в ветку `data`; отчёты — `catalog/*-report.json`. Приложение читает их через `geo/hobbyCatalog.ts`, копия — в таблице `catalog`.
+- Ручные правки/камеры/выключение объектов — `scripts/catalog/resorts-extra.json`, `spots-extra.json` (только с источником). Id курорта стабилен: при смене берётся прежний, старые — в `alt`.
+- «Мой мир»: вкладки `rider`/`surf` — `screens/countries/HobbyWorld.tsx`, страница места — `PlaceSheet.tsx` (маршрут `#/countries/@resort/<id>`, `@spot`). На карте — слой `hobby-dots`.

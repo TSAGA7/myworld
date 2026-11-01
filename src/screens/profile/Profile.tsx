@@ -13,6 +13,7 @@ import { PlaceSearch } from '../../ui/PlaceSearch';
 import { ShareCardSheet } from './ShareCard';
 import { useFacts } from './useFacts';
 import { travelerStatus } from '../../domain/status';
+import { Hobbies } from './Hobbies';
 
 const km = (n: number) => `${Math.round(n).toLocaleString('ru-RU')} км`;
 
@@ -105,6 +106,8 @@ export function Profile({ onSettings }: { onSettings: () => void }) {
         </section>
 
         <StatusCard countries={progress.visited} />
+
+        <Hobbies />
 
         <button type="button" className="btn lime block" onClick={() => setShare(true)}>
           <Icon name="share" size={19} /> Поделиться картой путешествий

@@ -6,6 +6,7 @@ import {
   diarySchema,
   expenseSchema,
   guideSchema,
+  hobbyMarkSchema,
   noteSchema,
   planSchema,
   staySchema,
@@ -39,6 +40,8 @@ const backupSchema = z.object({
     expenses: z.array(expenseSchema).default([]),
     diary: z.array(diarySchema).default([]),
     guides: z.array(guideSchema).default([]),
+    // Added in schema v3.
+    hobby: z.array(hobbyMarkSchema).default([]),
   }),
   files: z.array(z.object({ id: z.string(), mime: z.string(), base64: z.string() })).default([]),
 });
@@ -123,6 +126,7 @@ export async function restoreBackup(db: WorldDb, b: Backup): Promise<void> {
     await db.expenses.bulkPut(b.tables.expenses);
     await db.diary.bulkPut(b.tables.diary);
     await db.guides.bulkPut(b.tables.guides);
+    await db.hobby.bulkPut(b.tables.hobby);
     await db.attachments.bulkPut(attachments);
     await db.blobs.bulkPut(b.files.map((f) => ({ id: f.id, blob: fromBase64(f.base64, f.mime) })));
   });

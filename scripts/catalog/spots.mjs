@@ -38,7 +38,8 @@ async function surfPointsOf(cc) {
     const q = `[out:json][timeout:120];area["ISO3166-1"="${cc}"][admin_level=2]->.a;nwr["sport"="surfing"]["name"](area.a);out center tags;`;
     let list = [];
     try {
-      const j = await getJson('https://overpass-api.de/api/interpreter', { method: 'POST', body: new URLSearchParams({ data: q }), headers: { 'content-type': 'application/x-www-form-urlencoded' } });
+      const post = (url) => getJson(url, { method: 'POST', body: new URLSearchParams({ data: q }), headers: { 'content-type': 'application/x-www-form-urlencoded' } }, 2);
+      const j = await post('https://overpass-api.de/api/interpreter').catch(() => post('https://overpass.kumi.systems/api/interpreter'));
       list = j.elements.map((e) => ({ osm: `${e.type}/${e.id}`, lat: e.lat ?? e.center?.lat, lon: e.lon ?? e.center?.lon, names: [e.tags.name, e.tags['name:en'], e.tags['name:ru']].filter(Boolean).map(fold) })).filter((p) => Number.isFinite(p.lat));
     } catch (e) {
       report.errors.push(`Overpass ${cc}: ${e.message}`);
@@ -49,6 +50,9 @@ async function surfPointsOf(cc) {
   return surfPoints.get(cc);
 }
 
+const GEO = new Set(['natural', 'place', 'leisure', 'sport', 'boundary', 'waterway', 'tourism']);
+/** Names that are also ordinary words: found only next to their region, never anywhere in the country. */
+const GENERIC = new Set(['restaurants', 'chickens', 'sultans', 'cokes', 'the bay', 'cathedral', 'backdoor', 'pipeline', 'rifles', 'telescopes', 'jaws', 'dungeons', 'main point', 'malibu', 'rincon', 'trestles', 'impossibles', 'dreamland', 'supertubes', 'supertubos', 'jailbreaks', 'honkys']);
 const inBox = (b, lat, lon, pad = 0.5) => lat >= b[0] - pad && lat <= b[1] + pad && lon >= b[2] - pad && lon <= b[3] + pad;
 const dist2 = (a, lat, lon) => (a.lat - lat) ** 2 + (a.lon - lon) ** 2;
 
@@ -70,7 +74,7 @@ for (const g of seed.spots) {
     const id = `${g.c.toLowerCase()}-${slug(s.name)}`;
     const base = { id, name: s.name, countryId: g.c, continent: countryContinent.get(g.c) ?? null, group: g.region, area: !!s.area };
     const old = prev.get(id);
-    let hit = old && Number.isFinite(old.lat) ? { lat: old.lat, lon: old.lon, osm: old.osm ?? null, by: old.by } : null;
+    let hit = old && Number.isFinite(old.lat) && (old.by === 'osm-surf' || old.by === 'manual' || old.by === 'osm-place') ? { lat: old.lat, lon: old.lon, osm: old.osm ?? null, by: old.by } : null;
     const q = s.q ?? s.name;
     if (!hit && !s.area) {
       const want = fold(q);
@@ -80,9 +84,14 @@ for (const g of seed.spots) {
     }
     if (!hit) {
       try {
-        const res = await nominatim(s.area ? q : `${q}, ${g.near}`, g.c);
-        const ok = res.find((r) => !anchor || inBox(anchor.box, +r.lat, +r.lon)) ?? (s.area ? null : (await nominatim(q, g.c)).find((r) => anchor && inBox(anchor.box, +r.lat, +r.lon)));
-        if (ok) hit = { lat: +ok.lat, lon: +ok.lon, osm: ok.osm_type ? `${ok.osm_type}/${ok.osm_id}` : null, by: 'osm-search' };
+        // Only geographic objects count (a beach, a point, a bay, a village) — never a café or a shop with the same name.
+        const want = fold(q).trim();
+        const geo = (r) => GEO.has(r.category) && (r.category !== 'tourism' || r.type === 'attraction' || r.type === 'viewpoint') && fold(r.name ?? r.display_name.split(',')[0]).includes(want);
+        const near = (r) => !anchor || inBox(anchor.box, +r.lat, +r.lon);
+        let res = (await nominatim(s.area ? q : `${q}, ${g.near}`, g.c)).filter(geo);
+        if (!res.length) res = (await nominatim(q, g.c)).filter(geo);
+        const ok = res.find(near) ?? (want.length >= 6 && !GENERIC.has(want) ? res.find((r) => r.category === 'place' || r.category === 'natural') : undefined);
+        if (ok) hit = { lat: +ok.lat, lon: +ok.lon, osm: ok.osm_type ? `${ok.osm_type}/${ok.osm_id}` : null, by: 'osm-place' };
       } catch (e) {
         report.errors.push(`Поиск ${s.name}: ${e.message}`);
       }

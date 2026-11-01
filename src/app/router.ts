@@ -26,7 +26,7 @@ export const goBack = (fallback: string): void => {
 };
 
 /** Request from another tab: focus the map on a place. Read once by the planet screen. */
-export type MapFocus = { kind: 'city' | 'country' | 'trip' | 'relocate'; id: string };
+export type MapFocus = { kind: 'city' | 'country' | 'trip' | 'relocate'; id: string } | { kind: 'resort' | 'spot'; id: string; lat: number; lon: number };
 let pendingFocus: MapFocus | null = null;
 const focusListeners = new Set<() => void>();
 export const focusOnMap = (f: MapFocus): void => {

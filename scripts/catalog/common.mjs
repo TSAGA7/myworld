@@ -2,7 +2,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { geoBounds, geoContains } from 'd3-geo';
+import { geoBounds, geoCentroid, geoContains, geoDistance } from 'd3-geo';
 
 export const APP = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 /** Output folder: checkout of the `data` branch + "/catalog" (CATALOG_DIR). */
@@ -49,9 +49,16 @@ const regionCache = new Map();
 export function regionAt(countryId, lon, lat) {
   if (!regionCache.has(countryId)) {
     const fc = readJson(join(APP, 'public/data/regions', `${countryId}.json`));
-    regionCache.set(countryId, fc ? fc.features.map((f) => ({ f, b: geoBounds(f) })) : []);
+    regionCache.set(countryId, fc ? fc.features.map((f) => ({ f, b: geoBounds(f), c: geoCentroid(f) })) : []);
   }
-  const hit = regionCache.get(countryId).find(({ f, b }) => inB(b, lon, lat) && geoContains(f, [lon, lat]));
+  const list = regionCache.get(countryId);
+  let hit = list.find(({ f, b }) => inB(b, lon, lat) && geoContains(f, [lon, lat]));
+  // The region polygons are simplified: a place near a border may fall just outside — take the region whose
+  // bounding box holds the point and whose centre is closest (within ~150 km of its box).
+  if (!hit) {
+    const near = list.filter(({ b: [[w, s], [e, n]] }) => lat >= s - 1.4 && lat <= n + 1.4 && lon >= w - 2 && lon <= e + 2);
+    hit = near.sort((a, b) => geoDistance(a.c, [lon, lat]) - geoDistance(b.c, [lon, lat]))[0];
+  }
   return hit ? hit.f.properties.ru || hit.f.properties.en || null : null;
 }
 
@@ -64,3 +71,19 @@ export const slug = (s) =>
     .replace(/['’]/g, '')
     .replace(/[^a-z0-9а-яё]+/g, '-')
     .replace(/^-|-$/g, '');
+
+const CYR = /[а-яё]/i;
+const LAT = /^[\p{Script=Latin}\d\s.'’&\-–—]+$/u;
+/**
+ * OSM names often carry several languages: «Роза Хутор, Rosa Khutor», «Абзаково (Abzakovo)», «ニセコユナイテッド, Niseko United».
+ * Returns the Latin-script name and the Russian one when present.
+ */
+export function splitName(raw) {
+  const parts = raw
+    .split(/\s*[,(/)]\s*/)
+    .map((x) => x.trim())
+    .filter(Boolean);
+  const ru = parts.find((x) => CYR.test(x)) ?? null;
+  const lat = parts.find((x) => LAT.test(x) && /\p{Script=Latin}/u.test(x)) ?? null;
+  return { name: lat ?? ru ?? parts[0] ?? raw.trim(), ru };
+}

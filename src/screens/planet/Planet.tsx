@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { type MapFocus, onFocusRequest, takeFocus } from '../../app/router';
+import { go, type MapFocus, onFocusRequest, takeFocus } from '../../app/router';
 import { useToast } from '../../app/toast';
 import { db, store, useToday, useWorld } from '../../app/world';
 import type { CityInput } from '../../data/store';
@@ -12,7 +12,10 @@ import { Icon } from '../../ui/Icon';
 import { Field, Segmented, Sheet } from '../../ui/kit';
 import { PlaceSearch } from '../../ui/PlaceSearch';
 import { FallbackMap } from './FallbackMap';
-import type { MapApi, PlaceCollection, PoiCollection } from './MapView';
+import type { HobbyCollection, MapApi, PlaceCollection, PoiCollection } from './MapView';
+import { useCatalog } from '../../geo/hobbyCatalog';
+import { visitedIn } from '../../domain/hobby';
+import { placeHref } from '../countries/HobbyWorld';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { PoiCard } from './PoiCard';
 import { PhotoImport } from '../countries/PhotoImport';
@@ -109,6 +112,22 @@ export function Planet({ active, onSettings }: { active: boolean; onSettings: ()
     [poiRows],
   );
 
+  // Resorts / spots of the hobbies that are on: visited ones in lime, the rest as small grey dots.
+  const resorts = useCatalog('resorts', !!settings.riderType);
+  const spots = useCatalog('spots', settings.surf);
+  const hobby: HobbyCollection = useMemo(() => {
+    const features: HobbyCollection['features'] = [];
+    const add = (kind: 'resort' | 'spot', items: ReadonlyArray<{ id: string; lat: number; lon: number; active: boolean }>, index: ReadonlyMap<string, { id: string }>) => {
+      const seen = visitedIn(index as ReadonlyMap<string, never>, data.hobby.filter((m) => m.what === 'visit' && m.kind === kind).map((m) => m.placeId));
+      for (const p of items) if (p.active) features.push({ type: 'Feature', properties: { id: p.id, kind, visited: seen.has(p.id) }, geometry: { type: 'Point', coordinates: [p.lon, p.lat] } });
+    };
+    if (settings.riderType) add('resort', resorts.items, resorts.index);
+    if (settings.surf) add('spot', spots.items, spots.index);
+    // Visited dots on top.
+    features.sort((a, b) => Number(a.properties.visited) - Number(b.properties.visited));
+    return { type: 'FeatureCollection', features };
+  }, [settings.riderType, settings.surf, resorts, spots, data.hobby]);
+
   const progress = worldProgress(COUNTRIES, world.visitedCountryIds, settings.methodology);
   const last = lastJourney(data.trips, data.visits, cities, today, countryName);
 
@@ -128,6 +147,11 @@ export function Planet({ active, onSettings }: { active: boolean; onSettings: ()
   // Requests from other tabs ("Показать на карте")
   const handleFocus = useCallback(
     (f: MapFocus) => {
+      if (f.kind === 'resort' || f.kind === 'spot') {
+        setSelection(null);
+        api.current?.flyTo(f.lon, f.lat, 9);
+        return;
+      }
       if (f.kind === 'country') focusCountry(f.id);
       if (f.kind === 'city') {
         const c = cities.get(f.id);
@@ -215,6 +239,8 @@ export function Planet({ active, onSettings }: { active: boolean; onSettings: ()
     onBackground: () => setSelection(null),
     pois,
     onPoi: (id: string, kind: 'stay' | 'booking') => setSelection({ kind: 'poi', id, poiKind: kind }),
+    hobby,
+    onHobby: (id: string, kind: 'resort' | 'spot') => go(placeHref(kind, id)),
   };
 
   return (

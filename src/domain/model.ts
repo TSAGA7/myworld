@@ -64,6 +64,23 @@ export const planSchema = z.object({
 });
 export type PlannedMark = z.infer<typeof planSchema>;
 
+/**
+ * A hobby mark: «Был здесь» on a ski resort / surf spot (what = 'visit') or a favourite spot (what = 'fav').
+ * `key` = `${what}:${kind}:${placeId}` is unique, so a repeated tap never counts a place twice.
+ * Marks stay when the hobby is switched off: turning it back on brings the history back.
+ */
+export const hobbyMarkSchema = z.object({
+  id: z.string(),
+  key: z.string(),
+  what: z.enum(['visit', 'fav']),
+  kind: z.enum(['resort', 'spot']),
+  placeId: z.string(),
+  date: optDate,
+  ...stamps,
+});
+export type HobbyMark = z.infer<typeof hobbyMarkSchema>;
+export const hobbyKey = (what: HobbyMark['what'], kind: HobbyMark['kind'], placeId: string): string => `${what}:${kind}:${placeId}`;
+
 export const tripSchema = z.object({
   id: z.string(),
   title: z.string().min(1),

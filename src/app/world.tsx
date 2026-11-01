@@ -2,7 +2,8 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { createContext, type ReactNode, useContext, useEffect, useMemo, useState } from 'react';
 import { WorldDb } from '../data/db';
 import { WorldStore } from '../data/store';
-import type { City, Methodology, PlannedMark, Trip, TripStop, Visit } from '../domain/model';
+import type { City, HobbyMark, Methodology, PlannedMark, Trip, TripStop, Visit } from '../domain/model';
+import type { RiderType } from '../domain/hobby';
 import { deriveWorld, type WorldState } from '../domain/world';
 import { type Currency, DEFAULT_RATES, DEFAULT_RATES_DATE, type Rates } from '../domain/money';
 
@@ -42,6 +43,12 @@ export interface Settings {
   storiesPhoto: 'above' | 'below' | 'none';
   /** «Интересное»: every story in its own card, like news. */
   storiesCards: boolean;
+  /** Hobby «Rider»: skis or snowboard (never both); null = off. */
+  riderType: RiderType | null;
+  /** Hobby «Surf». */
+  surf: boolean;
+  /** «Учитывать путешествия»: off = countries and cities are not marked any more (history is kept, the globe stays). */
+  travelTracking: boolean;
 }
 const DEFAULTS: Settings = {
   methodology: 'm195',
@@ -63,6 +70,9 @@ const DEFAULTS: Settings = {
   feedOrigin: null,
   storiesPhoto: 'above',
   storiesCards: false,
+  riderType: null,
+  surf: false,
+  travelTracking: true,
 };
 
 /** Texts that depend on the user's gender. */
@@ -80,6 +90,8 @@ export interface WorldData {
   trips: Trip[];
   stops: TripStop[];
   cities: Map<string, City>;
+  /** Hobby marks: visited resorts / spots and favourite spots. */
+  hobby: HobbyMark[];
   world: WorldState;
   settings: Settings;
 }
@@ -107,9 +119,10 @@ export function WorldProvider({ children }: { children: ReactNode }) {
   const stops = useLiveQuery(() => db.stops.toArray(), []);
   const cityRows = useLiveQuery(() => db.cities.toArray(), []);
   const meta = useLiveQuery(() => db.meta.toArray(), []);
+  const hobby = useLiveQuery(() => db.hobby.toArray(), []);
 
   const value = useMemo<WorldData>(() => {
-    const ready = !!(visits && plans && trips && stops && cityRows && meta);
+    const ready = !!(visits && plans && trips && stops && cityRows && meta && hobby);
     const settings: Settings = { ...DEFAULTS };
     for (const m of meta ?? []) if (m.key in DEFAULTS) (settings as unknown as Record<string, unknown>)[m.key] = m.value;
     return {
@@ -120,10 +133,11 @@ export function WorldProvider({ children }: { children: ReactNode }) {
       trips: trips ?? [],
       stops: stops ?? [],
       cities: new Map((cityRows ?? []).map((c) => [c.id, c])),
+      hobby: hobby ?? [],
       world: ready ? deriveWorld(visits ?? [], plans ?? [], stops ?? []) : EMPTY,
       settings,
     };
-  }, [visits, plans, trips, stops, cityRows, meta, error]);
+  }, [visits, plans, trips, stops, cityRows, meta, hobby, error]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

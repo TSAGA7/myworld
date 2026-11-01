@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { go, goBack } from "../../app/router";
 import { useWorld } from "../../app/world";
 import { countLabel, formatDate, plural } from "../../domain/dates";
@@ -14,12 +14,17 @@ import { Icon } from "../../ui/Icon";
 import { Empty, Flag, Segmented, Topo } from "../../ui/kit";
 import { CountrySheet } from "./CountrySheet";
 import { HomeCountry } from "./HomeCountry";
+import { HobbyWorld } from "./HobbyWorld";
+import { PlaceSheet } from "./PlaceSheet";
+import { RIDER_LABEL, type WorldScope, worldScopes } from "../../domain/hobby";
 import { PhotoImport } from "./PhotoImport";
 
 const SCOPE_KEY = "mw-countries-scope";
-const readScope = (): "world" | "home" => {
+const SCOPES: readonly WorldScope[] = ["world", "home", "rider", "surf"];
+const readScope = (): WorldScope => {
   try {
-    return localStorage.getItem(SCOPE_KEY) === "home" ? "home" : "world";
+    const v = localStorage.getItem(SCOPE_KEY);
+    return SCOPES.find((s) => s === v) ?? "world";
   } catch {
     return "world";
   }
@@ -40,9 +45,20 @@ export function Countries({
   const [filter, setFilter] = useState<Filter>("all");
   const [sort, setSort] = useState<Sort>("az");
   const [photos, setPhotos] = useState(false);
-  const openId = route[1] ?? null;
-  const [scope, setScopeRaw] = useState(readScope);
-  const setScope = (v: "world" | "home") => {
+  const openId = route[1] && !route[1].startsWith("@") ? route[1] : null;
+  const openPlace =
+    route[1] === "@resort" || route[1] === "@spot"
+      ? { kind: route[1] === "@resort" ? ("resort" as const) : ("spot" as const), id: route[2] ?? "" }
+      : null;
+  const [scopeRaw, setScopeRaw] = useState(readScope);
+  const available = worldScopes({ rider: settings.riderType, surf: settings.surf });
+  // A switched-off hobby hides its tab: fall back to «Мир» without forgetting the choice.
+  const scope: WorldScope = available.includes(scopeRaw) ? scopeRaw : "world";
+  const placeScope = openPlace ? (openPlace.kind === "resort" ? "rider" : "surf") : null;
+  useEffect(() => {
+    if (placeScope && available.includes(placeScope)) setScopeRaw(placeScope);
+  }, [placeScope, available.length]);
+  const setScope = (v: WorldScope) => {
     setScopeRaw(v);
     try {
       localStorage.setItem(SCOPE_KEY, v);
@@ -119,17 +135,26 @@ export function Countries({
 
         <Segmented
           label="Раздел"
-          className="scope-switch"
           value={scope}
           onChange={setScope}
-          options={[
-            { value: "world", label: "Мир", icon: "globe" },
-            { value: "home", label: "Моя страна", icon: "home" },
-          ]}
+          className={`scope-switch ${available.length > 2 ? "many" : ""}`}
+          options={available.map((v) =>
+            v === "world"
+              ? { value: v, label: "Мир", icon: "globe" as const }
+              : v === "home"
+                ? { value: v, label: available.length > 2 ? "Страна" : "Моя страна", icon: "home" as const }
+                : v === "rider"
+                  ? { value: v, label: RIDER_LABEL[settings.riderType ?? "ski"], icon: "mountain" as const }
+                  : { value: v, label: available.length > 3 ? "Сёрф" : "Сёрфинг", icon: "wave" as const },
+          )}
         />
 
         {scope === "home" ? (
           <HomeCountry />
+        ) : scope === "rider" ? (
+          <HobbyWorld key="resort" kind="resort" />
+        ) : scope === "surf" ? (
+          <HobbyWorld key="spot" kind="spot" />
         ) : (
           <>
             <section
@@ -338,6 +363,9 @@ export function Countries({
       {photos && <PhotoImport onClose={() => setPhotos(false)} />}
       {openId && (
         <CountrySheet countryId={openId} onClose={() => goBack("countries")} />
+      )}
+      {openPlace && (
+        <PlaceSheet kind={openPlace.kind} id={openPlace.id} onClose={() => goBack("countries")} />
       )}
     </div>
   );

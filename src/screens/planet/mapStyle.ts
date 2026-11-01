@@ -134,6 +134,19 @@ export const labelLayers = (p: MapPalette): LayerSpecification[] => {
 
 export const placeLayers = (): LayerSpecification[] => [
   {
+    // Ski resorts / surf spots of the user's hobbies: lime = visited, small grey = not yet. Under the city pins.
+    id: 'hobby-dots',
+    type: 'circle',
+    source: 'hobby',
+    paint: {
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 1, ['case', ['get', 'visited'], 3.2, 2], 6, ['case', ['get', 'visited'], 7, 5]],
+      'circle-color': ['case', ['get', 'visited'], '#ddf36f', '#8e8d96'],
+      'circle-stroke-color': ['case', ['get', 'visited'], '#232327', '#ffffff'],
+      'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 1, 0.8, 6, 1.6],
+      'circle-opacity': ['case', ['get', 'visited'], 1, 0.75],
+    },
+  },
+  {
     // Hotels and bookings found by address: small flags, visible when zoomed into a city.
     id: 'poi-pins',
     type: 'symbol',
@@ -196,6 +209,7 @@ export function baseStyle(p: MapPalette, globe: boolean, lite: boolean, countrie
       small: { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, promoteId: 'id' },
       focus: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
       pois: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
+      hobby: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
       labels: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
       places: {
         type: 'geojson',

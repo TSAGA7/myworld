@@ -7,6 +7,7 @@ import type {
   Expense,
   GeneralBooking,
   Guide,
+  HobbyMark,
   PlannedMark,
   TransportBooking,
   Trip,
@@ -25,6 +26,12 @@ export interface GeoRow {
   lat: number | null;
   lon: number | null;
   label: string;
+  at: string;
+}
+/** Last downloaded hobby catalog (resorts / spots): a cache, not user data. */
+export interface CatalogRow {
+  name: string;
+  data: unknown;
   at: string;
 }
 export interface MetaRow {
@@ -54,6 +61,8 @@ export class WorldDb extends Dexie {
   diary!: Table<DiaryEntry, string>;
   guides!: Table<Guide, string>;
   geocode!: Table<GeoRow, string>;
+  hobby!: Table<HobbyMark, string>;
+  catalog!: Table<CatalogRow, string>;
 
   constructor(name = 'myworld') {
     super(name);
@@ -86,13 +95,15 @@ export class WorldDb extends Dexie {
           if (b.lon === undefined) b.lon = null;
         });
       });
+    // v3: hobby marks (ski resorts, surf spots) and the offline copy of their catalogs. Nothing existing changes.
+    this.version(3).stores({ hobby: 'id, &key, kind, placeId', catalog: 'name' });
   }
 }
 
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 /** Tables holding user records, in export order. */
-export const USER_TABLES = ['cities', 'visits', 'plans', 'trips', 'stops', 'transport', 'stays', 'bookings', 'notes', 'attachments', 'tasks', 'meta', 'expenses', 'diary', 'guides'] as const;
+export const USER_TABLES = ['cities', 'visits', 'plans', 'trips', 'stops', 'transport', 'stays', 'bookings', 'notes', 'attachments', 'tasks', 'meta', 'expenses', 'diary', 'guides', 'hobby'] as const;
 export type UserTable = (typeof USER_TABLES)[number];
 /** Tables that belong to one trip and are removed with it. */
 export const TRIP_TABLES = ['stops', 'transport', 'stays', 'bookings', 'notes', 'tasks', 'expenses', 'diary', 'guides'] as const;

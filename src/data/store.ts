@@ -6,6 +6,7 @@ import type {
   Expense,
   GeneralBooking,
   Guide,
+  HobbyMark,
   OwnerType,
   PlannedMark,
   TransportBooking,
@@ -15,7 +16,7 @@ import type {
   TripTask,
   Visit,
 } from '../domain/model';
-import { visitKey } from '../domain/model';
+import { hobbyKey, visitKey } from '../domain/model';
 import { type AddPreview, buildAddToMap, buildMarkVisited, previewAddToMap, previewMarkVisited, type VisitPreviewItem } from '../domain/tripToMap';
 import { TRIP_TABLES, type WorldDb } from './db';
 
@@ -396,6 +397,43 @@ export class WorldStore {
   }
 
   // ---------------------------------------------------------------- settings
+
+  // ---------------------------------------------------------------- hobbies
+
+  /**
+   * «Был здесь» on a resort / spot, or a favourite. `ids` = the place id first, then older ids it was published under:
+   * a place already marked under any of them is not marked again. With `countryId` (travel tracking on) the country
+   * is marked visited too, unless the user already has it. Returns whether the country was added.
+   */
+  async markHobby(what: HobbyMark['what'], kind: HobbyMark['kind'], ids: readonly string[], countryId: string | null = null): Promise<{ countryAdded: boolean }> {
+    const [placeId] = ids;
+    if (!placeId) return { countryAdded: false };
+    return this.db.transaction('rw', this.db.hobby, this.db.visits, this.db.plans, async () => {
+      const keys = ids.map((id) => hobbyKey(what, kind, id));
+      if (!(await this.db.hobby.where('key').anyOf(keys).count())) {
+        const now = this.now();
+        await this.db.hobby.add({ id: this.newId(), key: keys[0] as string, what, kind, placeId, date: null, createdAt: now, updatedAt: now });
+      }
+      if (!countryId || (await this.db.visits.where('countryId').equals(countryId).count())) return { countryAdded: false };
+      await this.mark(visitKey(null, countryId), null, countryId, 'visited', null);
+      return { countryAdded: true };
+    });
+  }
+
+  /** Removes the mark (under every id of the place). The country stays visited. Returns the removed records for «Отменить». */
+  async unmarkHobby(what: HobbyMark['what'], kind: HobbyMark['kind'], ids: readonly string[]): Promise<HobbyMark[]> {
+    return this.db.transaction('rw', this.db.hobby, async () => {
+      const rows = await this.db.hobby.where('key').anyOf(ids.map((id) => hobbyKey(what, kind, id))).toArray();
+      await this.db.hobby.bulkDelete(rows.map((r) => r.id));
+      return rows;
+    });
+  }
+
+  async restoreHobby(rows: readonly HobbyMark[]): Promise<void> {
+    await this.db.transaction('rw', this.db.hobby, async () => {
+      for (const r of rows) if (!(await this.db.hobby.where('key').equals(r.key).count())) await this.db.hobby.put(r);
+    });
+  }
 
   async getSetting<T>(key: string, fallback: T): Promise<T> {
     const row = await this.db.meta.get(key);

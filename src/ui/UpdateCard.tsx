@@ -9,8 +9,11 @@ export function CenterCard({
   items,
   primary,
   secondary,
+  badge,
 }: {
   title: string;
+  /** Picture in the lime badge; a sparkle by default. */
+  badge?: ReactNode;
   text?: ReactNode;
   items?: string[];
   primary: { label: string; onClick: () => void };
@@ -20,7 +23,7 @@ export function CenterCard({
     <div className="center-overlay" role="dialog" aria-modal="true" aria-labelledby="center-card-title">
       <div className="center-card card stack">
         <span className="center-badge" aria-hidden="true">
-          <Icon name="sparkle" size={22} />
+          {badge ?? <Icon name="sparkle" size={22} />}
         </span>
         <h1 id="center-card-title" className="h2">
           {title}
