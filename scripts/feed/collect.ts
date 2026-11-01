@@ -62,7 +62,7 @@ if (dry) {
 }
 /** Merges a fresh run into the previous file; items of removed sources disappear. */
 /** Airlines, airports and carriers speak for themselves: their notices are never merged with each other. */
-const OPERATOR_GROUPS = new Set(['Авиакомпании', 'Аэропорты', 'Перевозчики']);
+const OPERATOR_GROUPS = new Set(['Авиакомпании', 'Аэропорты', 'Перевозчики', 'Курорты']);
 const operators = new Set(SOURCES.filter((s) => OPERATOR_GROUPS.has(s.group)).map((s) => s.id));
 
 function publish(name: string, defs: readonly SourceDef[], freshItems: NewsItem[], keepHours: number): void {

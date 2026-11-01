@@ -61,11 +61,21 @@ export const SOURCE_LIST = {
   },
   // Новости увлечений: видны только тем, у кого включён Rider / Surf (или «Спортивные новости» в настройках).
   Горы: {
-    Курорты: [],
-    'СМИ и блогеры': [],
+    Курорты: [
+      { name: 'Роза Хутор', url: 'https://t.me/rosakhutoralerts' },
+      { name: 'Газпром Поляна', url: 'https://t.me/gazprom_resort' },
+      { name: 'Курорт Манжерок', url: 'https://t.me/manzherok_resort' },
+    ],
+    СМИ: [
+      { name: 'OnTheSnow', url: 'https://www.onthesnow.com/news/feed', lang: 'en' },
+      { name: 'SKI Magazine', url: 'https://www.skimag.com/feed/', lang: 'en' },
+    ],
   },
   Сёрф: {
-    'СМИ и блогеры': [],
+    СМИ: [
+      { name: 'Stab Mag', url: 'https://stabmag.com/feed/', lang: 'en' },
+      { name: 'Surfer', url: 'https://www.surfer.com/feed/', lang: 'en' },
+    ],
   },
 } satisfies Record<string, Record<string, readonly SourceEntry[]>>;
 

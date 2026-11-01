@@ -1,1 +1,8 @@
-{ "_": "Ручные правки каталога курортов: { id, ...поля } — меняет поля курорта (id из resorts.json или его alt); { id, active: false } — убрать из каталога; новый курорт — id, name, countryId, lat, lon и источник в src. Камеры: cams: [{ name, place, url, kind: \"iframe\" | \"hls\" | \"image\" | \"link\" }] — только официальные, проверенные.", "items": [] }
+{
+  "_": "Ручные правки каталога курортов: { id, ...поля } — меняет поля курорта (id из resorts.json или его alt); { id, active: false } — убрать из каталога; новый курорт — id, name, countryId, lat, lon и источник в src. Камеры: cams: [{ name, place, url, kind: \"iframe\" | \"hls\" | \"image\" | \"link\" }] — только официальные, проверенные. telegram здесь = официальный канал, проверен (src).",
+  "items": [
+    { "id": "skimap-2678", "telegram": "rosakhutoralerts", "website": "https://rosakhutor.ru/", "src": "t.me/rosakhutoralerts: «Официальный канал Горного курорта Роза Хутор», сайт rosakhutor.ru; проверено 2026-11-01" },
+    { "id": "skimap-1947", "telegram": "gazprom_resort", "src": "t.me/gazprom_resort: «Курорт «Газпром Поляна»», активен; проверено 2026-11-01" },
+    { "id": "skimap-5850", "telegram": "manzherok_resort", "src": "t.me/manzherok_resort: «Курорт Манжерок», активен; проверено 2026-11-01" }
+  ]
+}
