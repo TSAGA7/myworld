@@ -1,0 +1,1 @@
+{ "_": "Ручные правки каталога курортов: { id, ...поля } — меняет поля курорта (id из resorts.json или его alt); { id, active: false } — убрать из каталога; новый курорт — id, name, countryId, lat, lon и источник в src. Камеры: cams: [{ name, place, url, kind: \"iframe\" | \"hls\" | \"image\" | \"link\" }] — только официальные, проверенные.", "items": [] }

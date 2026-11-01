@@ -1,0 +1,1 @@
+{ "_": "Ручные данные спотов: { id, wave, level, season, website, photo, src } — src обязателен (откуда взято). Координаты вручную — только для спотов из «не найдено» в spots-report.json, тоже с src. { id, active: false } — убрать спот.", "items": [] }

@@ -1,0 +1,54 @@
+name: Каталоги — курорты и споты
+# Once a week (and on demand): builds catalog/resorts.json (OpenSkiMap + Wikidata) and catalog/spots.json
+# (OpenStreetMap) in the `data` branch. The app reads them from raw.githubusercontent.com — no release needed.
+# Manual fixes: scripts/catalog/resorts-extra.json, spots-extra.json; reports: catalog/*-report.json.
+on:
+  schedule:
+    - cron: '23 3 * * 1'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: feed
+  cancel-in-progress: false
+jobs:
+  catalog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --omit=dev --ignore-scripts
+      - name: Ветка data
+        env:
+          REMOTE: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}
+        run: |
+          if git ls-remote --exit-code --heads "$REMOTE" data >/dev/null; then
+            git clone --depth 1 --branch data "$REMOTE" feed-data
+          else
+            mkdir feed-data && git -C feed-data init -b data && git -C feed-data remote add origin "$REMOTE"
+          fi
+      - name: Курорты
+        run: node --max-old-space-size=6144 scripts/catalog/resorts.mjs
+      - name: Споты
+        run: node scripts/catalog/spots.mjs
+      - name: Публикация
+        working-directory: feed-data
+        run: |
+          git config user.name Claude
+          git config user.email noreply@anthropic.com
+          cp -r catalog /tmp/catalog
+          for i in 1 2 3; do
+            git fetch -q --depth 1 origin data && git reset -q --hard origin/data || true
+            rm -rf catalog && cp -r /tmp/catalog catalog
+            git checkout -q --orphan next
+            git add -A
+            git commit -q -m "Каталоги $(date -u +%FT%H:%MZ)"
+            if git push -q --force-with-lease=data:$(git rev-parse origin/data 2>/dev/null || echo '') origin next:data; then exit 0; fi
+            git checkout -q -B data origin/data || true; git branch -D next || true
+            sleep 20
+          done
+          exit 1
