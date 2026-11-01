@@ -56,6 +56,21 @@ self.addEventListener('message', (e) => {
 self.addEventListener('activate', (e) => {
   e.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k.startsWith('mw-') && k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
 });
+// Resort notices (supabase/functions/myworld-push): show them; a tap opens the resort page.
+self.addEventListener('push', (e) => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch { d = { body: e.data ? e.data.text() : '' }; }
+  e.waitUntil(self.registration.showNotification(d.title || 'MY WORLD', { body: d.body || '', tag: d.tag, data: { url: d.url || './' }, icon: './icon-192.png', badge: './icon-192.png' }));
+});
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  const target = new URL((e.notification.data && e.notification.data.url) || './', self.registration.scope).href;
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+    const w = list.find((c) => c.url.startsWith(self.registration.scope));
+    if (w) return w.focus().then(() => w.navigate(target)).catch(() => self.clients.openWindow(target));
+    return self.clients.openWindow(target);
+  }));
+});
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);

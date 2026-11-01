@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { enablePush, syncPush, usePushState } from '../../app/push';
 import { createPortal } from 'react-dom';
 import { endHere, extendHere, setMute, setNotify, startHere } from '../../app/hobbyActions';
 import { go } from '../../app/router';
@@ -90,6 +91,7 @@ export function ResortLive({ resort, visited }: { resort: Resort; visited: boole
           У курорта пока нет подключённого официального канала — оперативных сообщений о трассах и подъёмниках не будет.
         </p>
       )}
+      {hasSource && notify && <PushRow resorts={[...watch.notify]} />}
       {hasSource &&
         (notices.length ? (
           <div className="stack tight">
@@ -150,6 +152,7 @@ export function HereCheck() {
   const { settings } = useWorld();
   const { watch, cat } = useResortWatch();
   const [skipped, setSkipped] = useState<string[]>([]);
+  usePushSync([...watch.notify], cat.items.length > 0);
   if (!settings.riderType) return null;
   const id = watch.expired.find((x) => !skipped.includes(x));
   const r = id ? cat.index.get(id) : undefined;
@@ -169,4 +172,69 @@ export function HereCheck() {
     />,
     document.body,
   );
+}
+
+/** «Присылать на телефон»: Web Push for the resorts whose notices are on. */
+function PushRow({ resorts }: { resorts: string[] }) {
+  const [st, setSt] = usePushState();
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  if (!st || st === 'unsupported') return null;
+  if (st === 'on') return <p className="faint small" style={{ margin: 0 }}>Push-уведомления на телефон включены.</p>;
+  if (st === 'install')
+    return (
+      <p className="muted small" style={{ margin: 0 }}>
+        Чтобы сообщения приходили, даже когда приложение закрыто, добавьте MY WORLD на экран «Домой»: в Safari «Поделиться» → «На экран „Домой“».
+      </p>
+    );
+  if (st === 'denied')
+    return (
+      <p className="muted small" style={{ margin: 0 }}>
+        Уведомления для MY WORLD запрещены — разрешите их в настройках телефона (Настройки → Уведомления).
+      </p>
+    );
+  return (
+    <button
+      type="button"
+      className="btn glass-btn block"
+      disabled={busy}
+      onClick={() => {
+        setBusy(true);
+        enablePush(resorts)
+          .then((r) => {
+            setSt(r);
+            toast(r === 'on' ? 'Сообщения курорта будут приходить на телефон' : 'Уведомления не разрешены');
+          })
+          .catch((e: unknown) => toast(`Не удалось включить уведомления: ${e instanceof Error ? e.message : e}`))
+          .finally(() => setBusy(false));
+      }}
+    >
+      <Icon name="phone" size={18} /> Присылать на телефон
+    </button>
+  );
+}
+
+/** Keeps the push subscription's resort list in step with the switches (only when push is already on). */
+function usePushSync(ids: readonly string[], ready: boolean) {
+  const sig = [...ids].sort().join(',');
+  useEffect(() => {
+    if (!ready) return;
+    let last = '';
+    try {
+      last = localStorage.getItem('mw-push-resorts') ?? '';
+    } catch {
+      /* private mode */
+    }
+    if (last === sig) return;
+    void syncPush(sig ? sig.split(',') : []).then(
+      () => {
+        try {
+          localStorage.setItem('mw-push-resorts', sig);
+        } catch {
+          /* private mode */
+        }
+      },
+      () => undefined,
+    );
+  }, [sig, ready]);
 }

@@ -62,3 +62,7 @@ jobs:
           git commit -q -m "Лента $(date -u +%FT%H:%MZ)"
           # Fails (and the next hour retries) if the daily digest was pushed while this run worked.
           if [ -n "$LEASE" ]; then git push --force-with-lease=data:$LEASE origin next:data; else git push origin next:data; fi
+      - name: Push курортов
+        if: ${{ !inputs.probe }}
+        # Delivers fresh official notices of ski resorts to subscribed phones (supabase/functions/myworld-push).
+        run: curl -sS -m 90 -X POST https://gpnpqwyniqmdinwazegh.supabase.co/functions/v1/myworld-push -H 'content-type:application/json' -d '{"action":"notify"}' || true
