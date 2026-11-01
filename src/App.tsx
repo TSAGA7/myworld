@@ -9,6 +9,7 @@ import { Splash, splashOff } from './ui/Splash';
 const Countries = lazy(() => import('./screens/countries/Countries').then((m) => ({ default: m.Countries })));
 const Profile = lazy(() => import('./screens/profile/Profile').then((m) => ({ default: m.Profile })));
 const JoinTrip = lazy(() => import('./screens/trips/JoinTrip').then((m) => ({ default: m.JoinTrip })));
+const Feed = lazy(() => import('./screens/feed/Feed').then((m) => ({ default: m.Feed })));
 const Trips = lazy(() => import('./screens/trips/Trips').then((m) => ({ default: m.Trips })));
 
 const Loading = () => (
@@ -24,7 +25,7 @@ export function App() {
   const { error, ready } = useWorld();
   const [settings, setSettings] = useState(false);
   const [splash, setSplash] = useState(() => !splashOff());
-  const tab: Tab = route[0] === 'countries' || route[0] === 'trips' || route[0] === 'me' ? route[0] : route[0] === 'join' ? 'trips' : 'planet';
+  const tab: Tab = route[0] === 'countries' || route[0] === 'trips' || route[0] === 'feed' || route[0] === 'me' ? route[0] : route[0] === 'join' ? 'trips' : 'planet';
 
   if (error) {
     return (
@@ -58,6 +59,8 @@ export function App() {
               <Loading />
             ) : tab === 'countries' ? (
               <Countries route={route} onSettings={() => setSettings(true)} />
+            ) : tab === 'feed' ? (
+              <Feed route={route} />
             ) : tab === 'me' ? (
               <Profile onSettings={() => setSettings(true)} />
             ) : route[0] === 'join' ? (

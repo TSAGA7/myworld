@@ -1,0 +1,55 @@
+name: Лента — новости и цены
+# Every hour: collects travel news (no keys) and, when TRAVELPAYOUTS_TOKEN is set, scans ticket prices.
+# Results go to the `data` branch (feed/*.json); the app reads them from raw.githubusercontent.com,
+# so the site is not rebuilt. The branch is kept as a single commit to stay small.
+on:
+  schedule:
+    - cron: '7 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: feed
+  cancel-in-progress: false
+jobs:
+  feed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --omit=dev --ignore-scripts
+      - name: Ветка data
+        env:
+          REMOTE: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}
+        run: |
+          if git ls-remote --exit-code --heads "$REMOTE" data >/dev/null; then
+            git clone --depth 1 --branch data "$REMOTE" feed-data
+            echo "LEASE=$(git -C feed-data rev-parse HEAD)" >> "$GITHUB_ENV"
+          else
+            mkdir feed-data && git -C feed-data init -b data && git -C feed-data remote add origin "$REMOTE"
+            echo "LEASE=" >> "$GITHUB_ENV"
+          fi
+      - name: Новости
+        run: node --experimental-strip-types scripts/feed/collect.ts
+        env:
+          FEED_DIR: ${{ github.workspace }}/feed-data/feed
+      - name: Цены
+        run: node --experimental-strip-types scripts/feed/prices.ts
+        env:
+          FEED_DIR: ${{ github.workspace }}/feed-data/feed
+          TRAVELPAYOUTS_TOKEN: ${{ secrets.TRAVELPAYOUTS_TOKEN }}
+          TRAVELPAYOUTS_MARKER: ${{ secrets.TRAVELPAYOUTS_MARKER }}
+      - name: Публикация
+        working-directory: feed-data
+        run: |
+          git config user.name Claude
+          git config user.email noreply@anthropic.com
+          git checkout --orphan next
+          git add -A
+          git commit -q -m "Лента $(date -u +%FT%H:%MZ)"
+          # Fails (and the next hour retries) if the daily digest was pushed while this run worked.
+          if [ -n "$LEASE" ]; then git push --force-with-lease=data:$LEASE origin next:data; else git push origin next:data; fi

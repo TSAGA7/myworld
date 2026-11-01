@@ -44,6 +44,13 @@ public/data   cities.tsv (~194 тыс. городов GeoNames), regions/<стр
 чек-лист, бюджет ₽/$/€, импорт брони, «Отметить по фото» (EXIF-геометки → страны/города/поездки в Web Worker: src/geo/photoWorker.ts, photoScan.ts, photoGeo.ts, photoClient.ts; индекс городов — public/data/photo-index.bin из scripts/photo-index.mjs (собирается сам, не коммитится); один file input не размонтируется — iOS отдаёт фото с задержкой; на время окна глобус выгружается (app/lean.ts); проверка и правка дат/городов — domain/photoReview.ts; веб не даёт доступа ко всей галерее — пользователь выбирает фото сам), экспорт в календарь/Google/2ГИС, совместные поездки; профиль — статус (тексты владельца по числу стран),
 достижения, карточка для соцсетей; заставка с планетой и самолётами при запуске.
 
+## Лента (вкладка «Лента»: дайджест, новости, выгодные билеты)
+- Данные не в сборке, а в ветке `data` (`feed/news.json`, `digest.json`, `deals.json`), приложение читает их с raw.githubusercontent.com (`src/feed/client.ts`), копия — в localStorage.
+- `.github/workflows/feed.yml` каждый час: `scripts/feed/collect.ts` (Telegram t.me/s + RSS, источники — `src/feed/sources.ts`) и `scripts/feed/prices.ts` (Travelpayouts, секреты `TRAVELPAYOUTS_TOKEN`, `TRAVELPAYOUTS_MARKER`). Ветка `data` — один коммит, перезаписывается.
+- Дайджест пишет запланированная задача Claude по `scripts/feed/DIGEST.md` (на подписке, без API-ключа); ссылки подставляет `src/feed/digest.ts` из news.json — выдумать нельзя.
+- «Проверить цену»: `supabase/functions/price-check` + переменные репозитория `PRICE_CHECK_URL`, `PRICE_CHECK_KEY` (пусто → показывается время последнего часового скана).
+- Логика — `src/feed/*.ts` (импорты с `.ts`, скрипты запускаются `node --experimental-strip-types`), тесты — `src/feed/feed.test.ts`.
+
 ## Проверка
 Headless Chromium (Playwright, swiftshader) в песочнице рисует очень медленно — скриншот до 40 с, рывки анимации там нормальны.
 Логику проверять юнит-тестами, скриншоты — только ключевых экранов (iPhone 390×844). Внешние сайты из песочницы недоступны — мокать.

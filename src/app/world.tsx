@@ -36,6 +36,8 @@ export interface Settings {
   homeCountryId: string | null;
   /** Short globe-and-planes animation on every launch. */
   splash: boolean;
+  /** «Лента → Билеты»: departure city code (MOW, LED…); null = the home city or Moscow. */
+  feedOrigin: string | null;
 }
 const DEFAULTS: Settings = {
   methodology: 'm195',
@@ -54,6 +56,7 @@ const DEFAULTS: Settings = {
   shareStatus: true,
   homeCountryId: null,
   splash: true,
+  feedOrigin: null,
 };
 
 /** Texts that depend on the user's gender. */

@@ -4,3 +4,4 @@ dist
 .ne-cache
 public/ocr
 public/data/photo-index.bin
+feed-data/

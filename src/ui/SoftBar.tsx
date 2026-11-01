@@ -1,10 +1,11 @@
 import { Icon, type IconName } from './Icon';
 
-export type Tab = 'planet' | 'countries' | 'trips' | 'me';
+export type Tab = 'planet' | 'countries' | 'trips' | 'feed' | 'me';
 const TABS: ReadonlyArray<{ id: Tab; label: string; icon: IconName }> = [
   { id: 'planet', label: 'Планета', icon: 'planet' },
   { id: 'countries', label: 'Страны', icon: 'flagStack' },
   { id: 'trips', label: 'Поездки', icon: 'suitcase' },
+  { id: 'feed', label: 'Лента', icon: 'news' },
   { id: 'me', label: 'Профиль', icon: 'user' },
 ];
 
