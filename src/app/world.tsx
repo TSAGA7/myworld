@@ -38,6 +38,10 @@ export interface Settings {
   splash: boolean;
   /** «Лента → Билеты»: departure city code (MOW, LED…); null = the home city or Moscow. */
   feedOrigin: string | null;
+  /** «Интересное»: photo above the text, below it, or no photos. */
+  storiesPhoto: 'above' | 'below' | 'none';
+  /** «Интересное»: every story in its own card, like news. */
+  storiesCards: boolean;
 }
 const DEFAULTS: Settings = {
   methodology: 'm195',
@@ -57,6 +61,8 @@ const DEFAULTS: Settings = {
   homeCountryId: null,
   splash: true,
   feedOrigin: null,
+  storiesPhoto: 'above',
+  storiesCards: false,
 };
 
 /** Texts that depend on the user's gender. */

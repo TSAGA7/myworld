@@ -618,3 +618,16 @@
 .sources-line { margin: 0; font-size: 14.5px; line-height: 1.5; color: var(--ink-2); }
 .sources-line a { color: var(--ink); }
 .sources-note { margin: 4px 0 0; }
+
+/* «Интересное»: greeting, edition date, story cards */
+.stories-hello { display: flex; align-items: flex-start; gap: 12px; }
+.stories-hello .h2 { font-size: 22px; line-height: 1.2; }
+.stories-hello p { margin: 4px 0 0; }
+.stories-date { margin: 0; display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 650; color: var(--ink-2); text-transform: none; }
+.story-edition > .stories-date { justify-self: start; padding: 4px 12px; border-radius: var(--r-pill); background: var(--line); }
+.stories-cards { display: grid; gap: 10px; }
+.stories-cards > .stories-date { padding: 0 4px; }
+.story-card { display: grid; gap: 10px; }
+.story-card p { margin: 0; font-size: 15.5px; line-height: 1.45; }
+.story-card .flag { display: inline-block; vertical-align: -3px; margin-right: 6px; }
+.stories-date + .story-item { padding-top: 0; border-top: 0; }

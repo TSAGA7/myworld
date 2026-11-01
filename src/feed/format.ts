@@ -61,3 +61,11 @@ export function liveVerdict(listed: number, live: number | null): { kind: 'same'
   if (diff < 0) return { kind: 'cheaper', text: `Стало ещё дешевле: ${rub(live)}` };
   return { kind: 'dearer', text: `Подорожало до ${rub(live)} (+${Math.round((diff / listed) * 100)}%)` };
 }
+
+/** Greeting by the local hour: утро 5–11, день 12–16, вечер 17–22, ночь. */
+export function greeting(hour: number): string {
+  if (hour >= 5 && hour < 12) return 'Доброе утро';
+  if (hour >= 12 && hour < 17) return 'Добрый день';
+  if (hour >= 17 && hour < 23) return 'Добрый вечер';
+  return 'Доброй ночи';
+}

@@ -186,7 +186,7 @@ describe('digest', () => {
   });
 });
 
-import { ago, dayMonth, dealsFrom, durationLabel, fromCity, liveVerdict, originForHome, rub, transfersLabel } from './format';
+import { ago, dayMonth, dealsFrom, durationLabel, fromCity, greeting, liveVerdict, originForHome, rub, transfersLabel } from './format';
 
 describe('format', () => {
   const now = new Date('2026-11-01T10:00:00Z');
@@ -201,6 +201,7 @@ describe('format', () => {
     expect(durationLabel(605)).toBe('10 ч 5 мин');
     expect(fromCity('Санкт-Петербург')).toBe('из Петербурга');
     expect(fromCity('Казань')).toBe('из Казани');
+    expect([4, 5, 11, 12, 16, 17, 22, 23].map(greeting)).toEqual(['Доброй ночи', 'Доброе утро', 'Доброе утро', 'Добрый день', 'Добрый день', 'Добрый вечер', 'Добрый вечер', 'Доброй ночи']);
   });
   it('picks the home departure city and judges a live price', () => {
     const origins = [{ code: 'MOW', name: 'Москва' }, { code: 'LED', name: 'Санкт-Петербург' }];
