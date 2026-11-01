@@ -38,7 +38,7 @@ async function surfPointsOf(cc) {
     const q = `[out:json][timeout:120];area["ISO3166-1"="${cc}"][admin_level=2]->.a;nwr["sport"="surfing"]["name"](area.a);out center tags;`;
     let list = [];
     try {
-      const post = (url) => getJson(url, { method: 'POST', body: new URLSearchParams({ data: q }), headers: { 'content-type': 'application/x-www-form-urlencoded' } }, 2);
+      const post = (url) => getJson(url, { method: 'POST', body: new URLSearchParams({ data: q }), headers: { 'content-type': 'application/x-www-form-urlencoded' } }, 2, 60_000);
       const j = await post('https://overpass-api.de/api/interpreter').catch(() => post('https://overpass.kumi.systems/api/interpreter'));
       list = j.elements.map((e) => ({ osm: `${e.type}/${e.id}`, lat: e.lat ?? e.center?.lat, lon: e.lon ?? e.center?.lon, names: [e.tags.name, e.tags['name:en'], e.tags['name:ru']].filter(Boolean).map(fold) })).filter((p) => Number.isFinite(p.lat));
     } catch (e) {

@@ -30,7 +30,9 @@ const empty = <T,>(status: CatalogState<T>['status']): CatalogState<T> => ({ ite
 function build<K extends CatalogName>(name: K, raw: unknown, status: CatalogState<ItemOf[K]>['status']): CatalogState<ItemOf[K]> | null {
   const r = SCHEMA[name].safeParse(raw);
   if (!r.success) return null;
-  const items = r.data.items as ItemOf[K][];
+  // One id = one place: a duplicate (a broken build) would otherwise confuse the lists.
+  const seen = new Set<string>();
+  const items = (r.data.items as ItemOf[K][]).filter((p) => !seen.has(p.id) && !!seen.add(p.id));
   return { items, index: indexPlaces(items), generatedAt: r.data.generatedAt, attribution: r.data.attribution, status };
 }
 

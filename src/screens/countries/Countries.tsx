@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { type TouchEvent, useEffect, useMemo, useRef, useState } from "react";
 import { go, goBack } from "../../app/router";
 import { useWorld } from "../../app/world";
 import { countLabel, formatDate, plural } from "../../domain/dates";
@@ -58,6 +58,28 @@ export function Countries({
   useEffect(() => {
     if (placeScope && available.includes(placeScope)) setScopeRaw(placeScope);
   }, [placeScope, available.length]);
+  // Swipe left/right between «Мир · Страна · Борд · Сёрфинг», as in the feed.
+  const index = available.indexOf(scope);
+  const from = useRef(index);
+  const dir = index >= from.current ? "next" : "prev";
+  from.current = index;
+  const touch = useRef<{ x: number; y: number; t: number } | null>(null);
+  const onTouchStart = (e: TouchEvent) => {
+    const p = e.touches[0];
+    const skip = e.target instanceof Element && !!e.target.closest(".chips, .sheet, .scrim, input, textarea, select, svg.home-map, [data-noswipe]");
+    touch.current = p && e.touches.length === 1 && !skip ? { x: p.clientX, y: p.clientY, t: Date.now() } : null;
+  };
+  const onTouchEnd = (e: TouchEvent) => {
+    const s = touch.current;
+    const p = e.changedTouches[0];
+    touch.current = null;
+    if (!s || !p || openId || openPlace) return;
+    const dx = p.clientX - s.x;
+    const dy = p.clientY - s.y;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.8 || Date.now() - s.t > 800) return;
+    const next = available[index + (dx < 0 ? 1 : -1)];
+    if (next) setScope(next);
+  };
   const setScope = (v: WorldScope) => {
     setScopeRaw(v);
     try {
@@ -116,7 +138,7 @@ export function Countries({
   }, [pool, q, filter, sort, world]);
 
   return (
-    <div className="screen countries-screen">
+    <div className="screen countries-screen" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       <Topo />
       <div className="screen-inner">
         <header className="row between">
@@ -149,6 +171,7 @@ export function Countries({
           )}
         />
 
+        <div key={scope} className={`scope-page ${dir}`}>
         {scope === "home" ? (
           <HomeCountry />
         ) : scope === "rider" ? (
@@ -359,6 +382,7 @@ export function Countries({
             )}
           </>
         )}
+        </div>
       </div>
       {photos && <PhotoImport onClose={() => setPhotos(false)} />}
       {openId && (

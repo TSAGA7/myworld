@@ -10,7 +10,6 @@ import { Readable } from 'node:stream';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { readFile } from 'node:fs/promises';
-import { geoCentroid } from 'd3-geo';
 import { APP, COUNTRY_IDS, OUT, UA, countryAt, getJson, readJson, regionAt, round, splitName, writeOut } from './common.mjs';
 
 const SKI_AREAS = 'https://tiles.openskimap.org/geojson/ski_areas.geojson';
@@ -28,6 +27,18 @@ if (!process.env.SKI_AREAS_FILE) {
 const fc = JSON.parse(await readFile(file, 'utf8'));
 console.log('Зон катания в OpenSkiMap:', fc.features.length);
 
+/** Centre of the area's bounding box. (d3 geoCentroid reads GeoJSON's counter-clockwise rings as «the rest of the globe»
+ * and returned the antipode — Austrian resorts landed in the Pacific.) */
+function centre(g) {
+  if (!g) return [NaN, NaN];
+  if (g.type === 'Point') return g.coordinates;
+  const pts = g.type === 'Polygon' ? g.coordinates.flat() : g.type === 'MultiPolygon' ? g.coordinates.flat(2) : [];
+  if (!pts.length) return [NaN, NaN];
+  const lons = pts.map((p) => p[0]);
+  const lats = pts.map((p) => p[1]);
+  return [(Math.min(...lons) + Math.max(...lons)) / 2, (Math.min(...lats) + Math.max(...lats)) / 2];
+}
+
 const sum = (o, pick) => Object.entries(o ?? {}).reduce((s, [k, v]) => s + pick(k, v), 0);
 const report = { generatedAt: new Date().toISOString(), source: SKI_AREAS, total: fc.features.length, skipped: {}, errors: [] };
 const skip = (why) => (report.skipped[why] = (report.skipped[why] ?? 0) + 1);
@@ -41,7 +52,7 @@ for (const f of fc.features) {
   const st = p.statistics;
   const km = sum(st?.runs?.byActivity?.downhill?.byDifficulty, (_k, v) => v?.lengthInKm ?? 0);
   const lifts = sum(st?.lifts?.byType, (k, v) => (NOT_LIFTS.has(k) ? 0 : (v?.count ?? 0)));
-  const [lon, lat] = f.geometry?.type === 'Point' ? f.geometry.coordinates : f.geometry ? geoCentroid(f) : [NaN, NaN];
+  const [lon, lat] = centre(f.geometry);
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) { skip('без координат'); continue; }
   const iso = p.places?.[0]?.iso3166_1Alpha2;
   const countryId = (iso && COUNTRY_IDS.has(iso) ? iso : null) ?? countryAt(lon, lat);
@@ -79,16 +90,30 @@ for (const f of fc.features) {
   });
 }
 
-// One place mapped twice (OSM area + skimap point that failed to merge): same name within 5 km — keep the bigger one.
+// One resort mapped several times (OSM areas of one skimap.org resort, an OSM area + a skimap point that failed to merge,
+// the same Wikidata item): everything that shares any id — or has the same name within 5 km — is one resort.
+// The biggest part keeps its data; the other ids become `alt`, so every id stays unique.
 const near = (a, b) => Math.abs(a.lat - b.lat) < 0.05 && Math.abs(a.lon - b.lon) < 0.07;
 items.sort((a, b) => (b.pisteKm ?? 0) - (a.pisteKm ?? 0));
+const owner = new Map();
 const kept = [];
 for (const it of items) {
-  const dup = kept.find((k) => near(k, it) && (k.name.toLowerCase() === it.name.toLowerCase() || (!!k.nameRu && k.nameRu === it.nameRu) || (k.wd && k.wd === it.wd)));
-  if (dup) { dup.alt.push(it.id, ...it.alt); skip('дубль'); continue; }
+  const all = [it.id, ...it.alt];
+  const byId = all.map((id) => owner.get(id)).find(Boolean);
+  const dup = byId ?? kept.find((k) => near(k, it) && (k.name.toLowerCase() === it.name.toLowerCase() || (!!k.nameRu && k.nameRu === it.nameRu)));
+  if (dup) {
+    for (const id of all) if (!owner.has(id)) { owner.set(id, dup); dup.alt.push(id); }
+    if (!dup.wd && it.wd) dup.wd = it.wd;
+    if (!dup.nameRu && it.nameRu) dup.nameRu = it.nameRu;
+    if (!dup.website && it.website) dup.website = it.website;
+    skip('дубль');
+    continue;
+  }
+  for (const id of all) owner.set(id, it);
   kept.push(it);
 }
 items = kept;
+for (const it of items) it.alt = [...new Set(it.alt)].filter((x) => x !== it.id);
 
 // Wikidata: Russian name, Telegram, official site.
 const wds = [...new Set(items.map((i) => i.wd).filter(Boolean))];
@@ -119,9 +144,12 @@ for (const it of items) {
 const prev = readJson(join(OUT, 'resorts.json'))?.items ?? [];
 const prevBy = new Map();
 for (const p of prev) for (const id of [p.id, ...(p.alt ?? [])]) prevBy.set(id, p.id);
+const taken = new Set(items.map((i) => i.id));
 for (const it of items) {
   const old = [it.id, ...it.alt].map((id) => prevBy.get(id)).find(Boolean);
-  if (old && old !== it.id) {
+  if (old && old !== it.id && !taken.has(old)) {
+    taken.delete(it.id);
+    taken.add(old);
     it.alt = [...new Set([it.id, ...it.alt])].filter((x) => x !== old);
     it.id = old;
   }
@@ -137,6 +165,8 @@ for (const e of extra.items ?? []) {
 }
 
 for (const it of items) delete it.wd;
+const seenIds = new Set();
+items = items.filter((i) => !seenIds.has(i.id) && seenIds.add(i.id));
 items.sort((a, b) => a.countryId.localeCompare(b.countryId) || a.name.localeCompare(b.name));
 report.published = items.length;
 report.byCountry = Object.fromEntries([...items.reduce((m, i) => m.set(i.countryId, (m.get(i.countryId) ?? 0) + 1), new Map())].sort((a, b) => b[1] - a[1]));

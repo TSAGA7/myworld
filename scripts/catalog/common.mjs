@@ -24,10 +24,10 @@ export const writeOut = (name, data) => {
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-export async function getJson(url, init = {}, tries = 3) {
+export async function getJson(url, init = {}, tries = 3, timeoutMs = 120_000) {
   for (let i = 1; ; i++) {
     try {
-      const r = await fetch(url, { ...init, headers: { 'user-agent': UA, accept: 'application/json', ...(init.headers ?? {}) }, signal: AbortSignal.timeout(180_000) });
+      const r = await fetch(url, { ...init, headers: { 'user-agent': UA, accept: 'application/json', ...(init.headers ?? {}) }, signal: AbortSignal.timeout(timeoutMs) });
       if (!r.ok) throw new Error(`HTTP ${r.status} ${url.slice(0, 80)}`);
       return await r.json();
     } catch (e) {
