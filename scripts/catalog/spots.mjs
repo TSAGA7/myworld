@@ -18,8 +18,8 @@ const fold = (s) =>
     .normalize('NFKD')
     .replace(/[̀-ͯ]/g, '')
     .toLowerCase()
-    .replace(/['’`]s\b/g, 's')
-    .replace(/['’`]/g, '')
+    .replace(/['’`ʻʼ]s\b/g, 's')
+    .replace(/['’`ʻʼ]/g, '')
     .replace(/[^a-z0-9а-яё]+/g, ' ')
     .trim()} `;
 
@@ -28,7 +28,7 @@ async function nominatim(q, cc) {
   const wait = 1100 - (Date.now() - lastNominatim);
   if (wait > 0) await sleep(wait);
   lastNominatim = Date.now();
-  const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=8&accept-language=en&countrycodes=${cc.toLowerCase()}&q=${encodeURIComponent(q)}`;
+  const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=8&namedetails=1&accept-language=en&countrycodes=${cc.toLowerCase()}&q=${encodeURIComponent(q)}`;
   return getJson(url);
 }
 
@@ -86,7 +86,8 @@ for (const g of seed.spots) {
       try {
         // Only geographic objects count (a beach, a point, a bay, a village) — never a café or a shop with the same name.
         const want = fold(q).trim();
-        const geo = (r) => GEO.has(r.category) && (r.category !== 'tourism' || r.type === 'attraction' || r.type === 'viewpoint') && fold(r.name ?? r.display_name.split(',')[0]).includes(want);
+        const names = (r) => [r.name, r.display_name.split(',')[0], ...Object.values(r.namedetails ?? {})].filter(Boolean).map(fold);
+        const geo = (r) => GEO.has(r.category) && (r.category !== 'tourism' || r.type === 'attraction' || r.type === 'viewpoint') && names(r).some((n) => n.includes(want));
         const near = (r) => !anchor || inBox(anchor.box, +r.lat, +r.lon);
         let res = (await nominatim(s.area ? q : `${q}, ${g.near}`, g.c)).filter(geo);
         if (!res.length) res = (await nominatim(q, g.c)).filter(geo);
