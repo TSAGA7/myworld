@@ -245,6 +245,10 @@ describe('translations', () => {
     // Translations of news that left the feed are dropped; unknown ids are rejected.
     expect(Object.keys(applyTranslations(t, [], [ru], new Date()).items)).toEqual([]);
     expect(() => applyTranslations(t, [{ id: 'x:1', title: 'Выдумка', text: '' }], [en], new Date())).toThrow();
+    // Skipped news stay hidden and are not offered again.
+    const skipped = applyTranslations(null, [{ id: 'euronews:1', skip: true }], [en, ru], new Date());
+    expect(localize([en, ru], skipped).map((n) => n.id)).toEqual(['atorus:2']);
+    expect(pendingTranslations([en, ru], skipped)).toEqual([]);
   });
 });
 

@@ -4,7 +4,10 @@ import type { Edition, FeedSource, InterestingFile, NewsItem, StoryItem, Transla
 
 /* ===================== Перевод зарубежных новостей */
 
-export const TranslationDraftSchema = z.array(z.object({ id: z.string(), title: z.string().min(3).max(200), text: z.string().max(500) })).max(80);
+/** A translation, or `skip` for news not worth showing (ads, US credit cards, listicles) — they stay hidden and are not offered again. */
+export const TranslationDraftSchema = z
+  .array(z.union([z.object({ id: z.string(), title: z.string().min(3).max(200), text: z.string().max(500) }), z.object({ id: z.string(), skip: z.literal(true) })]))
+  .max(80);
 export type TranslationDraft = z.infer<typeof TranslationDraftSchema>;
 
 /** Foreign news still without Russian text, newest first. */
@@ -17,7 +20,7 @@ export function applyTranslations(file: TranslationsFile | null, draft: Translat
   for (const d of draft) if (!ids.has(d.id)) throw new Error(`Новости ${d.id} нет в news.json`);
   const items: TranslationsFile['items'] = {};
   for (const [id, v] of Object.entries(file?.items ?? {})) if (ids.has(id)) items[id] = v;
-  for (const d of draft) items[d.id] = { title: d.title.trim(), text: d.text.trim() };
+  for (const d of draft) items[d.id] = 'skip' in d ? { title: '', text: '' } : { title: d.title.trim(), text: d.text.trim() };
   return { updatedAt: now.toISOString(), items };
 }
 
@@ -28,7 +31,7 @@ export function localize(news: readonly NewsItem[], t: TranslationsFile | null):
     if (n.lang !== 'en') out.push(n);
     else {
       const tr = t?.items[n.id];
-      if (tr) out.push({ ...n, title: tr.title, text: tr.text, tags: tagsOf(`${tr.title}\n${tr.text}`) });
+      if (tr?.title) out.push({ ...n, title: tr.title, text: tr.text, tags: tagsOf(`${tr.title}\n${tr.text}`) });
     }
   }
   return out;

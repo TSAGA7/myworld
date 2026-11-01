@@ -26,7 +26,6 @@ export const SOURCE_LIST = {
     СМИ: [
       { name: 'Авиаторщина', url: 'https://t.me/aviatorshina' },
       { name: 'Simple Flying', url: 'https://simpleflying.com/feed/', lang: 'en' },
-      { name: 'One Mile at a Time', url: 'https://onemileatatime.com/feed/', lang: 'en' },
     ],
     'Тревел-каналы': [
       { name: 'Frequent Flyers', url: 'https://t.me/frequentflyers' },
@@ -53,7 +52,7 @@ export const SOURCE_LIST = {
       { name: 'Улетет', url: 'https://t.me/uletet_1' },
     ],
     // Не добавлены: Travel News (@travelnews24) — пересказывает чужие новости (те же, что у АТОР);
-    // Самокатус, Aviasales, Travelhacks — агрегаторы.
+    // Самокатус, Aviasales, Travelhacks — агрегаторы. One Mile at a Time — в основном американские кредитки и мили.
     // Отели, курорты, туристические офисы стран. Проверены и не подошли (нет постов с 2020–2025 или канал не официальный):
     // Роза Хутор, Красная Поляна, Шерегеш, Cosmos, Azimut, Мостуризм, RUSSPASS, Go Türkiye, Visit Dubai.
     Отели: [],
