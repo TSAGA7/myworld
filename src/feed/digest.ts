@@ -20,7 +20,8 @@ export function buildDigest(draft: Draft, news: readonly NewsItem[], sources: re
   const entry = (e: Draft['main'][number]): DigestEntry => {
     const links: DigestEntry['links'] = [];
     for (const id of e.newsIds) {
-      const n = byId.get(id);
+      // A story merged into an earlier retelling after the draft was written is found through its link.
+      const n = byId.get(id) ?? news.find((x) => x.also.some((a) => `${a.sourceId}:${a.url}` === id || a.url.endsWith(`/${id.split(':')[0]}/${id.split(':')[1]}`)));
       if (!n) throw new Error(`Новости ${id} нет в news.json`);
       for (const l of [{ sourceId: n.sourceId, url: n.url }, ...n.also]) {
         if (!links.some((x) => x.url === l.url)) links.push({ name: sourceName(l.sourceId), url: l.url });

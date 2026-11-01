@@ -164,6 +164,9 @@ describe('digest', () => {
       { name: 'Самокатус', url: 'https://t.me/samokatus/9' },
     ]);
     expect(d.sourcesCount).toBe(3);
+    // The Самокатус post was merged into the АТОР item: its id still resolves.
+    const viaTwin = buildDigest({ ...draft, main: [{ ...draft.main[0]!, newsIds: ['samokatus:9'] }] }, news, sources, '2026-10-31', new Date());
+    expect(viaTwin.main[0]?.links[0]?.url).toBe('https://t.me/atorus/1');
     expect(() => buildDigest({ ...draft, other: [{ title: 'Выдумка', text: 'Новость, которой нет.', newsIds: ['x:1'] }] }, news, sources, '2026-10-31', new Date())).toThrow();
   });
 
