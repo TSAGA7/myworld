@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFeedFile } from '../../feed/client';
 import { localize } from '../../feed/editorial';
 import { ago, filterNews, type NewsFilter } from '../../feed/format';
@@ -9,6 +9,8 @@ import { Loading, PostImage, StatusLine, useNow } from './common';
 
 /* ===================== Новости */
 
+const PAGE = 25;
+
 export function NewsView() {
   const state = useFeedFile('news');
   const now = useNow();
@@ -17,7 +19,19 @@ export function NewsView() {
   const translations = useFeedFile('translations');
   const items = useMemo(() => localize(state.data?.items ?? [], translations.data), [state.data, translations.data]);
   const sources = useMemo(() => new Map((state.data?.sources ?? []).map((s) => [s.id, s])), [state.data]);
-  const shown = useMemo(() => filterNews(items, filter).slice(0, 150), [items, filter]);
+  const filtered = useMemo(() => filterNews(items, filter), [items, filter]);
+  // A page of news at a time: hundreds of cards with photos at once is what made iPhones reload the page.
+  const [limit, setLimit] = useState(PAGE);
+  useEffect(() => setLimit(PAGE), [filter]);
+  const shown = filtered.slice(0, limit);
+  const more = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = more.current;
+    if (!el || limit >= filtered.length) return;
+    const io = new IntersectionObserver((e) => e.some((x) => x.isIntersecting) && setLimit((l) => l + PAGE), { rootMargin: '600px 0px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [limit, filtered.length]);
   const counts = useMemo(() => Object.fromEntries(TAGS.map((t) => [t, items.filter((i) => i.tags.includes(t)).length])), [items]);
 
   if (!items.length) {
@@ -54,6 +68,7 @@ export function NewsView() {
           <NewsCard key={n.id} item={n} source={sources.get(n.sourceId)} sources={sources} now={now} open={open === n.id} onToggle={() => setOpen(open === n.id ? null : n.id)} />
         ))}
       </div>
+      {limit < filtered.length && <div ref={more} className="feed-more" aria-hidden="true"><span className="spinner sm" /></div>}
     </>
   );
 }

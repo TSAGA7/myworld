@@ -631,3 +631,9 @@
 .story-card p { margin: 0; font-size: 15.5px; line-height: 1.45; }
 .story-card .flag { display: inline-block; vertical-align: -3px; margin-right: 6px; }
 .stories-date + .story-item { padding-top: 0; border-top: 0; }
+
+/* Feed performance on iPhone: no backdrop blur on long lists (each blurred card is an extra GPU buffer),
+   off-screen cards are not laid out or painted at all. */
+.feed-page .card, .feed-page .glass-btn { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--glass-solid); }
+.news-card, .deal-card, .story-card, .story-item, .digest-item { content-visibility: auto; contain-intrinsic-size: auto 260px; }
+.feed-more { display: grid; place-items: center; padding: 18px 0; }
