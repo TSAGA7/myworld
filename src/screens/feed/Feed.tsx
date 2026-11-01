@@ -9,9 +9,9 @@ import { Empty, Flag, Segmented, Sheet, Topo } from '../../ui/kit';
 
 type Sub = 'digest' | 'news' | 'deals';
 const SUBS: ReadonlyArray<{ value: Sub; label: string }> = [
+  { value: 'deals', label: 'Билеты' },
   { value: 'digest', label: 'Дайджест' },
   { value: 'news', label: 'Новости' },
-  { value: 'deals', label: 'Билеты' },
 ];
 
 /** Hook for a live clock that refreshes "N мин назад" labels. */
@@ -25,7 +25,7 @@ function useNow(): Date {
 }
 
 export function Feed({ route }: { route: string[] }) {
-  const sub: Sub = route[1] === 'news' || route[1] === 'deals' ? route[1] : 'digest';
+  const sub: Sub = route[1] === 'news' || route[1] === 'digest' ? route[1] : 'deals';
   return (
     <div className="screen feed-screen">
       <Topo />

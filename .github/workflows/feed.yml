@@ -6,6 +6,11 @@ on:
   schedule:
     - cron: '7 * * * *'
   workflow_dispatch:
+    inputs:
+      probe:
+        description: 'Проверить источники (через пробел) без публикации'
+        required: false
+        default: ''
 permissions:
   contents: write
 concurrency:
@@ -37,13 +42,17 @@ jobs:
         run: node --experimental-strip-types scripts/feed/collect.ts
         env:
           FEED_DIR: ${{ github.workspace }}/feed-data/feed
+          PROBE: ${{ inputs.probe }}
+          DRY: ${{ inputs.probe != '' && '1' || '' }}
       - name: Цены
+        if: ${{ !inputs.probe }}
         run: node --experimental-strip-types scripts/feed/prices.ts
         env:
           FEED_DIR: ${{ github.workspace }}/feed-data/feed
           TRAVELPAYOUTS_TOKEN: ${{ secrets.TRAVELPAYOUTS_TOKEN }}
           TRAVELPAYOUTS_MARKER: ${{ secrets.TRAVELPAYOUTS_MARKER }}
       - name: Публикация
+        if: ${{ !inputs.probe }}
         working-directory: feed-data
         run: |
           git config user.name Claude

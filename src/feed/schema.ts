@@ -27,6 +27,9 @@ export const SourceSchema = z.object({
   /** Result of the last collection run: false = the source did not answer or could not be parsed. */
   ok: z.boolean(),
   error: z.string().optional(),
+  /** Авиа / Ж/Д / Остальное and the kind of source (Авиакомпании, СМИ…), from src/feed/sources.ts. */
+  section: z.string().optional(),
+  group: z.string().optional(),
 });
 export type FeedSource = z.infer<typeof SourceSchema>;
 

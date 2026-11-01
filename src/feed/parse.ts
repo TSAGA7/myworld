@@ -6,6 +6,8 @@ export interface RawPost {
   url: string;
   at: string;
   text: string;
+  /** RSS rubrics (<category>), for sources filtered by topic. */
+  categories?: string[];
 }
 
 /**
@@ -51,7 +53,8 @@ export function parseFeed(xml: string): { title: string | null; posts: RawPost[]
     const body = htmlToText(htmlToText(tag(b, 'description') ?? tag(b, 'summary') ?? tag(b, 'content') ?? tag(b, 'yandex:full-text') ?? ''));
     const url = decodeEntities(link).trim();
     if (!url.startsWith('http') || !date || Number.isNaN(Date.parse(date)) || !title) continue;
-    posts.push({ id: url, url, at: new Date(date).toISOString(), text: body && !body.startsWith(title) ? `${title}\n${body}` : body || title });
+    const categories = [...b.matchAll(/<category[^>]*>([\s\S]*?)<\/category>/gi)].map((m) => htmlToText((m[1] as string).replace(/^<!\[CDATA\[|\]\]>$/g, '')));
+    posts.push({ id: url, url, at: new Date(date).toISOString(), text: body && !body.startsWith(title) ? `${title}\n${body}` : body || title, categories });
   }
   return { title: feedTitle ? htmlToText(feedTitle) : null, posts };
 }

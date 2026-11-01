@@ -213,3 +213,16 @@ describe('format', () => {
     expect(dealsFrom([d('a', 'MOW', 40), d('b', 'LED', 70), d('c', 'MOW', 60)], 'MOW').map((x: { id: string }) => x.id)).toEqual(['c', 'a']);
   });
 });
+
+import { SOURCES } from './sources';
+
+describe('sources', () => {
+  it('flattens the list with unique ids, sections and no aggregators', () => {
+    const ids = SOURCES.map((s) => s.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids).not.toContain('samokatus');
+    expect(SOURCES.find((s) => s.id === 'pobedaairlines')).toMatchObject({ kind: 'telegram', ref: 'PobedaAirlines', section: 'Авиа', group: 'Авиакомпании' });
+    expect(SOURCES.find((s) => s.id === 'tass')).toMatchObject({ kind: 'rss', section: 'Остальное', group: 'СМИ', only: ['Туризм и отдых'] });
+    expect(SOURCES.find((s) => s.id === 'tourdom')?.kind).toBe('rss');
+  });
+});
