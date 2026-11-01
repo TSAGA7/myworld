@@ -229,3 +229,38 @@ describe('sources', () => {
     expect(SOURCES.find((s) => s.id === 'tourdom')?.kind).toBe('rss');
   });
 });
+
+import { addEdition, applyTranslations, buildEdition, editionSlot, localize, pendingTranslations, StoryDraftSchema, storyCandidates } from './editorial';
+
+describe('translations', () => {
+  const en = { ...item('euronews', '1', '2026-11-01T08:00:00Z', 'Paris metro strike closes 40 stations'), lang: 'en' as const };
+  const ru = item('atorus', '2', '2026-11-01T07:00:00Z', 'Черногория ввела визы для россиян');
+  it('hides foreign news until translated, then shows Russian text with topics', () => {
+    expect(localize([en, ru], null).map((n) => n.id)).toEqual(['atorus:2']);
+    expect(pendingTranslations([en, ru], null).map((n) => n.id)).toEqual(['euronews:1']);
+    const t = applyTranslations(null, [{ id: 'euronews:1', title: 'В Париже из-за забастовки закроют 40 станций метро', text: 'Перебои продлятся два дня.' }], [en, ru], new Date('2026-11-01T09:00:00Z'));
+    const out = localize([en, ru], t);
+    expect(out[0]).toMatchObject({ title: 'В Париже из-за забастовки закроют 40 станций метро', lang: 'en' });
+    expect(pendingTranslations([en, ru], t)).toEqual([]);
+    // Translations of news that left the feed are dropped; unknown ids are rejected.
+    expect(Object.keys(applyTranslations(t, [], [ru], new Date()).items)).toEqual([]);
+    expect(() => applyTranslations(t, [{ id: 'x:1', title: 'Выдумка', text: '' }], [en], new Date())).toThrow();
+  });
+});
+
+describe('Интересное', () => {
+  const stories = [item('wrenjapan', '7', '2026-11-01T05:00:00Z', 'Музей Нихон Минка-эн в пригороде Токио'), item('grushiny', '3', '2026-10-28T05:00:00Z', 'Старый пост про Фукуок')];
+  const sources = [{ id: 'wrenjapan', name: 'Врен о Японии', kind: 'telegram' as const, url: 'https://t.me/wrenjapan', ok: true }];
+  it('slots, candidates and author links', () => {
+    expect(editionSlot(new Date('2026-11-01T05:47:00Z'))).toEqual({ date: '2026-11-01', part: 'morning' });
+    expect(editionSlot(new Date('2026-11-01T16:47:00Z'))).toEqual({ date: '2026-11-01', part: 'evening' });
+    const now = new Date('2026-11-01T05:47:00Z');
+    expect(storyCandidates(stories, null, now).map((s) => s.id)).toEqual(['wrenjapan:7']);
+    const draft = StoryDraftSchema.parse({ items: [{ country: 'JP', place: 'Япония', text: 'в пригороде Токио советуют музей под открытым небом', storyIds: ['wrenjapan:7'] }] });
+    const ed = buildEdition(draft, stories, sources, now);
+    expect(ed).toMatchObject({ id: '2026-11-01-morning', items: [{ links: [{ name: 'Врен о Японии', url: 'https://t.me/wrenjapan/7' }] }] });
+    const file = addEdition(null, ed);
+    expect(storyCandidates(stories, file, now)).toEqual([]);
+    expect(() => buildEdition({ items: [{ ...draft.items[0]!, storyIds: ['wrenjapan:999'] }] }, stories, sources, now)).toThrow();
+  });
+});

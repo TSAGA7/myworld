@@ -6,6 +6,8 @@ import { z } from 'zod';
  *   feed/news.json    — travel news from Telegram channels and sites, refreshed hourly
  *   feed/digest.json  — AI digest of the day (last 7 days kept)
  *   feed/deals.json   — tickets far below their usual price (Travelpayouts / Aviasales data), hourly
+ *   feed/translations.json — Russian text of foreign news (Claude, morning and evening)
+ *   feed/stories.json — fresh posts of author channels, hourly; feed/interesting.json — «Интересное», morning and evening
  */
 
 export const TAGS = ['deal', 'visa', 'air', 'rail', 'hotel', 'rules'] as const;
@@ -46,6 +48,8 @@ export const NewsItemSchema = z.object({
   tags: z.array(z.enum(TAGS)),
   /** The same story found in other sources. */
   also: z.array(z.object({ sourceId: z.string(), url: z.string() })),
+  /** 'en' — a foreign source: shown once translations.json has its Russian text. */
+  lang: z.literal('en').optional(),
 });
 export type NewsItem = z.infer<typeof NewsItemSchema>;
 
@@ -110,3 +114,34 @@ export const DealsFileSchema = z.object({
   deals: z.array(DealSchema),
 });
 export type DealsFile = z.infer<typeof DealsFileSchema>;
+
+export const TranslationsFileSchema = z.object({
+  updatedAt: z.string(),
+  items: z.record(z.object({ title: z.string(), text: z.string() })),
+});
+export type TranslationsFile = z.infer<typeof TranslationsFileSchema>;
+
+export const StoryItemSchema = z.object({
+  /** ISO 3166 alpha-2 of the place, '' when it is not one country. */
+  country: z.string(),
+  /** "Япония", "Бали", "Урал" — shown in bold before the text. */
+  place: z.string(),
+  text: z.string(),
+  storyIds: z.array(z.string()).min(1),
+  /** Author channel(s) and the posts, from stories.json. */
+  links: z.array(z.object({ name: z.string(), url: z.string() })).min(1),
+});
+export type StoryItem = z.infer<typeof StoryItemSchema>;
+
+export const EditionSchema = z.object({
+  /** "2026-11-01-morning" */
+  id: z.string(),
+  date: z.string(),
+  part: z.enum(['morning', 'evening']),
+  createdAt: z.string(),
+  items: z.array(StoryItemSchema),
+});
+export type Edition = z.infer<typeof EditionSchema>;
+
+export const InterestingFileSchema = z.object({ updatedAt: z.string(), editions: z.array(EditionSchema) });
+export type InterestingFile = z.infer<typeof InterestingFileSchema>;

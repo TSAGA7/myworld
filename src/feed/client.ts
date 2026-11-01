@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { ZodType } from 'zod';
-import { DealsFileSchema, DigestFileSchema, NewsFileSchema, type DealsFile, type DigestFile, type NewsFile } from './schema';
+import { DealsFileSchema, DigestFileSchema, InterestingFileSchema, NewsFileSchema, TranslationsFileSchema, type DealsFile, type DigestFile, type InterestingFile, type NewsFile, type TranslationsFile } from './schema';
 
 /** Published by .github/workflows/feed.yml and the daily digest task (branch `data`). */
 export const FEED_BASE = 'https://raw.githubusercontent.com/TSAGA7/myworld/data/feed/';
@@ -8,9 +8,15 @@ export const FEED_BASE = 'https://raw.githubusercontent.com/TSAGA7/myworld/data/
 export const PRICE_CHECK_URL: string = import.meta.env.VITE_PRICE_CHECK_URL ?? '';
 export const PRICE_CHECK_KEY: string = import.meta.env.VITE_PRICE_CHECK_KEY ?? '';
 
-export type FeedName = 'news' | 'digest' | 'deals';
-type FileOf = { news: NewsFile; digest: DigestFile; deals: DealsFile };
-const SCHEMA: { [K in FeedName]: ZodType<FileOf[K]> } = { news: NewsFileSchema, digest: DigestFileSchema, deals: DealsFileSchema };
+export type FeedName = 'news' | 'digest' | 'deals' | 'translations' | 'interesting';
+type FileOf = { news: NewsFile; digest: DigestFile; deals: DealsFile; translations: TranslationsFile; interesting: InterestingFile };
+const SCHEMA: { [K in FeedName]: ZodType<FileOf[K]> } = {
+  news: NewsFileSchema,
+  digest: DigestFileSchema,
+  deals: DealsFileSchema,
+  translations: TranslationsFileSchema,
+  interesting: InterestingFileSchema,
+};
 
 const storeKey = (n: FeedName) => `mw-feed-${n}`;
 function readSaved<K extends FeedName>(name: K): FileOf[K] | null {

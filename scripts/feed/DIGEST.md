@@ -11,6 +11,11 @@ git clone --depth 1 https://github.com/TSAGA7/myworld myworld
 git clone --depth 1 --branch data https://github.com/TSAGA7/myworld feed-data
 cd myworld && npm ci --omit=dev --ignore-scripts
 export FEED_DIR=~/feed-data/feed
+```
+
+Сначала переведи свежие зарубежные новости — шаг 1 из `scripts/feed/EDITORIAL.md` (translate.ts input → publish), потом:
+
+```bash
 node --experimental-strip-types scripts/feed/digest.ts input > ~/news.txt
 ```
 
@@ -29,7 +34,7 @@ node --experimental-strip-types scripts/feed/digest.ts input > ~/news.txt
 
 ```bash
 node --experimental-strip-types scripts/feed/digest.ts publish ~/draft.json
-cd ~/feed-data && git add feed/digest.json
+cd ~/feed-data && git add feed
 git -c user.name=Claude -c user.email=noreply@anthropic.com commit -m "Дайджест $(date +%F)"
 git push origin HEAD:data || (git pull --rebase origin data && git push origin HEAD:data)
 ```

@@ -5,15 +5,15 @@ import { dedupe, splitPost, tagsOf } from './text.ts';
 export const KEEP_HOURS = 72;
 export const MAX_ITEMS = 400;
 
-export function toItem(sourceId: string, p: RawPost): NewsItem | null {
-  const { title, text } = splitPost(p.text);
+export function toItem(sourceId: string, p: RawPost, lang?: 'en', maxText = 320): NewsItem | null {
+  const { title, text } = splitPost(p.text, 140, maxText);
   if (title.length < 12) return null;
-  return { id: `${sourceId}:${p.id}`, sourceId, url: p.url, at: p.at, title, text, tags: tagsOf(p.text), also: [] };
+  return { id: `${sourceId}:${p.id}`, sourceId, url: p.url, at: p.at, title, text, tags: tagsOf(p.text), also: [], ...(lang ? { lang } : {}) };
 }
 
 /** Previous file + fresh posts → last 72 hours, retellings merged, newest first. */
-export function mergeNews(prev: readonly NewsItem[], fresh: readonly NewsItem[], now: Date): NewsItem[] {
-  const since = now.getTime() - KEEP_HOURS * 3600e3;
+export function mergeNews(prev: readonly NewsItem[], fresh: readonly NewsItem[], now: Date, keepHours = KEEP_HOURS): NewsItem[] {
+  const since = now.getTime() - keepHours * 3600e3;
   const future = now.getTime() + 3600e3;
   const known = new Set<string>();
   for (const it of prev) {

@@ -1,0 +1,115 @@
+import { useMemo, useState } from 'react';
+import { useFeedFile } from '../../feed/client';
+import { localize } from '../../feed/editorial';
+import { ago, filterNews, type NewsFilter } from '../../feed/format';
+import { TAG_LABEL, TAGS, type FeedSource, type NewsItem } from '../../feed/schema';
+import { Icon } from '../../ui/Icon';
+import { Empty } from '../../ui/kit';
+import { Loading, StatusLine, useNow } from './common';
+
+/* ===================== Новости */
+
+export function NewsView() {
+  const state = useFeedFile('news');
+  const now = useNow();
+  const [filter, setFilter] = useState<NewsFilter>('all');
+  const [open, setOpen] = useState<string | null>(null);
+  const translations = useFeedFile('translations');
+  const items = useMemo(() => localize(state.data?.items ?? [], translations.data), [state.data, translations.data]);
+  const sources = useMemo(() => new Map((state.data?.sources ?? []).map((s) => [s.id, s])), [state.data]);
+  const shown = useMemo(() => filterNews(items, filter).slice(0, 150), [items, filter]);
+  const counts = useMemo(() => Object.fromEntries(TAGS.map((t) => [t, items.filter((i) => i.tags.includes(t)).length])), [items]);
+
+  if (!items.length) {
+    if (state.status === 'loading') return <Loading />;
+    return (
+      <Empty
+        icon="cloud"
+        title={state.status === 'offline' ? 'Нет связи' : 'Новостей пока нет'}
+        text={state.status === 'offline' ? 'Лента загрузится, когда появится интернет.' : 'Лента собирается каждый час из тревел-каналов и сайтов.'}
+        action={
+          <button type="button" className="btn dark" onClick={state.reload}>
+            Обновить
+          </button>
+        }
+      />
+    );
+  }
+
+  return (
+    <>
+      <StatusLine state={state} updatedAt={state.data?.updatedAt} every="каждый час" />
+      <div className="chips" role="group" aria-label="Тема">
+        <button type="button" className="chip" aria-pressed={filter === 'all'} onClick={() => setFilter('all')}>
+          Все <span className="count">{items.length}</span>
+        </button>
+        {TAGS.filter((t) => (counts[t] ?? 0) > 0).map((t) => (
+          <button key={t} type="button" className="chip" aria-pressed={filter === t} onClick={() => setFilter(t)}>
+            {TAG_LABEL[t]} <span className="count">{counts[t]}</span>
+          </button>
+        ))}
+      </div>
+      <div className="news-list">
+        {shown.map((n) => (
+          <NewsCard key={n.id} item={n} source={sources.get(n.sourceId)} sources={sources} now={now} open={open === n.id} onToggle={() => setOpen(open === n.id ? null : n.id)} />
+        ))}
+      </div>
+      <SourcesNote sources={state.data?.sources ?? []} />
+    </>
+  );
+}
+
+function NewsCard({ item, source, sources, now, open, onToggle }: { item: NewsItem; source: FeedSource | undefined; sources: Map<string, FeedSource>; now: Date; open: boolean; onToggle: () => void }) {
+  const isTg = item.url.startsWith('https://t.me/');
+  return (
+    <article className={`card tight news-card ${open ? 'open' : ''}`}>
+      <button type="button" className="news-main" onClick={onToggle} aria-expanded={open}>
+        <span className="news-meta faint small">
+          <b className="news-src">{source?.name ?? item.sourceId}</b> · {ago(item.at, now)}
+          {item.tags.includes('deal') && <span className="pill lime news-pill">Акция</span>}
+          {item.lang === 'en' && <span className="pill news-pill">перевод</span>}
+        </span>
+        <b className="news-title">{item.title}</b>
+        {item.text && <span className="news-text">{item.text}</span>}
+      </button>
+      <div className="news-foot">
+        <a href={item.url} target="_blank" rel="noopener noreferrer" className="src-link">
+          {isTg ? 'Открыть в Telegram' : item.lang === 'en' ? 'Оригинал (англ.)' : 'Читать на сайте'}
+          <Icon name="external" size={12} />
+        </a>
+        {item.also.length > 0 &&
+          (open ? (
+            item.also.map((a) => (
+              <a key={a.url} href={a.url} target="_blank" rel="noopener noreferrer" className="src-link ghost">
+                {sources.get(a.sourceId)?.name ?? a.sourceId}
+                <Icon name="external" size={12} />
+              </a>
+            ))
+          ) : (
+            <button type="button" className="src-link ghost" onClick={onToggle}>
+              ещё в {item.also.length} {item.also.length === 1 ? 'источнике' : 'источниках'}
+            </button>
+          ))}
+      </div>
+    </article>
+  );
+}
+
+function SourcesNote({ sources }: { sources: FeedSource[] }) {
+  const ok = sources.filter((s) => s.ok);
+  if (!ok.length) return null;
+  return (
+    <p className="faint tiny feed-sources">
+      Источники: {ok.map((s, i) => (
+        <span key={s.id}>
+          {i > 0 && ', '}
+          <a href={s.url} target="_blank" rel="noopener noreferrer">
+            {s.name}
+          </a>
+        </span>
+      ))}
+      . Показываем начало поста — полный текст у автора.
+    </p>
+  );
+}
+

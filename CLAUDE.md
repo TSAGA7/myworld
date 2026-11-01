@@ -28,7 +28,7 @@ node scripts/build_world.mjs <папка-с-исходниками>   # пере
 src/domain    чистая логика: модель (Zod), статистика, поиск, даты, деньги, билеты (ticket.ts), колесо (wheel.ts), статусы
 src/data      Dexie (db.ts, миграции), store.ts — все записи, backup, shareTrip
 src/geo       справочники: страны (в бандле), каталог городов, аэропорты, регионы, OCR, штрихкоды, геокодинг
-src/screens   planet (MapLibre), countries (+ HomeCountry «Моя страна»), trips (поездки, билеты, TicketView), profile, Settings
+src/screens   planet (MapLibre), countries (+ HomeCountry «Моя страна»), trips (поездки; разделы поездки — trips/sections/*), feed (лента), profile, Settings
 src/ui        kit, иконки, Splash (заставка), Qr, SoftBar
 public/data   cities.tsv (~194 тыс. городов GeoNames), regions/<страна>.json, airports.json, labels.json, countries.geojson
 ```
@@ -48,6 +48,8 @@ public/data   cities.tsv (~194 тыс. городов GeoNames), regions/<стр
 - Данные не в сборке, а в ветке `data` (`feed/news.json`, `digest.json`, `deals.json`), приложение читает их с raw.githubusercontent.com (`src/feed/client.ts`), копия — в localStorage.
 - `.github/workflows/feed.yml` каждый час: `scripts/feed/collect.ts` (Telegram t.me/s + RSS, источники — `src/feed/sources.ts`) и `scripts/feed/prices.ts` (Travelpayouts, секреты `TRAVELPAYOUTS_TOKEN`, `TRAVELPAYOUTS_MARKER`). Ветка `data` — один коммит, перезаписывается.
 - Дайджест пишет запланированная задача Claude по `scripts/feed/DIGEST.md` (на подписке, без API-ключа); ссылки подставляет `src/feed/digest.ts` из news.json — выдумать нельзя.
+- Утром и вечером вторая задача по `scripts/feed/EDITORIAL.md`: переводит зарубежные новости (`lang: 'en'` в sources.ts → `translations.json`, без перевода новость скрыта) и собирает «Интересное» из авторских каналов (`STORY_LIST` → `stories.json` → `interesting.json`). Логика — `src/feed/editorial.ts`.
+- Вкладки ленты (Дайджест · Новости · Билеты · Интересное) — `src/screens/feed/*`, по файлу на раздел, свайп — в `Feed.tsx`.
 - «Проверить цену»: `supabase/functions/price-check` + переменные репозитория `PRICE_CHECK_URL`, `PRICE_CHECK_KEY` (пусто → показывается время последнего часового скана).
 - Логика — `src/feed/*.ts` (импорты с `.ts`, скрипты запускаются `node --experimental-strip-types`), тесты — `src/feed/feed.test.ts`.
 

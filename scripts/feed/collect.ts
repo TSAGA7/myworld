@@ -1,13 +1,15 @@
 /**
- * Collects travel news into feed/news.json (run hourly by .github/workflows/feed.yml).
+ * Collects travel news into feed/news.json and author posts for «Интересное» into feed/stories.json
+ * (run hourly by .github/workflows/feed.yml).
  *   node --experimental-strip-types scripts/feed/collect.ts
  * No keys needed: Telegram channels are read through the public t.me/s preview, sites through RSS.
  * Check new sources without publishing: PROBE="t.me/name https://site/rss" DRY=1 … collect.ts
  */
+import { STORY_KEEP_HOURS } from '../../src/feed/editorial.ts';
 import { mergeNews, toItem } from '../../src/feed/news.ts';
 import { parseFeed, parseTelegram, type RawPost } from '../../src/feed/parse.ts';
 import type { FeedSource, NewsFile, NewsItem } from '../../src/feed/schema.ts';
-import { SOURCES, sourceUrl, type SourceDef } from '../../src/feed/sources.ts';
+import { SOURCES, STORY_SOURCES, sourceUrl, type SourceDef } from '../../src/feed/sources.ts';
 import { fetchText, readJson, writeJson } from './io.ts';
 
 const now = new Date();
@@ -16,7 +18,8 @@ const probe: SourceDef[] = (process.env.PROBE ?? '').split(/\s+/).filter(Boolean
   const tg = ref.match(/t\.me\/(?:s\/)?([A-Za-z0-9_]+)/);
   return tg ? { id: (tg[1] as string).toLowerCase(), name: `? ${tg[1]}`, kind: 'telegram', ref: tg[1] as string, section: 'Остальное', group: 'Проба' } : { id: ref, name: `? ${ref}`, kind: 'rss', ref, section: 'Остальное', group: 'Проба' };
 });
-const all = [...SOURCES, ...probe];
+const all = [...SOURCES, ...STORY_SOURCES, ...probe];
+const isStory = new Set(STORY_SOURCES.map((s) => s.id));
 
 /** For sources with `only`: keep posts whose rubric, link or text mentions one of the words. */
 const wanted = (s: SourceDef, p: RawPost): boolean => {
@@ -26,6 +29,7 @@ const wanted = (s: SourceDef, p: RawPost): boolean => {
 };
 
 const fresh: NewsItem[] = [];
+const freshStories: NewsItem[] = [];
 const sources: FeedSource[] = await Promise.all(
   all.map(async (s): Promise<FeedSource> => {
     const url = sourceUrl(s);
@@ -36,8 +40,8 @@ const sources: FeedSource[] = await Promise.all(
       if (!posts.length) throw new Error(`нет постов${title ? ` («${title}»)` : ''}`);
       const kept = posts.filter((p) => wanted(s, p));
       for (const p of kept) {
-        const it = toItem(s.id, p);
-        if (it) fresh.push(it);
+        const it = isStory.has(s.id) ? toItem(s.id, p, undefined, 900) : toItem(s.id, p, s.lang);
+        if (it) (isStory.has(s.id) ? freshStories : fresh).push(it);
       }
       const last = posts.map((p) => p.at).sort().at(-1)?.slice(0, 10);
       console.log(`✓ ${s.name}${title ? ` «${title}»` : ''}: ${kept.length}/${posts.length}, последний ${last}`);
@@ -55,8 +59,14 @@ if (dry) {
   console.log('DRY=1 — ничего не записано');
   process.exit(0);
 }
-const live = new Set(SOURCES.map((s) => s.id));
-const prev = (readJson<NewsFile>('news.json')?.items ?? []).filter((it) => live.has(it.sourceId)).map((it) => ({ ...it, also: it.also.filter((a) => live.has(a.sourceId)) }));
-const items = mergeNews(prev, fresh, now);
-writeJson('news.json', { updatedAt: now.toISOString(), sources: sources.filter((s) => live.has(s.id)), items } satisfies NewsFile);
-console.log(`news.json: ${items.length} новостей из ${sources.filter((s) => s.ok).length}/${sources.length} источников`);
+/** Merges a fresh run into the previous file; items of removed sources disappear. */
+function publish(name: string, defs: readonly SourceDef[], freshItems: NewsItem[], keepHours: number): void {
+  const live = new Set(defs.map((s) => s.id));
+  const prev = (readJson<NewsFile>(name)?.items ?? []).filter((it) => live.has(it.sourceId)).map((it) => ({ ...it, also: it.also.filter((a) => live.has(a.sourceId)) }));
+  const items = mergeNews(prev, freshItems, now, keepHours);
+  const own = sources.filter((s) => live.has(s.id));
+  writeJson(name, { updatedAt: now.toISOString(), sources: own, items } satisfies NewsFile);
+  console.log(`${name}: ${items.length} записей из ${own.filter((s) => s.ok).length}/${own.length} источников`);
+}
+publish('news.json', SOURCES, fresh, 72);
+publish('stories.json', STORY_SOURCES, freshStories, STORY_KEEP_HOURS);
