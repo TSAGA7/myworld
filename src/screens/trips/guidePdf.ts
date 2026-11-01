@@ -264,9 +264,18 @@ export async function renderGuidePdf(input: GuidePdfInput, onPage?: (n: number) 
           // Place card: white card with a lime number, the name, address line and the description.
           ctx.font = font(400, 28);
           const body = b.text ? wrap(ctx, b.text, W - PAD * 2 - 140) : [];
-          const h = 74 + (b.info ? 42 : 0) + body.length * 41 + 26;
+          const imgs = (await Promise.all((b.photos ?? []).slice(0, 2).map(loadImage))).filter((x): x is HTMLImageElement => !!x);
+          const photoH = imgs.length === 1 ? 560 : imgs.length > 1 ? 420 : 0;
+          const innerW = W - PAD * 2 - 130;
+          ctx.font = font(720, 34);
+          const nameLines = wrap(ctx, b.name, innerW).length;
+          ctx.font = font(500, 26);
+          const infoLines = b.info ? wrap(ctx, b.info, innerW).length : 0;
+          // Exact height of what is drawn below: padding, name, info, text, photos, padding.
+          const h = 22 + nameLines * 46 + infoLines * 38 + body.length * 41 + (photoH ? 14 + photoH : 0) + 30;
           if (h < BOTTOM - TOP) await need(h);
           const top = y;
+          const pageAt = pages.length;
           const cardH = Math.min(h, BOTTOM - y);
           ctx.fillStyle = CARD;
           roundRect(ctx, PAD, top, W - PAD * 2, cardH, 28);
@@ -283,7 +292,29 @@ export async function renderGuidePdf(input: GuidePdfInput, onPage?: (n: number) 
           await text(b.name, { size: 34, weight: 720, color: INK, x: PAD + 104, width: W - PAD * 2 - 130, line: 46 });
           if (b.info) await text(b.info, { size: 26, weight: 500, color: INK2, x: PAD + 104, width: W - PAD * 2 - 130, line: 38 });
           if (b.text) await text(b.text, { size: 28, weight: 400, color: INK, x: PAD + 104, width: W - PAD * 2 - 140, line: 41 });
-          y += 40;
+          if (imgs.length) {
+            await need(photoH + 24);
+            y += 14;
+            const gap = 16;
+            const x0 = PAD + 104;
+            const full = W - PAD - 26 - x0;
+            const each = (full - gap * (imgs.length - 1)) / imgs.length;
+            imgs.forEach((img, k) => {
+              const x = x0 + k * (each + gap);
+              // Cover-crop into a rounded frame.
+              const scale = Math.max(each / img.width, photoH / img.height);
+              const sw = each / scale;
+              const sh = photoH / scale;
+              ctx.save();
+              roundRect(ctx, x, y, each, photoH, 22);
+              ctx.clip();
+              ctx.drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, x, y, each, photoH);
+              ctx.restore();
+            });
+            y += photoH;
+          }
+          // A very long card runs onto the next page: then just continue below its text.
+          y = pages.length === pageAt ? top + cardH + 18 : y + 30;
         }
       }
       y += 26;

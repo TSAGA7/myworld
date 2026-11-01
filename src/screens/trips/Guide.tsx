@@ -9,11 +9,15 @@ import { fetchWikivoyage } from '../../geo/online';
 import { COUNTRY_BY_ID } from '../../geo/reference';
 import { parseWikivoyage } from '../../geo/wikivoyage';
 import { Icon } from '../../ui/Icon';
-import { Empty, Flag } from '../../ui/kit';
+import { Empty, Flag, Segmented } from '../../ui/kit';
+import { isOwn, ownSections } from '../../domain/ownGuide';
+import { OwnGuide, SECTION_EMOJI } from './OwnGuide';
 import { MODE_LABEL, type RouteStop } from './common';
 
 /** Emoji of each guide section — the same in the app and in the PDF. */
-const SECTION_ICON: Record<string, string> = { intro: '✨', understand: '📖', see: '📍', do: '🎯', eat: '🍽️', drink: '🌙', getaround: '🚌', safe: '🛡️', connect: '📶' };
+const SECTION_ICON = SECTION_EMOJI;
+type Mode = 'auto' | 'own';
+const modeKey = (tripId: string) => `mw-guide-mode-${tripId}`;
 
 const addDays = (d: string, n: number) => {
   const [y, m, day] = d.split('-').map(Number);
@@ -26,7 +30,28 @@ const addDays = (d: string, n: number) => {
  */
 export function GuideSection({ trip, route }: { trip: Trip; route: RouteStop[] }) {
   const toast = useToast();
-  const guides = useLiveQuery(() => db.guides.where('tripId').equals(trip.id).toArray(), [trip.id], []);
+  const allGuides = useLiveQuery(() => db.guides.where('tripId').equals(trip.id).toArray(), [trip.id], []);
+  const guides = useMemo(() => allGuides.filter((g) => !isOwn(g)), [allGuides]);
+  const own = useMemo(() => allGuides.filter(isOwn), [allGuides]);
+  const ownCount = own.reduce((n, g) => n + (g.items?.length ?? 0), 0);
+  const [modeChoice, setModeChoice] = useState<Mode | null>(() => {
+    try {
+      const v = localStorage.getItem(modeKey(trip.id));
+      return v === 'own' || v === 'auto' ? v : null;
+    } catch {
+      return null;
+    }
+  });
+  const mode: Mode = modeChoice ?? (ownCount > 0 && guides.length === 0 ? 'own' : 'auto');
+  const setMode = (m: Mode) => {
+    setModeChoice(m);
+    setPdf({ kind: 'idle' });
+    try {
+      localStorage.setItem(modeKey(trip.id), m);
+    } catch {
+      /* remembered for this visit only */
+    }
+  };
   const records = useLiveQuery(
     async () => ({
       transport: await db.transport.where('tripId').equals(trip.id).toArray(),
@@ -43,6 +68,10 @@ export function GuideSection({ trip, route }: { trip: Trip; route: RouteStop[] }
   // Blocks of every saved section, parsed once per guide version.
   const parsed = useMemo(() => new Map(guides.flatMap((g) => g.sections.map((s) => [`${g.id}:${s.key}`, guideBlocks(s.html)] as const))), [guides]);
   const blocksOf = (g: Guide, key: string): GuideBlock[] => parsed.get(`${g.id}:${key}`) ?? [];
+  const wikiBlocks = (cityId: string) => {
+    const g = guides.find((x) => x.cityId === cityId);
+    return g ? g.sections.map((s) => ({ key: s.key, blocks: blocksOf(g, s.key) })) : [];
+  };
   const unique = route.filter((r, i, a) => r.city && a.findIndex((x) => x.stop.cityId === r.stop.cityId) === i);
 
   const build = async () => {
@@ -60,7 +89,7 @@ export function GuideSection({ trip, route }: { trip: Trip; route: RouteStop[] }
           continue;
         }
         const { sections, places } = parseWikivoyage(page.html, page.lang);
-        await store.saveGuide({ id: `${trip.id}:${c.id}`, tripId: trip.id, cityId: c.id, lang: page.lang, title: page.title, url: page.url, sections, places, fetchedAt: new Date().toISOString() });
+        await store.saveGuide({ id: `${trip.id}:${c.id}`, kind: 'wiki', items: [], tripId: trip.id, cityId: c.id, lang: page.lang, title: page.title, url: page.url, sections, places, fetchedAt: new Date().toISOString() });
         ok++;
       } catch (e) {
         toast(`${c.name}: ${e instanceof Error ? e.message : e}`);
@@ -87,11 +116,41 @@ export function GuideSection({ trip, route }: { trip: Trip; route: RouteStop[] }
     }
   }
 
+  /** Own guide → PDF cities, with the points' photos as temporary object URLs (listed in `made` to revoke). */
+  const ownCities = async (made: string[]) => {
+    const out = [];
+    for (const r of unique) {
+      const g = own.find((x) => x.cityId === r.stop.cityId);
+      if (!g || !r.city || !g.items?.length) continue;
+      const sections = [];
+      for (const s of ownSections(g.items)) {
+        const blocks: GuideBlock[] = [];
+        for (const it of s.items) {
+          const atts = (await db.attachments.where('ownerId').equals(it.id).toArray()).filter((a) => a.mime.startsWith('image/')).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+          const photos: string[] = [];
+          for (const a of atts.slice(0, 2)) {
+            const b = await store.getBlob(a.id);
+            if (b) {
+              const u = URL.createObjectURL(b);
+              made.push(u);
+              photos.push(u);
+            }
+          }
+          blocks.push({ kind: 'place', n: it.n, name: it.title, info: it.info, text: it.text, photos });
+        }
+        sections.push({ icon: SECTION_ICON[s.key] ?? '•', title: s.title, blocks });
+      }
+      out.push({ name: r.city.name, countryId: r.city.countryId, source: settings.name ? `Путеводитель составил(а): ${settings.name}` : 'Личный путеводитель', sections });
+    }
+    return out;
+  };
+
   const makePdf = async () => {
     setPdf({ kind: 'busy', page: 0 });
     try {
       const { renderGuidePdf } = await import('./guidePdf');
-      const cities = unique.flatMap((r) => {
+      const made: string[] = [];
+      const cities = mode === 'own' ? await ownCities(made) : unique.flatMap((r) => {
         const g = guides.find((x) => x.cityId === r.stop.cityId);
         if (!g || !r.city) return [];
         return [
@@ -114,6 +173,7 @@ export function GuideSection({ trip, route }: { trip: Trip; route: RouteStop[] }
         (page) => setPdf({ kind: 'busy', page }),
       );
       const name = `MY WORLD — ${trip.title.replace(/[\\/:*?"<>|]+/g, ' ').trim() || 'путеводитель'}.pdf`;
+      made.forEach((u) => URL.revokeObjectURL(u));
       setPdf({ kind: 'ready', file: new File([blob], name, { type: 'application/pdf' }), pages });
     } catch (e) {
       setPdf({ kind: 'idle' });
@@ -145,7 +205,7 @@ export function GuideSection({ trip, route }: { trip: Trip; route: RouteStop[] }
     <section className="stack guide">
       <div className="section-title">
         <h3 className="h2">Путеводитель</h3>
-        {guides.length > 0 && (
+        {(mode === 'auto' ? guides.length > 0 : ownCount > 0) && (
           <button type="button" className="btn sm lime" disabled={pdf.kind === 'busy'} onClick={() => void makePdf()}>
             {pdf.kind === 'busy' ? <span className="spinner sm" /> : <Icon name="download" size={16} />} {pdf.kind === 'busy' ? `Страница ${pdf.page}` : 'Сохранить PDF'}
           </button>
@@ -164,6 +224,19 @@ export function GuideSection({ trip, route }: { trip: Trip; route: RouteStop[] }
             <Icon name="share" size={16} /> Сохранить
           </button>
         </div>
+      )}
+
+      {unique.length > 0 && (
+        <Segmented
+          label="Путеводитель"
+          value={mode}
+          onChange={setMode}
+          className="guide-mode"
+          options={[
+            { value: 'auto', label: 'Собрать автоматически' },
+            { value: 'own', label: 'Свой', badge: ownCount || undefined },
+          ]}
+        />
       )}
 
       {days.length > 0 && (
@@ -195,9 +268,11 @@ export function GuideSection({ trip, route }: { trip: Trip; route: RouteStop[] }
         </div>
       )}
 
+      {mode === 'own' && unique.length > 0 && <OwnGuide trip={trip} cities={unique} own={own} wikiBlocks={wikiBlocks} />}
+
       {unique.length === 0 ? (
         <Empty icon="book" title="Нет городов" text="Добавьте города в маршрут — для каждого соберётся мини-путеводитель." />
-      ) : (
+      ) : mode === 'own' ? null : (
         <button type="button" className="btn glass-btn block" disabled={!!busy} onClick={() => void build()}>
           {busy ? (
             <>
@@ -210,13 +285,13 @@ export function GuideSection({ trip, route }: { trip: Trip; route: RouteStop[] }
           )}
         </button>
       )}
-      {guides.length === 0 && unique.length > 0 && (
+      {mode === 'auto' && guides.length === 0 && unique.length > 0 && (
         <p className="faint small" style={{ margin: 0 }}>
           Для каждого города соберутся «что посмотреть», еда, транспорт и безопасность. Нужен интернет один раз — потом всё доступно офлайн.
         </p>
       )}
 
-      {unique.map((r) => {
+      {mode === 'auto' && unique.map((r) => {
         const g = guides.find((x) => x.cityId === r.stop.cityId);
         if (!g) return null;
         return (

@@ -8,7 +8,7 @@ export type GuideBlock =
   | { kind: 'p'; text: string }
   | { kind: 'h'; text: string }
   | { kind: 'li'; text: string }
-  | { kind: 'place'; n: number | null; name: string; info: string; text: string };
+  | { kind: 'place'; n: number | null; name: string; info: string; text: string; photos?: string[] };
 
 const clean = (s: string) => s.replace(/\s+/g, ' ').replace(/\s+([,.;:!?])/g, '$1').trim();
 

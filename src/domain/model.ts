@@ -186,7 +186,7 @@ export const noteSchema = z.object({
 });
 export type TripNote = z.infer<typeof noteSchema>;
 
-export const OWNER_TYPES = ['trip', 'cover', 'transport', 'stay', 'booking', 'stop', 'note', 'diary', 'expense', 'avatar'] as const;
+export const OWNER_TYPES = ['trip', 'cover', 'transport', 'stay', 'booking', 'stop', 'note', 'diary', 'expense', 'avatar', 'guide'] as const;
 export type OwnerType = (typeof OWNER_TYPES)[number];
 /** File metadata; the bytes live in a separate table so lists never load them. */
 export const attachmentSchema = z.object({
@@ -252,6 +252,10 @@ export const guideSchema = z.object({
   sections: z.array(z.object({ key: z.string(), title: z.string(), html: z.string() })),
   places: z.array(z.object({ name: z.string(), kind: z.string(), lat: z.number().nullable(), lon: z.number().nullable() })).default([]),
   fetchedAt: z.string(),
+  /** 'wiki' — assembled from Wikivoyage; 'own' — written by the user (id = `${tripId}:own:${cityId}`). Old records have no kind: wiki. */
+  kind: z.enum(['wiki', 'own']).default('wiki'),
+  /** Points of the user's own guide; their photos are attachments with ownerType 'guide' and ownerId = item id. */
+  items: z.array(z.object({ id: z.string(), section: z.string(), title: z.string(), info: z.string().default(''), text: z.string().default('') })).default([]),
   ...stamps,
 });
 export type Guide = z.infer<typeof guideSchema>;
