@@ -14,6 +14,7 @@ import { METHODOLOGY_INFO, worldProgress } from '../domain/world';
 import { COUNTRIES } from '../geo/reference';
 import { Icon } from '../ui/Icon';
 import { Confirm, Segmented, Sheet } from '../ui/kit';
+import { SourcesSheet } from './SourcesSheet';
 
 const mb = (n: number) => `${(n / 1024 / 1024).toFixed(1)} МБ`;
 
@@ -24,6 +25,7 @@ export function Settings({ onClose }: { onClose: () => void }) {
   const [usage, setUsage] = useState<string | null>(null);
   const [withFiles, setWithFiles] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [sources, setSources] = useState(false);
   const [pending, setPending] = useState<Backup | null>(null);
 
   useEffect(() => {
@@ -195,13 +197,10 @@ export function Settings({ onClose }: { onClose: () => void }) {
         </div>
       </section>
 
-      <section className="stack tight">
-        <h3 className="h3">Источники</h3>
-        <p className="faint small" style={{ margin: 0 }}>
-          Границы стран и регионов, столицы — Natural Earth (общественное достояние). Справочник городов — GeoNames (CC BY 4.0). Аэропорты — OurAirports (общественное достояние). Подробная подложка — OpenFreeMap, OpenMapTiles, © участники
-          OpenStreetMap. Флаги — flag-icons (MIT). Шрифт Onest (SIL OFL). Число стран зависит от выбранного способа подсчёта.
-        </p>
-      </section>
+      <button type="button" className="text-link" onClick={() => setSources(true)}>
+        Источники
+      </button>
+      {sources && <SourcesSheet onClose={() => setSources(false)} />}
 
       {pending && (
         <Confirm

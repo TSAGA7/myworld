@@ -8,6 +8,8 @@ export interface RawPost {
   text: string;
   /** RSS rubrics (<category>), for sources filtered by topic. */
   categories?: string[];
+  /** First photo of the post (or a video preview). */
+  image?: string;
 }
 
 /**
@@ -28,7 +30,8 @@ export function parseTelegram(html: string, channel: string): { title: string | 
     const text = htmlToText(end >= 0 ? body.slice(0, end) : body);
     const at = block.match(/<time[^>]*datetime="([^"]+)"/)?.[1];
     if (!text || !at || Number.isNaN(Date.parse(at))) continue;
-    posts.push({ id, url: `https://t.me/${channel}/${id}`, at: new Date(at).toISOString(), text });
+    const image = block.match(/tgme_widget_message_(?:photo_wrap|video_thumb)[^>]*background-image:url\('(https:[^']+)'\)/)?.[1];
+    posts.push({ id, url: `https://t.me/${channel}/${id}`, at: new Date(at).toISOString(), text, ...(image ? { image } : {}) });
   }
   return { title: title ? decodeEntities(title) : null, posts };
 }
@@ -54,7 +57,11 @@ export function parseFeed(xml: string): { title: string | null; posts: RawPost[]
     const url = decodeEntities(link).trim();
     if (!url.startsWith('http') || !date || Number.isNaN(Date.parse(date)) || !title) continue;
     const categories = [...b.matchAll(/<category[^>]*>([\s\S]*?)<\/category>/gi)].map((m) => htmlToText((m[1] as string).replace(/^<!\[CDATA\[|\]\]>$/g, '')));
-    posts.push({ id: url, url, at: new Date(date).toISOString(), text: body && !body.startsWith(title) ? `${title}\n${body}` : body || title, categories });
+    const raw = tag(b, 'description') ?? tag(b, 'content:encoded') ?? '';
+    const image = decodeEntities(
+      b.match(/<(?:media:content|media:thumbnail|enclosure)[^>]*url="([^"]+\.(?:jpe?g|png|webp)[^"]*)"/i)?.[1] ?? b.match(/<enclosure[^>]*type="image[^"]*"[^>]*url="([^"]+)"/i)?.[1] ?? decodeEntities(raw).match(/<img[^>]*src="(https:[^"]+)"/i)?.[1] ?? '',
+    );
+    posts.push({ id: url, url, at: new Date(date).toISOString(), text: body && !body.startsWith(title) ? `${title}\n${body}` : body || title, categories, ...(image.startsWith('https:') ? { image } : {}) });
   }
   return { title: feedTitle ? htmlToText(feedTitle) : null, posts };
 }

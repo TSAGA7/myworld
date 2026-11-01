@@ -48,6 +48,8 @@ export const NewsItemSchema = z.object({
   tags: z.array(z.enum(TAGS)),
   /** The same story found in other sources. */
   also: z.array(z.object({ sourceId: z.string(), url: z.string() })),
+  /** Photo of the post, shown as is from the source (Telegram CDN or the site). */
+  image: z.string().optional(),
   /** 'en' — a foreign source: shown once translations.json has its Russian text. */
   lang: z.literal('en').optional(),
 });
@@ -128,6 +130,8 @@ export const StoryItemSchema = z.object({
   place: z.string(),
   text: z.string(),
   storyIds: z.array(z.string()).min(1),
+  /** Photo from the author's post. */
+  image: z.string().optional(),
   /** Author channel(s) and the posts, from stories.json. */
   links: z.array(z.object({ name: z.string(), url: z.string() })).min(1),
 });

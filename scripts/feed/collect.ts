@@ -60,10 +60,14 @@ if (dry) {
   process.exit(0);
 }
 /** Merges a fresh run into the previous file; items of removed sources disappear. */
+/** Airlines, airports and carriers speak for themselves: their notices are never merged with each other. */
+const OPERATOR_GROUPS = new Set(['Авиакомпании', 'Аэропорты', 'Перевозчики']);
+const operators = new Set(SOURCES.filter((s) => OPERATOR_GROUPS.has(s.group)).map((s) => s.id));
+
 function publish(name: string, defs: readonly SourceDef[], freshItems: NewsItem[], keepHours: number): void {
   const live = new Set(defs.map((s) => s.id));
   const prev = (readJson<NewsFile>(name)?.items ?? []).filter((it) => live.has(it.sourceId)).map((it) => ({ ...it, also: it.also.filter((a) => live.has(a.sourceId)) }));
-  const items = mergeNews(prev, freshItems, now, keepHours);
+  const items = mergeNews(prev, freshItems, now, keepHours, (id) => operators.has(id));
   const own = sources.filter((s) => live.has(s.id));
   writeJson(name, { updatedAt: now.toISOString(), sources: own, items } satisfies NewsFile);
   console.log(`${name}: ${items.length} записей из ${own.filter((s) => s.ok).length}/${own.length} источников`);

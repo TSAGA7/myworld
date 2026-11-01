@@ -71,7 +71,8 @@ export function buildEdition(draft: StoryDraft, stories: readonly NewsItem[], so
       if (!s) throw new Error(`Поста ${id} нет в stories.json`);
       return { name: sources.find((x) => x.id === s.sourceId)?.name ?? s.sourceId, url: s.url };
     });
-    return { country: d.country, place: d.place.trim(), text: d.text.trim(), storyIds: d.storyIds, links };
+    const image = d.storyIds.map((id) => byId.get(id)?.image).find(Boolean);
+    return { country: d.country, place: d.place.trim(), text: d.text.trim(), storyIds: d.storyIds, ...(image ? { image } : {}), links };
   });
   const slot = editionSlot(now);
   return { id: `${slot.date}-${slot.part}`, ...slot, createdAt: now.toISOString(), items };

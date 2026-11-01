@@ -56,33 +56,91 @@ const RULES: ReadonlyArray<[Tag, RegExp]> = [
 export const tagsOf = (text: string): Tag[] => RULES.filter(([, re]) => re.test(text)).map(([t]) => t);
 
 /** Word stems for near-duplicate detection: the same story retold by several channels. */
+/** Frequent words that say nothing about which story it is (first 4 letters). */
+const STOP = new Set(['котор', 'этом', 'будет', 'такж', 'може', 'стра', 'росс', 'тури', 'рейс', 'сего', 'тепе', 'новы', 'граж', 'врем', 'попу', 'назв', 'заяв', 'сооб', 'расс', 'стал', 'смог', 'пред', 'посл', 'боле', 'чтоб', 'года', 'туро'] .map((w) => w.slice(0, 4)));
+
+/** Word stems (first 4 letters) for near-duplicate detection: "Индией" and "Индия" match. */
 export function stems(text: string): Set<string> {
   const words = text.toLowerCase().replace(/ё/g, 'е').match(/[a-zа-я0-9]+/g) ?? [];
-  return new Set(words.filter((w) => w.length > 3 || /^\d+$/.test(w)).map((w) => w.slice(0, 6)));
+  return new Set(words.filter((w) => w.length > 3 || /^\d+$/.test(w)).map((w) => w.slice(0, 4)).filter((w) => !STOP.has(w)));
 }
 
-export function similarity(a: Set<string>, b: Set<string>): number {
+/** Overlap coefficient: a short retelling of a long post still matches. Rare words weigh more when `weight` is given. */
+export function similarity(a: Set<string>, b: Set<string>, weight: (w: string) => number = () => 1): number {
   if (!a.size || !b.size) return 0;
   let common = 0;
-  for (const w of a) if (b.has(w)) common++;
-  // Overlap coefficient: a short retelling of a long post still matches.
-  return common / Math.min(a.size, b.size);
+  let sa = 0;
+  let sb = 0;
+  for (const w of a) {
+    sa += weight(w);
+    if (b.has(w)) common += weight(w);
+  }
+  for (const w of b) sb += weight(w);
+  return common / Math.min(sa, sb);
+}
+
+/** Country flags of a title; 🇷🇺 says nothing in a Russian feed. */
+const flags = (s: string): Set<string> => new Set((s.match(/\p{Regional_Indicator}{2}/gu) ?? []).filter((f) => f !== '🇷🇺'));
+
+export interface Shape {
+  title: Set<string>;
+  all: Set<string>;
+  flags: Set<string>;
+}
+export const shapeOf = (it: Pick<NewsItem, 'title' | 'text'>): Shape => ({ title: stems(it.title), all: stems(`${it.title} ${it.text}`), flags: flags(it.title) });
+
+/** Rarity of each word stem in a batch of news: "безвиз" says more than "Турция". */
+export function rarity(shapes: readonly Shape[]): (w: string) => number {
+  const df = new Map<string, number>();
+  for (const s of shapes) for (const w of s.all) df.set(w, (df.get(w) ?? 0) + 1);
+  const n = Math.max(shapes.length, 2);
+  return (w) => Math.log(1 + n / (df.get(w) ?? 1));
 }
 
 /**
- * Merges retellings of one story into the earliest item (others go to `also`).
- * Items must be sorted newest first; comparison stays within 36 hours.
+ * Same story? Tuned on real retellings (Черногория, Индия, Венеция, Болгария, «Белавиа») and near misses
+ * (Египет и Турция, пляжи Аджмана и Сочи): the texts share rare words, or the titles do, or both posts carry
+ * the same country flag and share some words.
  */
-export function dedupe(items: NewsItem[], threshold = 0.6): NewsItem[] {
-  const out: Array<{ item: NewsItem; stems: Set<string>; t: number }> = [];
+export function sameStory(a: Shape, b: Shape, weight: (w: string) => number): boolean {
+  const all = similarity(a.all, b.all, weight);
+  let common = 0;
+  for (const w of a.all) if (b.all.has(w)) common++;
+  // A two-line excerpt shares a word or two with anything: at least three words in common.
+  if (all >= 0.33 && common >= 3) return true;
+  if (Math.min(a.title.size, b.title.size) >= 3 && similarity(a.title, b.title, weight) >= 0.52) return true;
+  return [...a.flags].some((f) => b.flags.has(f)) && all >= 0.15;
+}
+
+/**
+ * Merges retellings of one story into the earliest item (others go to `also`); comparison stays within 36 hours
+ * and with every post already in the story. Two `independent` sources are never merged with each other:
+ * each airline's or airport's own notice stays separate.
+ */
+export function dedupe(items: NewsItem[], independent: (sourceId: string) => boolean = () => false): NewsItem[] {
   const byTime = [...items].sort((a, b) => a.at.localeCompare(b.at));
-  for (const it of byTime) {
-    const s = stems(`${it.title} ${it.text}`);
+  const shapes = byTime.map(shapeOf);
+  const weight = rarity(shapes);
+  const out: Array<{ item: NewsItem; shapes: Shape[]; sources: Set<string>; t: number }> = [];
+  byTime.forEach((it, i) => {
+    const shape = shapes[i] as Shape;
     const t = Date.parse(it.at);
-    const twin = s.size >= 6 ? out.find((o) => o.item.sourceId !== it.sourceId && Math.abs(o.t - t) < 36 * 3600e3 && similarity(o.stems, s) >= threshold) : undefined;
+    const twin = out.find(
+      (o) =>
+        !o.sources.has(it.sourceId) &&
+        !(independent(it.sourceId) && [...o.sources].some(independent)) &&
+        Math.abs(o.t - t) < 36 * 3600e3 &&
+        o.shapes.some((s) => sameStory(s, shape, weight)),
+    );
     if (twin) {
-      if (!twin.item.also.some((x) => x.url === it.url)) twin.item = { ...twin.item, also: [...twin.item.also, { sourceId: it.sourceId, url: it.url }, ...it.also] };
-    } else out.push({ item: { ...it }, stems: s, t });
-  }
+      if (independent(twin.item.sourceId) && !independent(it.sourceId)) {
+        // A retelling with a real headline leads; the airline's own notice («Сообщение авиакомпании») goes to the links.
+        const old = twin.item;
+        twin.item = { ...it, also: [{ sourceId: old.sourceId, url: old.url }, ...old.also, ...it.also] };
+      } else if (!twin.item.also.some((x) => x.url === it.url)) twin.item = { ...twin.item, also: [...twin.item.also, { sourceId: it.sourceId, url: it.url }, ...it.also] };
+      twin.shapes.push(shape);
+      twin.sources.add(it.sourceId);
+    } else out.push({ item: { ...it }, shapes: [shape], sources: new Set([it.sourceId, ...it.also.map((x) => x.sourceId)]), t });
+  });
   return out.map((o) => o.item).sort((a, b) => b.at.localeCompare(a.at));
 }

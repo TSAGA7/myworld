@@ -8,17 +8,17 @@ import { NewsView } from './NewsView';
 
 type Sub = 'digest' | 'news' | 'deals' | 'stories';
 const SUBS: ReadonlyArray<{ value: Sub; label: string }> = [
+  { value: 'stories', label: 'Интересное' },
   { value: 'digest', label: 'Дайджест' },
   { value: 'news', label: 'Новости' },
   { value: 'deals', label: 'Билеты' },
-  { value: 'stories', label: 'Интересное' },
 ];
 
 /** Horizontal swipe that is not a scroll of chips, a sheet or a text field. */
 const ignoreSwipe = (t: EventTarget | null): boolean => t instanceof Element && !!t.closest('.chips, .sheet, .scrim, input, textarea, select, [data-noswipe]');
 
 export function Feed({ route }: { route: string[] }) {
-  const sub: Sub = SUBS.some((s) => s.value === route[1]) ? (route[1] as Sub) : 'digest';
+  const sub: Sub = SUBS.some((s) => s.value === route[1]) ? (route[1] as Sub) : 'stories';
   const index = SUBS.findIndex((s) => s.value === sub);
   const from = useRef(index);
   const dir = index >= from.current ? 'next' : 'prev';

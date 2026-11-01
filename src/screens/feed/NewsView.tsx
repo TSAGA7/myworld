@@ -5,7 +5,7 @@ import { ago, filterNews, type NewsFilter } from '../../feed/format';
 import { TAG_LABEL, TAGS, type FeedSource, type NewsItem } from '../../feed/schema';
 import { Icon } from '../../ui/Icon';
 import { Empty } from '../../ui/kit';
-import { Loading, StatusLine, useNow } from './common';
+import { Loading, PostImage, StatusLine, useNow } from './common';
 
 /* ===================== Новости */
 
@@ -54,7 +54,6 @@ export function NewsView() {
           <NewsCard key={n.id} item={n} source={sources.get(n.sourceId)} sources={sources} now={now} open={open === n.id} onToggle={() => setOpen(open === n.id ? null : n.id)} />
         ))}
       </div>
-      <SourcesNote sources={state.data?.sources ?? []} />
     </>
   );
 }
@@ -63,6 +62,7 @@ function NewsCard({ item, source, sources, now, open, onToggle }: { item: NewsIt
   const isTg = item.url.startsWith('https://t.me/');
   return (
     <article className={`card tight news-card ${open ? 'open' : ''}`}>
+      {item.image && <PostImage src={item.image} />}
       <button type="button" className="news-main" onClick={onToggle} aria-expanded={open}>
         <span className="news-meta faint small">
           <b className="news-src">{source?.name ?? item.sourceId}</b> · {ago(item.at, now)}
@@ -92,24 +92,6 @@ function NewsCard({ item, source, sources, now, open, onToggle }: { item: NewsIt
           ))}
       </div>
     </article>
-  );
-}
-
-function SourcesNote({ sources }: { sources: FeedSource[] }) {
-  const ok = sources.filter((s) => s.ok);
-  if (!ok.length) return null;
-  return (
-    <p className="faint tiny feed-sources">
-      Источники: {ok.map((s, i) => (
-        <span key={s.id}>
-          {i > 0 && ', '}
-          <a href={s.url} target="_blank" rel="noopener noreferrer">
-            {s.name}
-          </a>
-        </span>
-      ))}
-      . Показываем начало поста — полный текст у автора.
-    </p>
   );
 }
 

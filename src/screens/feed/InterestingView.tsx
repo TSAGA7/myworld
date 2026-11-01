@@ -2,7 +2,7 @@ import { useFeedFile } from '../../feed/client';
 import { dayMonthFull } from '../../feed/format';
 import type { Edition } from '../../feed/schema';
 import { Empty, Flag } from '../../ui/kit';
-import { Loading, SourceLinks } from './common';
+import { Loading, PostImage, SourceLinks } from './common';
 
 /** «Интересное»: morning and evening picks from author channels, every item credited and linked. */
 export function InterestingView() {
@@ -44,6 +44,7 @@ function EditionCard({ edition }: { edition: Edition }) {
       </h3>
       {edition.items.map((s) => (
         <article key={s.storyIds.join()} className="story-item">
+          {s.image && <PostImage src={s.image} />}
           <p>
             {s.country && <Flag id={s.country} size="sm" />}
             <b>{s.place}</b>: {s.text}

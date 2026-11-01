@@ -59,3 +59,10 @@ export function SourceLinks({ links }: { links: ReadonlyArray<{ name: string; ur
     </div>
   );
 }
+
+/** Photo of the original post; disappears quietly if the source no longer serves it. */
+export function PostImage({ src }: { src: string }) {
+  const [broken, setBroken] = useState(false);
+  if (broken) return null;
+  return <img className="post-img" src={src} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setBroken(true)} />;
+}

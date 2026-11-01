@@ -10,6 +10,7 @@ const TG = `
 <meta property="og:title" content="Самокатус">
 <div class="tgme_widget_message_wrap js-widget_message_wrap"><div class="tgme_widget_message text_not_supported_wrap js-widget_message" data-post="samokatus/101">
  <div class="tgme_widget_message_reply"><div class="tgme_widget_message_metatext js-message_reply_text">Ответ на старый пост</div></div>
+ <a class="tgme_widget_message_photo_wrap blured" style="width:800px;background-image:url('https://cdn4.telesco.pe/file/abc.jpg')"></a>
  <div class="tgme_widget_message_text js-message_text" dir="auto"><b>S7 Airlines</b> запустила прямые рейсы из Новосибирска в Мале.<br/>Полеты дважды в неделю на A320 &amp; с посадкой в Термезе.</div>
  <a class="tgme_widget_message_date" href="https://t.me/samokatus/101"><time datetime="2026-10-30T09:15:00+00:00" class="time">12:15</time></a>
 </div></div>
@@ -26,15 +27,15 @@ describe('parsing', () => {
     const r = parseTelegram(TG, 'samokatus');
     expect(r.title).toBe('Самокатус');
     expect(r.posts).toHaveLength(1);
-    expect(r.posts[0]).toMatchObject({ id: '101', url: 'https://t.me/samokatus/101', at: '2026-10-30T09:15:00.000Z' });
+    expect(r.posts[0]).toMatchObject({ id: '101', url: 'https://t.me/samokatus/101', at: '2026-10-30T09:15:00.000Z', image: 'https://cdn4.telesco.pe/file/abc.jpg' });
     expect(r.posts[0]?.text).toBe('S7 Airlines запустила прямые рейсы из Новосибирска в Мале.\nПолеты дважды в неделю на A320 & с посадкой в Термезе.');
   });
 
   it('reads RSS and Atom', () => {
-    const rss = `<rss><channel><title>Турдом</title><item><title><![CDATA[Грузия отменила сбор]]></title><link>https://t.ru/a</link><pubDate>Sat, 31 Oct 2026 08:00:00 +0300</pubDate><description>&lt;p&gt;Подробности ниже&lt;/p&gt;</description></item></channel></rss>`;
+    const rss = `<rss><channel><title>Турдом</title><item><title><![CDATA[Грузия отменила сбор]]></title><link>https://t.ru/a</link><enclosure url="https://t.ru/a.jpg" type="image/jpeg"/><pubDate>Sat, 31 Oct 2026 08:00:00 +0300</pubDate><description>&lt;p&gt;Подробности ниже&lt;/p&gt;</description></item></channel></rss>`;
     const r = parseFeed(rss);
     expect(r.title).toBe('Турдом');
-    expect(r.posts[0]).toMatchObject({ url: 'https://t.ru/a', at: '2026-10-31T05:00:00.000Z', text: 'Грузия отменила сбор\nПодробности ниже' });
+    expect(r.posts[0]).toMatchObject({ image: 'https://t.ru/a.jpg', url: 'https://t.ru/a', at: '2026-10-31T05:00:00.000Z', text: 'Грузия отменила сбор\nПодробности ниже' });
     const atom = `<feed><title>X</title><entry><title>Новость дня про визы</title><link href="https://x.ru/1"/><updated>2026-10-31T10:00:00Z</updated><summary>Текст</summary></entry></feed>`;
     expect(parseFeed(atom).posts[0]).toMatchObject({ url: 'https://x.ru/1', text: 'Новость дня про визы\nТекст' });
   });
@@ -266,5 +267,44 @@ describe('Интересное', () => {
     const file = addEdition(null, ed);
     expect(storyCandidates(stories, file, now)).toEqual([]);
     expect(() => buildEdition({ items: [{ ...draft.items[0]!, storyIds: ['wrenjapan:999'] }] }, stories, sources, now)).toThrow();
+  });
+});
+
+import { dedupe as dedupeReal } from './text';
+
+/** Real posts of 31.10–01.11.2026: retellings must merge, look-alikes must not. */
+const REAL: Array<[string, string, string, string]> = [
+  ["uletet_1", "2026-11-01T06:43:29.000Z", "❗🇲🇪 С сегодняшнего дня Черногория ввела визы для граждан России.", "Двустороннее соглашение о безвизовых поездках действовало с 2008 года, более 18 лет. С 1 ноября для въезда в страну россиянам понадобится черногорская виза, которую необходимо получить заблаговременно: 🔻стоимость для взрослых: 35 евро; 🔻стоимость для детей до 14 лет: 17,5 евро. Черногорская виза действует для…"],
+  ["atorus", "2026-11-01T06:20:14.000Z", "🇲🇪 С сегодняшнего дня в Черногорию по одному загранпаспорту уже не попасть", "С 1 ноября для россиян действует визовый режим. Консульский сбор составляет €35, при подаче через VFS Global отдельно оплачиваются услуги визового центра. Документы принимают в восьми городах России. Но оформлять черногорскую визу придется не всем. Въехать можно с действующей шенгенской визой, а также визами США…"],
+  ["atorus", "2026-10-31T09:07:54.000Z", "🇮🇳 Группового безвиза с Индией не будет", "Об этом рассказал в интервью ТАСС глава консульского департамента МИД России Алексей Климов. Предполагалось, что туристы смогут ездить без виз группами от 3 до 50 человек на срок до 21 дня. Но, по словам дипломата, подготовка соглашения изначально была непростой задачей: индийская сторона раньше не заключала…"],
+  ["tourdom", "2026-10-31T07:21:50.000Z", "Россия и Индия остановили переговоры о безвизе для туристических групп", "Для поездок россиянам по-прежнему нужна бесплатная электронная туристическая виза"],
+  ["uletet_1", "2026-10-31T09:47:31.000Z", "🇮🇳🇷🇺 Безвизовый режим для туристических групп между Россией и Индией вводиться не будет.", "Об этом заявил глава консульского департамента МИД России Алексей Климов. «Разработка такого соглашения изначально являлась нетривиальной задачей ввиду того, что заключение международных договоров на тему групповых безвизовых поездок граждан нашими индийскими партнерами ранее не практиковалось. Принимая во внимание…"],
+  ["tourprom", "2026-10-31T13:03:29.000Z", "Безвиз с Индией отменяется: что изменится для российских туристов", "Российским туристам, планирующим отдых в Индии, не стоит ждать упрощения правил въезда в ближайшее время. Переговоры между Москвой и Нью-Дели о введении безвизового режима для туристических групп официально прекращены. Стороны пришли к выводу, что реализация такой инициативы на данном этапе невозможна. Идея…"],
+  ["tourdom", "2026-10-31T11:16:38.000Z", "В аэропортах Москвы задержки рейсов в Египет и Турцию достигают 19 и 12 часов", "Какие вылеты отложены"],
+  ["tourprom", "2026-10-31T16:03:25.000Z", "Турция и Египет начнут схватку за туристов", "На престижном саммите Всемирного совета по туризму и путешествиям (WTTC), прошедшем в Валлетте (Мальта), развернулось жёсткое дипломатическое противостояние между ключевыми игроками трэвел-рынка. В то время как перегруженная овертуризмом Европа (Хорватия и Мальта) открыто умоляет снизить трафик, заявляя, что им больше…"],
+  ["atorus", "2026-10-31T14:22:59.000Z", "🏖 В Аджмане начали открывать пляжи", "Хорошая новость от Fairmont Ajman: его пляж очищен и 31 октября с 16:00 купание официально разрешено. Об этом «Вестнику АТОР» сообщили в «Интуристе» со ссылкой на официальное письмо отеля. С 1 ноября Fairmont Ajman прекращает бесплатные трансферы на Kite Beach в Дубае, которые организовывал на время закрытия своего…"],
+  ["tourdom", "2026-10-31T07:19:48.000Z", "В Сочи и Анапе не будут открывать зимние пляжи в 2026 году", "Всего в Краснодарском крае будут работать 29 таких площадок"],
+  ["tourdom", "2026-10-31T15:47:00.000Z", "В Турции закрывается популярный семейный курорт", "Он меняет владельца и название"],
+  ["tass", "2026-11-01T05:09:22.000Z", "Сервис \"Плати по всему миру\" назвал самые популярные осенние турнаправления", "В бархатный сезон россияне чаще всего ездили в Турцию, Китай и Объединенные Арабские Эмираты"],
+];
+
+describe('duplicates on real posts', () => {
+  const items = REAL.map(([sourceId, at, title, text], i) => ({ id: `${sourceId}:${i}`, sourceId, url: `https://x/${i}`, at, title, text, tags: [], also: [] }));
+  const groups = dedupeReal(items).map((it) => [it.id, ...it.also.map((a) => items.find((x) => x.url === a.url)?.id)].sort().join(' '));
+  it('merges Черногория and the four Индия posts', () => {
+    expect(groups).toContain(['atorus:1', 'uletet_1:0'].join(' '));
+    expect(groups.find((g) => g.includes('atorus:2'))?.split(' ').length).toBe(4);
+  });
+  it('keeps different stories apart', () => {
+    for (const pair of [['tourdom:6', 'tourprom:7'], ['atorus:8', 'tourdom:9'], ['tourdom:10', 'tass:11']]) expect(groups.some((g) => pair.every((p) => g.split(' ').includes(p)))).toBe(false);
+  });
+  it('never merges two airlines', () => {
+    const a = { ...items[0]!, id: 'aeroflot:1', sourceId: 'aeroflot', url: 'a' };
+    const b = { ...items[1]!, id: 'pobeda:1', sourceId: 'pobeda', url: 'b' };
+    expect(dedupeReal([a, b], (s) => s === 'aeroflot' || s === 'pobeda')).toHaveLength(2);
+    // A retelling with a real headline leads, the airline's notice becomes a link.
+    const merged = dedupeReal([a, { ...b, sourceId: 'atorus', id: 'atorus:9' }], (s) => s === 'aeroflot');
+    expect(merged).toHaveLength(1);
+    expect(merged[0]?.sourceId).toBe('atorus');
   });
 });

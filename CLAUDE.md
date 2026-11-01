@@ -49,7 +49,9 @@ public/data   cities.tsv (~194 тыс. городов GeoNames), regions/<стр
 - `.github/workflows/feed.yml` каждый час: `scripts/feed/collect.ts` (Telegram t.me/s + RSS, источники — `src/feed/sources.ts`) и `scripts/feed/prices.ts` (Travelpayouts, секреты `TRAVELPAYOUTS_TOKEN`, `TRAVELPAYOUTS_MARKER`). Ветка `data` — один коммит, перезаписывается.
 - Дайджест пишет запланированная задача Claude по `scripts/feed/DIGEST.md` (на подписке, без API-ключа); ссылки подставляет `src/feed/digest.ts` из news.json — выдумать нельзя.
 - Утром и вечером вторая задача по `scripts/feed/EDITORIAL.md`: переводит зарубежные новости (`lang: 'en'` в sources.ts → `translations.json`, без перевода новость скрыта) и собирает «Интересное» из авторских каналов (`STORY_LIST` → `stories.json` → `interesting.json`). Логика — `src/feed/editorial.ts`.
-- Вкладки ленты (Дайджест · Новости · Билеты · Интересное) — `src/screens/feed/*`, по файлу на раздел, свайп — в `Feed.tsx`.
+- Дубли: `dedupe` в `src/feed/text.ts` (редкие слова, заголовки, флаги стран; авиакомпании/аэропорты/перевозчики друг с другом не склеиваются), регрессия на реальных постах — в тестах.
+- Все источники приложения показываются в «Настройки → Источники» (`src/screens/SourcesSheet.tsx`, берёт список из sources.ts).
+- Вкладки ленты (Интересное · Дайджест · Новости · Билеты) — `src/screens/feed/*`, по файлу на раздел, свайп — в `Feed.tsx`.
 - «Проверить цену»: `supabase/functions/price-check` + переменные репозитория `PRICE_CHECK_URL`, `PRICE_CHECK_KEY` (пусто → показывается время последнего часового скана).
 - Логика — `src/feed/*.ts` (импорты с `.ts`, скрипты запускаются `node --experimental-strip-types`), тесты — `src/feed/feed.test.ts`.
 

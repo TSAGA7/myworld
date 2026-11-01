@@ -8,11 +8,11 @@ export const MAX_ITEMS = 400;
 export function toItem(sourceId: string, p: RawPost, lang?: 'en', maxText = 320): NewsItem | null {
   const { title, text } = splitPost(p.text, 140, maxText);
   if (title.length < 12) return null;
-  return { id: `${sourceId}:${p.id}`, sourceId, url: p.url, at: p.at, title, text, tags: tagsOf(p.text), also: [], ...(lang ? { lang } : {}) };
+  return { id: `${sourceId}:${p.id}`, sourceId, url: p.url, at: p.at, title, text, tags: tagsOf(p.text), also: [], ...(p.image ? { image: p.image } : {}), ...(lang ? { lang } : {}) };
 }
 
 /** Previous file + fresh posts → last 72 hours, retellings merged, newest first. */
-export function mergeNews(prev: readonly NewsItem[], fresh: readonly NewsItem[], now: Date, keepHours = KEEP_HOURS): NewsItem[] {
+export function mergeNews(prev: readonly NewsItem[], fresh: readonly NewsItem[], now: Date, keepHours = KEEP_HOURS, independent?: (sourceId: string) => boolean): NewsItem[] {
   const since = now.getTime() - keepHours * 3600e3;
   const future = now.getTime() + 3600e3;
   const known = new Set<string>();
@@ -31,7 +31,7 @@ export function mergeNews(prev: readonly NewsItem[], fresh: readonly NewsItem[],
     const t = Date.parse(it.at);
     return t >= since && t <= future;
   });
-  return dedupe(live).slice(0, MAX_ITEMS);
+  return dedupe(live, independent).slice(0, MAX_ITEMS);
 }
 
 /** Items of the last `hours` before `now` — the input of the daily digest. */
