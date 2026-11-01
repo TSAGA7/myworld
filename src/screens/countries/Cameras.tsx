@@ -22,7 +22,7 @@ export function Cameras({ cams, resortName }: { cams: readonly Camera[]; resortN
             <Icon name={c.kind === 'hls' ? 'target' : 'image'} size={20} />
             <span className="grow">
               <span className="t block">{c.name}</span>
-              <span className="s block">{[c.place, c.kind === 'hls' ? 'видеопоток' : 'снимок с камеры, обновляется'].filter(Boolean).join(' · ')}</span>
+              <span className="s block">{[c.place, c.kind === 'hls' ? 'видеопоток' : 'снимок с камеры'].filter(Boolean).join(' · ')}</span>
             </span>
             <Icon name="chevron" size={18} className="faint" />
           </button>
@@ -77,7 +77,7 @@ function CameraView({ cam, page, title, onClose }: { cam: Camera; page: string |
         <p className="faint small" style={{ margin: 0 }}>
           {cam.kind === 'hls'
             ? 'Прямая трансляция с официальной камеры курорта.'
-            : `Снимок с официальной камеры курорта, обновляется раз в минуту${loadedAt ? ` · загружен в ${clock(loadedAt)}` : ''}. Это не видео.`}
+            : `Снимок с официальной камеры курорта${loadedAt ? `, загружен в ${clock(loadedAt)}` : ''}. Это не видео; как часто камера делает снимки, решает курорт — точное время съёмки на его сайте.`}
         </p>
       )}
     </Sheet>

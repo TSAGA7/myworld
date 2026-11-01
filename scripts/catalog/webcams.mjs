@@ -15,6 +15,8 @@ if (!cat) {
 }
 const LIMIT = Number(process.env.WEBCAM_LIMIT ?? 260);
 const CAM_LINK = /(web-?cam|webcams?|live-?cam|veb-?kam|kamer|камер|cameras?)/i;
+/** «Камера хранения» is luggage storage, not a webcam. */
+const NOT_CAM = /(khranen|хранени|storage|kamera-hr)/i;
 
 async function get(url) {
   const r = await fetch(url, { headers: { 'user-agent': UA.replace('MyWorldCatalog/1.0', 'Mozilla/5.0 (compatible; MyWorldCatalog/1.0)'), accept: 'text/html,*/*' }, redirect: 'follow', signal: AbortSignal.timeout(15_000) });
@@ -58,7 +60,7 @@ for (const r of queue) {
   try {
     const home = await get(r.website);
     if (!home.ok || !home.body) throw new Error(`главная: HTTP ${home.status}`);
-    const cand = links(home.body, home.url).filter((l) => sameSite(l.url, home.url) && (CAM_LINK.test(l.text) || CAM_LINK.test(new URL(l.url).pathname)));
+    const cand = links(home.body, home.url).filter((l) => sameSite(l.url, home.url) && (CAM_LINK.test(l.text) || CAM_LINK.test(new URL(l.url).pathname)) && !NOT_CAM.test(`${l.text} ${l.url}`));
     const page = cand[0];
     if (!page) continue;
     const p = await get(page.url);
@@ -67,7 +69,9 @@ for (const r of queue) {
     const hls = [...new Set([...p.body.matchAll(/https?:\/\/[^"'\s<>]+?\.m3u8[^"'\s<>]*/gi)].map((m) => m[0]))].slice(0, 6);
     hls.forEach((u, i) => cams.push({ name: hls.length > 1 ? `Трансляция ${i + 1}` : 'Трансляция', place: null, url: u, kind: 'hls' }));
     if (!hls.length) {
-      const imgs = [...new Set([...p.body.matchAll(/(?:src|data-src)="([^"]+?(?:webcam|cam)[^"]*?\.jpe?g[^"]*)"/gi)].map((m) => new URL(m[1].replace(/&amp;/g, '&'), p.url).href))].slice(0, 6);
+      const imgs = [...new Set([...p.body.matchAll(/(?:src|data-src)="([^"]+?(?:webcam|cam)[^"]*?\.jpe?g[^"]*)"/gi)].map((m) => new URL(m[1].replace(/&amp;/g, '&'), p.url).href))]
+        .filter((u) => !/(thumb|icon|logo|teaser|preview|poster|banner|placeholder|_small|-small)/i.test(u))
+        .slice(0, 6);
       imgs.forEach((u, i) => cams.push({ name: imgs.length > 1 ? `Камера ${i + 1}` : 'Камера', place: null, url: u, kind: 'image' }));
     }
     // Manual cameras (resorts-extra.json) stay; found ones are added after them.
@@ -78,6 +82,23 @@ for (const r of queue) {
     report.errors.push(`${r.nameRu ?? r.name}: ${e.message}`);
   }
   await sleep(300);
+}
+
+// One webcam page for several resorts (a group site): it belongs only to the resort named in its address.
+const fold = (x) => x.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9а-яё]+/g, '');
+const byPage = new Map();
+for (const r of cat.items) for (const c of r.cams ?? []) if (c.auto && c.kind === 'link') byPage.set(c.url, [...(byPage.get(c.url) ?? []), r]);
+for (const [url, rs] of byPage) {
+  if (rs.length < 2) continue;
+  const u = fold(url);
+  for (const r of rs) {
+    const named = [r.name, r.nameRu].filter(Boolean).some((n) => fold(n).length >= 4 && u.includes(fold(n).slice(0, 8)));
+    if (!named) {
+      r.cams = r.cams.filter((c) => !c.auto);
+      report.found = report.found.filter((f) => f.id !== r.id);
+      report.errors.push(`${r.nameRu ?? r.name}: общая страница камер ${url} — не его, убрана`);
+    }
+  }
 }
 
 writeOut('resorts.json', cat);
