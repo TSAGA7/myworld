@@ -763,3 +763,7 @@ button.ach:active { transform: scale(0.98); }
 .ptr.armed .ptr-arrow { transform: rotate(180deg); color: var(--ink); }
 .share-scope.many button { padding: 0 8px; font-size: 13px; gap: 4px; }
 .chip.share-fact > span:last-child { min-width: 0; }
+.pull-banner { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: var(--r-md); background: var(--glass-strong); border: 1px solid var(--glass-edge); font-size: 14px; line-height: 1.35; animation: fade-in 0.2s ease both; }
+.pull-banner.fresh { background: var(--lime); color: var(--lime-ink); border-color: transparent; }
+.pull-banner .block { display: block; margin-top: 2px; font-size: 13px; }
+.pull-banner > svg, .pull-banner > .spinner { flex: none; margin-top: 1px; }

@@ -57,7 +57,8 @@ public/data   cities.tsv (~194 тыс. городов GeoNames), regions/<стр
 - Дубли: `dedupe` в `src/feed/text.ts` (редкие слова, заголовки, флаги стран; авиакомпании/аэропорты/перевозчики друг с другом не склеиваются), регрессия на реальных постах — в тестах.
 - Все источники приложения показываются в «Настройки → Источники» (`src/screens/SourcesSheet.tsx`, берёт список из sources.ts).
 - Потянуть ленту вниз — `ui/usePullToRefresh.ts` + `refreshFeed()` в `src/feed/client.ts` (перечитывает файлы мимо кэша CDN; сбор новостей при этом не запускается). Шторки (`Sheet`) закрываются свайпом вниз — `useSwipeDown` в `ui/kit.tsx`.
-- GitHub запускает часовой `feed.yml` по расписанию с опозданием (бывает раз в несколько часов) — поэтому строка статуса не пишет «каждый час», если копия старше 1,5 ч.
+- GitHub запускает часовой `feed.yml` по расписанию с опозданием (бывает раз в несколько часов). Строка статуса: «Собрано в 18:37 · N назад · проверено в 23:05». После потягивания — `PullBanner` (`screens/feed/common.tsx`, состояние — `usePullStatus` в client.ts): свежее / «это последняя версия» / «запустили сбор».
+- Запуск сбора по запросу и каждый час: `supabase/functions/feed-kick` (POST {reason:'pull'} — не чаще раза в 10 мин; {reason:'cron', key}) + `supabase/migrations/20261102_myworld_feed_kick.sql` (pg_cron в :25). Нужен GitHub-токен в `myworld_config.gh_dispatch_token` (fine-grained, только TSAGA7/myworld, Actions: Read and write). Пока функции нет (404) — приложение пишет, что запустить сбор нельзя.
 - Вкладки ленты (Билеты · Интересное · Дайджест · Новости) — `src/screens/feed/*`, по файлу на раздел, свайп — в `Feed.tsx`.
 - «Проверить цену»: `supabase/functions/price-check` + переменные репозитория `PRICE_CHECK_URL`, `PRICE_CHECK_KEY` (пусто → показывается время последнего часового скана).
 - Логика — `src/feed/*.ts` (импорты с `.ts`, скрипты запускаются `node --experimental-strip-types`), тесты — `src/feed/feed.test.ts`.

@@ -5,6 +5,7 @@ import { useSwipe } from '../../ui/useSwipe';
 import { go } from '../../app/router';
 import { Segmented, Topo } from '../../ui/kit';
 import { DealsView } from './DealsView';
+import { PullBanner } from './common';
 import { DigestView } from './DigestView';
 import { InterestingView } from './InterestingView';
 import { NewsView } from './NewsView';
@@ -47,6 +48,7 @@ export function Feed({ route }: { route: string[] }) {
           </h1>
         </header>
         <Segmented label="Раздел ленты" value={sub} options={SUBS} onChange={(v) => go(`feed/${v}`, true)} className="feed-tabs" />
+        <PullBanner />
         <div key={sub} className={`feed-page ${dir}`}>
           {sub === 'digest' ? <DigestView /> : sub === 'news' ? <NewsView /> : sub === 'deals' ? <DealsView /> : <InterestingView />}
         </div>
