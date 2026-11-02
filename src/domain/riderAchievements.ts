@@ -1,4 +1,3 @@
-import type { City } from './model';
 import type { Resort } from './hobby';
 import { distanceKm } from './achievements';
 import { normalize } from './search';
@@ -6,12 +5,14 @@ import { normalize } from './search';
 /**
  * Achievements of the Rider hobby (skis / snowboard). One file for all of them — the list will grow.
  *
- * A place counts when the user has:
- *  - «Был здесь» on a resort of the place (catalog id, or the resort's name/alias near the place — ids can change), or
- *  - a visited city of the place (name near the place, or any city inside an area such as Hokkaido).
+ * Only ski resorts with «Был здесь» count: a city visited on a trip is not riding (a summer week in Красная Поляна
+ * must not give «Russian Luxury»). A place counts by the resort's catalog id, or by its name/alias near the place
+ * (ids can change), or for an area (Hokkaido) by any resort inside it.
  * An achievement with several places («Кавказский движ») needs all of them.
  *
- * To add one: a new entry in RIDER_ACHIEVEMENTS. `icon` is an emoji, or `svg:<name>` for a picture from ui/AchIcon.tsx.
+ * Two kinds: RIDER_ACHIEVEMENTS (named places) and RIDER_COUNTERS (computed from the visited resorts: number of
+ * resorts, countries, the highest top…). To add one: a new entry in either list. `icon` is an emoji, or `svg:<name>`
+ * for a picture from ui/AchIcon.tsx.
  */
 
 export interface RiderPlace {
@@ -126,12 +127,28 @@ export const RIDER_ACHIEVEMENTS: RiderAchievementDef[] = [
   },
 ];
 
-export interface RiderAchievement extends RiderAchievementDef {
-  /** Places already visited, in the order of `places`. */
-  got: boolean[];
+/** One place of a named achievement in the window: ✓/○ and the resort that counted. */
+export interface RiderPlaceState {
+  label: string;
+  got: boolean;
+  /** The marked resort that gave the place, e.g. «Роза Хутор». */
+  via: string | null;
+}
+
+export interface RiderAchievement {
+  id: string;
+  icon: string;
+  title: string;
+  why: string;
+  /** Tile subtitle. */
+  tile: string;
   value: number;
   target: number;
   done: boolean;
+  /** Named achievements: their places. */
+  places?: RiderPlaceState[];
+  /** Counters: short «за что» lines. */
+  details?: string[];
 }
 
 /** A visited resort: the mark's id and, when the catalog is loaded, the resort itself. */
@@ -140,7 +157,7 @@ export interface VisitedResort {
   resort: Resort | null;
 }
 
-const located = (c: City): c is City & { lat: number; lon: number } => c.lat !== null && c.lon !== null;
+const resortTitle = (r: Resort | null, id: string) => (r ? r.nameRu || r.name : id);
 
 function close(p: RiderPlace, lat: number, lon: number): boolean {
   if (!p.near) return true;
@@ -153,26 +170,98 @@ function namesMatch(p: RiderPlace, names: ReadonlyArray<string | null | undefine
   return names.some((n) => !!n && want.has(normalize(n)));
 }
 
-export function placeVisited(p: RiderPlace, resorts: readonly VisitedResort[], cities: readonly City[]): boolean {
+/** The visited resort that makes the place count, or null. */
+export function placeResort(p: RiderPlace, resorts: readonly VisitedResort[]): VisitedResort | null {
   for (const v of resorts) {
-    if (p.resorts?.includes(v.id) || (v.resort && p.resorts?.includes(v.resort.id))) return true;
+    if (p.resorts?.includes(v.id) || (v.resort && p.resorts?.includes(v.resort.id))) return v;
     const r = v.resort;
     if (!r || r.countryId !== p.country) continue;
-    if (p.area?.(r.lat, r.lon)) return true;
-    if (namesMatch(p, [r.name, r.nameRu, ...r.aliases]) && close(p, r.lat, r.lon)) return true;
+    if (p.area?.(r.lat, r.lon)) return v;
+    if (namesMatch(p, [r.name, r.nameRu, ...r.aliases]) && close(p, r.lat, r.lon)) return v;
   }
-  for (const c of cities) {
-    if (c.countryId !== p.country || !located(c)) continue;
-    if (p.area?.(c.lat, c.lon)) return true;
-    if (namesMatch(p, [c.name]) && close(p, c.lat, c.lon)) return true;
-  }
-  return false;
+  return null;
 }
 
-export function riderAchievements(resorts: readonly VisitedResort[], cities: readonly City[]): RiderAchievement[] {
-  return RIDER_ACHIEVEMENTS.map((a) => {
-    const got = a.places.map((p) => placeVisited(p, resorts, cities));
-    const value = got.filter(Boolean).length;
-    return { ...a, got, value, target: a.places.length, done: value === a.places.length };
+// ---------- counters: computed from all visited resorts (need the catalog for heights, km, countries)
+
+interface Counter {
+  id: string;
+  icon: string;
+  title: string;
+  why: string;
+  /** Short line on the tile. */
+  tile: string;
+  target: number;
+  /** Progress and the «за что» lines. */
+  run: (rs: ReadonlyArray<{ id: string; r: Resort | null }>, countryName: (id: string) => string) => { value: number; details: string[] };
+}
+
+const known = (rs: ReadonlyArray<{ id: string; r: Resort | null }>) => rs.map((x) => x.r).filter((r): r is Resort => !!r);
+const count = (rs: ReadonlyArray<{ id: string; r: Resort | null }>) => ({ value: rs.length, details: rs.length <= 6 ? rs.map((x) => resortTitle(x.r, x.id)) : [] });
+const best = (pick: (r: Resort) => number | null, ok: (v: number) => boolean, show: (r: Resort, v: number) => string) =>
+  (rs: ReadonlyArray<{ id: string; r: Resort | null }>) => {
+    const hits = known(rs)
+      .map((r) => ({ r, v: pick(r) }))
+      .filter((x): x is { r: Resort; v: number } => x.v !== null && ok(x.v))
+      .sort((a, b) => b.v - a.v);
+    return { value: hits.length ? 1 : 0, details: hits.slice(0, 3).map((x) => show(x.r, x.v)) };
+  };
+const ALPS: Array<[string, string, (r: Resort) => boolean]> = [
+  ['FR', 'Франция', (r) => r.lat >= 44 && r.lon >= 5.5],
+  ['CH', 'Швейцария', () => true],
+  ['AT', 'Австрия', () => true],
+  ['IT', 'Италия', (r) => r.lat >= 45.4],
+];
+
+export const RIDER_COUNTERS: Counter[] = [
+  { id: 'rider-5', icon: '🎿', title: 'Курортный сезон', tile: '5 курортов', why: '«Был здесь» на пяти курортах.', target: 5, run: count },
+  { id: 'rider-15', icon: '🏂', title: 'Коллекционер склонов', tile: '15 курортов', why: '«Был здесь» на пятнадцати курортах.', target: 15, run: count },
+  { id: 'rider-30', icon: '🗻', title: 'Горный кочевник', tile: '30 курортов', why: '«Был здесь» на тридцати курортах.', target: 30, run: count },
+  {
+    id: 'rider-countries', icon: '🛂', title: 'Без границ', tile: 'Курорты в 5 странах', why: 'Курорты в пяти разных странах.', target: 5,
+    run: (rs, name) => {
+      const ids = [...new Set(known(rs).map((r) => r.countryId))];
+      return { value: ids.length, details: ids.map(name) };
+    },
+  },
+  { id: 'rider-3000', icon: '☁️', title: 'Над облаками', tile: 'Курорт выше 3000 м', why: 'Курорт, где подъёмники забираются выше 3000 м.', target: 1, run: best((r) => r.elevMax, (v) => v >= 3000, (r, v) => `${resortTitle(r, r.id)} — ${v.toLocaleString('ru-RU')} м`) },
+  { id: 'rider-300km', icon: '🛣️', title: 'Бесконечные трассы', tile: 'Курорт с 300+ км трасс', why: 'Курорт, где больше 300 км трасс.', target: 1, run: best((r) => r.pisteKm, (v) => v >= 300, (r, v) => `${resortTitle(r, r.id)} — ${Math.round(v)} км`) },
+  {
+    id: 'rider-alps', icon: '🧀', title: 'Альпийская четвёрка', tile: 'Франция, Швейцария, Австрия, Италия', why: 'Альпы во всех четырёх странах: Франция, Швейцария, Австрия и Италия.', target: 4,
+    run: (rs) => {
+      const got = ALPS.filter(([c, , inAlps]) => known(rs).some((r) => r.countryId === c && inAlps(r))).map(([, label]) => label);
+      return { value: got.length, details: got };
+    },
+  },
+  { id: 'rider-polar', icon: '❄️', title: 'Полярный райдер', tile: 'За полярным кругом', why: 'Курорт за полярным кругом.', target: 1, run: best((r) => r.lat, (v) => v >= 66.56, (r) => resortTitle(r, r.id)) },
+  { id: 'rider-south', icon: '🐧', title: 'Лето — это зима', tile: 'Южное полушарие', why: 'Курорт в южном полушарии: Анды, Новая Зеландия, Австралия…', target: 1, run: best((r) => -r.lat, (v) => v > 0, (r) => resortTitle(r, r.id)) },
+  {
+    id: 'rider-america', icon: '🦅', title: 'Американ дрим', tile: 'США или Канада', why: 'Курорт в США или Канаде.', target: 1,
+    run: (rs) => {
+      const hits = known(rs).filter((r) => r.countryId === 'US' || r.countryId === 'CA');
+      return { value: hits.length ? 1 : 0, details: hits.slice(0, 3).map((r) => resortTitle(r, r.id)) };
+    },
+  },
+];
+
+export function riderAchievements(resorts: readonly VisitedResort[], countryName: (id: string) => string = (id) => id): RiderAchievement[] {
+  const named: RiderAchievement[] = RIDER_ACHIEVEMENTS.map((a) => {
+    const places = a.places.map((p) => {
+      const v = placeResort(p, resorts);
+      return { label: p.label, got: !!v, via: v ? resortTitle(v.resort, v.id) : null };
+    });
+    const value = places.filter((p) => p.got).length;
+    return { id: a.id, icon: a.icon, title: a.title, why: a.why, tile: a.places.map((p) => p.label).join(', '), places, value, target: places.length, done: value === places.length };
   });
+  // One resort once, even when it is marked under an old and a new id.
+  const seen = new Set<string>();
+  const unique = resorts.filter((v) => {
+    const key = v.resort?.id ?? v.id;
+    return !seen.has(key) && !!seen.add(key);
+  }).map((v) => ({ id: v.id, r: v.resort }));
+  const counters: RiderAchievement[] = RIDER_COUNTERS.map((c) => {
+    const { value, details } = c.run(unique, countryName);
+    return { id: c.id, icon: c.icon, title: c.title, why: c.why, tile: c.tile, details, value: Math.min(value, c.target), target: c.target, done: value >= c.target };
+  });
+  return [...named, ...counters];
 }

@@ -110,20 +110,74 @@ export interface Achievement {
   value: number;
   target: number;
   done: boolean;
+  /**
+   * Short «за что» list for the window (the city beyond the polar circle, the continents…). Undefined — the achievement
+   * is a plain counter (100 cities) and its tile does not open: the list would be too long to be useful.
+   */
+  details?: string[];
 }
 
-export function achievements(f: Facts, world: WorldState, cities: ReadonlyMap<string, City>, extra: { tripsCreated: number; diary: number; expenses: number }): Achievement[] {
+/** More data for the newer achievements; everything is optional so old callers keep working. */
+export interface AchievementExtra {
+  tripsCreated: number;
+  diary: number;
+  expenses: number;
+  /** Country names (the windows show names, not codes). */
+  countryName?: (id: string) => string;
+  /** Years per visited country (domain/years.ts). */
+  years?: ReadonlyMap<string, { all: number[] }>;
+  trips?: readonly Trip[];
+  stops?: readonly TripStop[];
+  home?: City | null;
+}
+
+const MAX_DETAILS = 6;
+/** At most six lines, then «и ещё N». */
+export function shortList(items: readonly string[]): string[] {
+  if (items.length <= MAX_DETAILS) return [...items];
+  return [...items.slice(0, MAX_DETAILS - 1), `и ещё ${items.length - (MAX_DETAILS - 1)}`];
+}
+
+const TROPIC = 23.44;
+const POLAR = 66.56;
+
+export function achievements(f: Facts, world: WorldState, cities: ReadonlyMap<string, City>, extra: AchievementExtra): Achievement[] {
+  const name = extra.countryName ?? ((id: string) => id);
   const visitedCities = [...world.visitedCityIds].map((id) => cities.get(id)).filter(located);
   const lats = visitedCities.map((c) => c.lat as number);
   const lons = visitedCities.map((c) => c.lon as number);
-  const islands = [...world.visitedCountryIds].filter((id) => ISLAND_NATIONS.has(id)).length;
-  const micro = [...world.visitedCountryIds].filter((id) => MICROSTATES.has(id)).length;
-  const inhabited = f.continents.filter((c) => (INHABITED_CONTINENTS as readonly string[]).includes(c)).length;
-  const a = (id: string, icon: string, title: string, hint: string, value: number, target: number): Achievement => ({
-    id, icon, title, hint, value: Math.min(value, target), target, done: value >= target,
+  const islandIds = [...world.visitedCountryIds].filter((id) => ISLAND_NATIONS.has(id));
+  const microIds = [...world.visitedCountryIds].filter((id) => MICROSTATES.has(id));
+  const islands = islandIds.length;
+  const micro = microIds.length;
+  const inhabitedList = f.continents.filter((c) => (INHABITED_CONTINENTS as readonly string[]).includes(c));
+  const inhabited = inhabitedList.length;
+  const cityLabel = (c: City) => `${c.name}, ${name(c.countryId)}`;
+  const firstCity = (test: (c: City & { lat: number; lon: number }) => boolean) => visitedCities.filter(test).map(cityLabel);
+  const a = (id: string, icon: string, title: string, hint: string, value: number, target: number, details?: string[]): Achievement => ({
+    id, icon, title, hint, value: Math.min(value, target), target, done: value >= target, ...(details ? { details: shortList(details) } : {}),
   });
+
+  // ---- data for the newer achievements
+  const firstCountry = [...world.firstVisitByCountry.entries()].sort((x, y) => x[1].localeCompare(y[1]))[0]?.[0];
+  const perYear = new Map<number, string[]>();
+  for (const [id, y] of extra.years ?? []) for (const year of y.all) perYear.set(year, [...(perYear.get(year) ?? []), id]);
+  const busiest = [...perYear.entries()].sort((x, y) => y[1].length - x[1].length || y[0] - x[0])[0];
+  const yearsList = [...perYear.keys()].sort((x, y) => x - y);
+  const returns = [...(extra.years ?? [])].filter(([, y]) => y.all.length >= 3).sort((x, y) => y[1].all.length - x[1].all.length);
+  const mostYears = Math.max(0, ...[...(extra.years ?? [])].map(([, y]) => y.all.length));
+  const home = extra.home && located(extra.home) ? extra.home : null;
+  const far = home ? visitedCities.filter((c) => distanceKm(home, c) >= 10000) : [];
+  const farthestKm = f.farthestFromHome?.km ?? 0;
+  const tripCountries = (extra.trips ?? []).map((t) => {
+    const ids = new Set((extra.stops ?? []).filter((s) => s.tripId === t.id).map((s) => cities.get(s.cityId)?.countryId).filter((x): x is string => !!x));
+    return { title: t.title, ids: [...ids] };
+  }).sort((x, y) => y.ids.length - x.ids.length);
+  const bestTrip = tripCountries[0];
+  const americas = (['Северная Америка', 'Южная Америка'] as const).filter((c) => f.continents.includes(c));
+
   return [
-    a('first', '🛂', 'Первый штамп', 'Отметьте первую страну', f.countries, 1),
+    a('first', '🛂', 'Первый штамп', 'Отметьте первую страну', f.countries, 1, firstCountry ? [`Первая по дате — ${name(firstCountry)}`] : f.countries === 1 ? [...world.visitedCountryIds].map(name) : undefined),
     a('c5', '🧭', 'Путешественник', '5 стран', f.countries, 5),
     a('c10', '🗺️', 'Исследователь', '10 стран', f.countries, 10),
     a('c25', '✈️', 'Глобтроттер', '25 стран', f.countries, 25),
@@ -132,16 +186,33 @@ export function achievements(f: Facts, world: WorldState, cities: ReadonlyMap<st
     a('city10', '🏙️', 'Горожанин', '10 городов', f.cities, 10),
     a('city50', '🌆', 'Мегаполис', '50 городов', f.cities, 50),
     a('city100', '🌃', 'Сто городов', '100 городов', f.cities, 100),
-    a('cont3', '🧳', 'Три континента', 'Побывать на трёх континентах', inhabited, 3),
-    a('cont6', '🌐', 'Шесть континентов', 'Все обитаемые континенты', inhabited, 6),
-    a('equator', '🌗', 'Через экватор', 'Города в северном и южном полушариях', Number(lats.some((x) => x > 0)) + Number(lats.some((x) => x < 0)), 2),
-    a('meridian', '🕐', 'Запад и Восток', 'Города в западном и восточном полушариях', Number(lons.some((x) => x > 0)) + Number(lons.some((x) => x < 0)), 2),
-    a('polar', '❄️', 'Полярник', 'Город за полярным кругом', Number(lats.some((x) => Math.abs(x) >= 66.56)), 1),
-    a('islands', '🏝️', 'Островитянин', '3 островных государства', islands, 3),
-    a('micro', '🏰', 'Карликовые государства', '3 из: Ватикан, Монако, Сан-Марино, Лихтенштейн, Андорра, Мальта', micro, 3),
+    a('cont3', '🧳', 'Три континента', 'Побывать на трёх континентах', inhabited, 3, inhabitedList),
+    a('cont6', '🌐', 'Шесть континентов', 'Все обитаемые континенты', inhabited, 6, inhabitedList),
+    a('equator', '🌗', 'Через экватор', 'Города в северном и южном полушариях', Number(lats.some((x) => x > 0)) + Number(lats.some((x) => x < 0)), 2, [
+      ...(f.north && (f.north.lat as number) > 0 ? [`Север: ${cityLabel(f.north)}`] : []),
+      ...(f.south && (f.south.lat as number) < 0 ? [`Юг: ${cityLabel(f.south)}`] : []),
+    ]),
+    a('meridian', '🕐', 'Запад и Восток', 'Города в западном и восточном полушариях', Number(lons.some((x) => x > 0)) + Number(lons.some((x) => x < 0)), 2, [
+      ...firstCity((c) => c.lon < 0).slice(0, 1).map((x) => `Запад: ${x}`),
+      ...firstCity((c) => c.lon > 0).slice(0, 1).map((x) => `Восток: ${x}`),
+    ]),
+    a('polar', '❄️', 'Полярник', 'Город за полярным кругом', Number(lats.some((x) => Math.abs(x) >= POLAR)), 1, firstCity((c) => Math.abs(c.lat) >= POLAR)),
+    a('islands', '🏝️', 'Островитянин', '3 островных государства', islands, 3, islandIds.map(name)),
+    a('micro', '🏰', 'Карликовые государства', '3 из: Ватикан, Монако, Сан-Марино, Лихтенштейн, Андорра, Мальта', micro, 3, microIds.map(name)),
     a('earth', '🛰️', 'Вокруг света', `${EARTH_KM.toLocaleString('ru-RU')} км по маршрутам`, f.routeKm, EARTH_KM),
     a('planner', '📋', 'Планировщик', '3 поездки в приложении', extra.tripsCreated, 3),
     a('diary', '📔', 'Летописец', '10 записей в дневнике', extra.diary, 10),
     a('money', '🧾', 'Бухгалтер', '20 расходов в поездках', extra.expenses, 20),
+    // ---- added 2026-11: years, latitudes, distance from home, trips
+    a('year5', '📅', 'Насыщенный год', '5 стран за один год', busiest?.[1].length ?? 0, 5, busiest ? [`${busiest[0]}: ${busiest[1].map(name).join(', ')}`] : []),
+    a('year10', '🚀', 'Год в пути', '10 стран за один год', busiest?.[1].length ?? 0, 10, busiest ? [`${busiest[0]} — ${busiest[1].length} стран`] : []),
+    a('seasons', '🗓️', 'Стаж', 'Путешествия в пяти разных годах', yearsList.length, 5, yearsList.length ? [yearsList.join(', ')] : []),
+    a('return', '🔁', 'Сюда я вернусь', 'Одна страна в трёх разных годах', mostYears, 3, returns.map(([id, y]) => `${name(id)}: ${y.all.join(', ')}`)),
+    a('tropics', '🌴', 'Под солнцем тропиков', 'Город между тропиками', Number(lats.some((x) => Math.abs(x) < TROPIC)), 1, firstCity((c) => Math.abs(c.lat) < TROPIC)),
+    a('south35', '🐧', 'Южный крест', 'Город южнее 35° ю. ш.', Number(lats.some((x) => x <= -35)), 1, firstCity((c) => c.lat <= -35)),
+    a('americas', '🌎', 'Обе Америки', 'Северная и Южная Америка', americas.length, 2, [...americas]),
+    a('far10k', '📏', 'На край света', home ? 'Город дальше 10 000 км от дома' : 'Город дальше 10 000 км от дома (укажите домашний город)', Math.min(farthestKm, 10000), 10000, home ? far.map((c) => `${cityLabel(c)} — ${Math.round(distanceKm(home, c)).toLocaleString('ru-RU')} км`) : []),
+    a('deep', '🏘️', 'Знаток страны', '10 городов в одной стране', f.topCountry?.cities ?? 0, 10, f.topCountry ? [`${name(f.topCountry.id)} — ${f.topCountry.cities}`] : []),
+    a('multi', '🚂', 'Мультивиза', 'Одна поездка через три страны', bestTrip?.ids.length ?? 0, 3, bestTrip && bestTrip.ids.length > 1 ? [`${bestTrip.title}: ${bestTrip.ids.map(name).join(', ')}`] : []),
   ];
 }

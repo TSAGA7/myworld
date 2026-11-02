@@ -16,8 +16,7 @@ import { ShareCardSheet } from './ShareCard';
 import { useFacts } from './useFacts';
 import { travelerStatus } from '../../domain/status';
 import { Hobbies } from './Hobbies';
-import { AchievementInfo, AchTile, RiderAchievements } from './AchievementInfo';
-import type { Achievement } from '../../domain/achievements';
+import { AchSection, fromTravel, RiderAchievements } from './AchievementInfo';
 
 const km = (n: number) => `${Math.round(n).toLocaleString('ru-RU')} км`;
 
@@ -28,11 +27,6 @@ export function Profile({ onSettings }: { onSettings: () => void }) {
   const avatar = useAttachmentUrl(settings.avatarId);
   const [edit, setEdit] = useState(false);
   const [share, setShare] = useState(false);
-  const [showAll, setShowAll] = useState(false);
-  const [openAch, setOpenAch] = useState<Achievement | null>(null);
-  const done = achievements.filter((a) => a.done);
-  const next = achievements.filter((a) => !a.done).sort((a, b) => b.value / b.target - a.value / a.target);
-  const shown = showAll ? [...done, ...next] : [...done.slice(-3), ...next.slice(0, 3)];
   const initials = (settings.name || 'Путешественник').split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase();
 
   const pickAvatar = async (f: File | undefined) => {
@@ -170,23 +164,7 @@ export function Profile({ onSettings }: { onSettings: () => void }) {
           </section>
         )}
 
-        <section className="stack tight">
-          <div className="section-title">
-            <h2 className="h2">Достижения</h2>
-            <span className="muted small num">
-              {done.length} из {achievements.length}
-            </span>
-          </div>
-          <div className="ach-grid">
-            {shown.map((a) => (
-              <AchTile key={a.id} a={a} onOpen={() => setOpenAch(a)} />
-            ))}
-          </div>
-          <button type="button" className="link-btn" style={{ justifySelf: 'start' }} onClick={() => setShowAll((s) => !s)}>
-            {showAll ? 'Свернуть' : `Все достижения (${achievements.length})`}
-          </button>
-          {openAch && <AchievementInfo a={openAch} onClose={() => setOpenAch(null)} />}
-        </section>
+        <AchSection title="Достижения" list={achievements.map(fromTravel)} />
 
         <RiderAchievements />
 

@@ -64,6 +64,11 @@ public/data   cities.tsv (~194 тыс. городов GeoNames), regions/<стр
 Headless Chromium (Playwright, swiftshader) в песочнице рисует очень медленно — скриншот до 40 с, рывки анимации там нормальны.
 Логику проверять юнит-тестами, скриншоты — только ключевых экранов (iPhone 390×844). Внешние сайты из песочницы недоступны — мокать.
 
+## Достижения
+- Путешествия — `domain/achievements.ts` (`details` — короткое «за что» для окна; без `details` плитка не открывается: счётчики вроде «100 городов»). Райдер — `domain/riderAchievements.ts`: именные (`RIDER_ACHIEVEMENTS`, места по id/названию курорта) и счётчики (`RIDER_COUNTERS`); считаются только курорты с «Был здесь», города из поездок — нет.
+- Экран: `screens/profile/AchievementInfo.tsx` (окно в центре, сетка); свёрнутый вид — полученные + начатые, у «лестниц» (5→10→25 стран) только следующая ступень — `domain/achievementView.ts`.
+- Годы посещения страны — `visits.years` (Dexie v4) + даты и поездки, логика — `domain/years.ts`, выбор — `ui/YearPicker.tsx`.
+
 ## Увлечения (Rider / Surf)
 - Настройки `riderType` ('ski' | 'snowboard' | null — лыжи и борд одновременно невозможны по типу), `surf`, `travelTracking` (в `Settings`). Профиль — `screens/profile/Hobbies.tsx` (выбор, шутки владельца в `domain/hobby.ts` → `RIDER_JOKE`, не использовать как советы).
 - Отметки — таблица `hobby` (Dexie v3): `key` = `${what}:${kind}:${placeId}`, what = 'visit' | 'fav', kind = 'resort' | 'spot'. Выключение увлечения их не трогает. «Был здесь» при включённом учёте путешествий отмечает и страну (`store.markHobby`).

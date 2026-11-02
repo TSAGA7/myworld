@@ -68,6 +68,32 @@ describe('facts and achievements', () => {
     expect(a.get('equator')?.done).toBe(true);
     expect(a.get('c5')?.value).toBe(3);
     expect(a.get('c5')?.done).toBe(false);
+    // Short «за что» only where it is short; counters have none and do not open.
+    expect(a.get('polar')?.details).toEqual(['trom, NO']);
+    expect(a.get('c5')?.details).toBeUndefined();
+    expect(a.get('city100')?.details).toBeUndefined();
+  });
+  it('unlocks the newer achievements from years, latitudes and trips', () => {
+    const years = new Map([
+      ['IT', { all: [2019, 2022, 2026] }],
+      ['BR', { all: [2026] }],
+      ['NO', { all: [2026, 2024] }],
+    ]);
+    const a = new Map(
+      achievements(f, world, cities, { tripsCreated: 1, diary: 0, expenses: 0, countryName: (id) => id, years, trips: [{ ...trip, title: 'Рим и север' }], stops, home: cities.get('msk')! }).map((x) => [x.id, x]),
+    );
+    expect(a.get('year5')?.value).toBe(3);
+    expect(a.get('year5')?.details).toEqual(['2026: IT, BR, NO']);
+    expect(a.get('return')?.done).toBe(true);
+    expect(a.get('return')?.details).toEqual(['IT: 2019, 2022, 2026']);
+    expect(a.get('seasons')?.value).toBe(4);
+    expect(a.get('tropics')?.done).toBe(true);
+    expect(a.get('far10k')?.done).toBe(true);
+    expect(a.get('far10k')?.details?.[0]).toMatch(/^rio, BR — 11\s545 км$/);
+    expect(a.get('multi')?.value).toBe(2);
+    expect(a.get('multi')?.details).toEqual(['Рим и север: IT, NO']);
+    expect(a.get('south35')?.done).toBe(false);
+    expect(a.get('americas')?.value).toBe(1);
   });
 });
 

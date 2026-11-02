@@ -736,3 +736,5 @@ button.ach:active { transform: scale(0.98); }
 .ach-places { display: grid; gap: 6px; margin-top: 2px; }
 .ach-places span { color: var(--ink-3); }
 .ach-places span.got { color: var(--ink); font-weight: 600; }
+.section-title .tight-row { gap: 10px; align-items: baseline; }
+.section-title .tight-row { white-space: nowrap; flex: none; }
