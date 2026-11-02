@@ -86,7 +86,7 @@ describe('world statistics', () => {
     { id: 'GL', m195: false, un: false, type: 'Country' },
   ] as CountryRef[];
   const visit = (key: string, cityId: string | null, countryId: string, date: string | null = null): Visit => ({
-    id: key, key, cityId, countryId, date, tripIds: [], manual: true, createdAt: NOW, updatedAt: NOW,
+    id: key, key, cityId, countryId, date, tripIds: [], years: [], manual: true, createdAt: NOW, updatedAt: NOW,
   });
 
   it('counts unique countries and cities, visits beat plans', () => {
@@ -124,7 +124,7 @@ describe('trip → map', () => {
       { id: 'old', key: 'city:milan', cityId: 'milan', countryId: 'IT', tripIds: ['t0'], manual: false, createdAt: NOW, updatedAt: NOW },
     ];
     const visits: Visit[] = [
-      { id: 'v', key: 'city:florence', cityId: 'florence', countryId: 'IT', date: '2015-01-01', tripIds: [], manual: true, createdAt: NOW, updatedAt: NOW },
+      { id: 'v', key: 'city:florence', cityId: 'florence', countryId: 'IT', date: '2015-01-01', tripIds: [], years: [], manual: true, createdAt: NOW, updatedAt: NOW },
     ];
     const pv = previewAddToMap(t, STOPS, plans, visits);
     expect(pv.added).toBe(2); // rome, zurich
@@ -145,7 +145,7 @@ describe('trip → map', () => {
   it('marks only selected places visited, keeps existing dates unless asked, and is idempotent', () => {
     const t = trip();
     let visits: Visit[] = [
-      { id: 'v', key: 'city:florence', cityId: 'florence', countryId: 'IT', date: '2015-01-01', tripIds: [], manual: true, createdAt: NOW, updatedAt: NOW },
+      { id: 'v', key: 'city:florence', cityId: 'florence', countryId: 'IT', date: '2015-01-01', tripIds: [], years: [], manual: true, createdAt: NOW, updatedAt: NOW },
     ];
     const items = previewMarkVisited(t, STOPS, visits);
     const florence = items.find((i) => i.key === 'city:florence');

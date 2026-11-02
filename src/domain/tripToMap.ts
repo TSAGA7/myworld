@@ -141,6 +141,7 @@ export function buildMarkVisited(
         countryId: item.countryId,
         date: item.proposedDate,
         tripIds: [trip.id],
+        years: [],
         manual: false,
         createdAt: now,
         updatedAt: now,

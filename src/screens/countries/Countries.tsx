@@ -41,7 +41,7 @@ export function Countries({
   route: string[];
   onSettings: () => void;
 }) {
-  const { world, settings, trips } = useWorld();
+  const { world, settings, trips, years: yearsOf } = useWorld();
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [sort, setSort] = useState<Sort>("az");
@@ -344,7 +344,11 @@ export function Countries({
                     cities
                       ? countLabel(cities, "город", "города", "городов")
                       : null,
-                    first ? `с ${formatDate(first)}` : null,
+                    yearsOf.get(c.id)?.all.length
+                      ? `в ${yearsOf.get(c.id)?.all.join(", ")}`
+                      : first
+                        ? `с ${formatDate(first)}`
+                        : null,
                     tc ? countLabel(tc, "поездка", "поездки", "поездок") : null,
                     !inMethodology(c, m) ? "не входит в счёт" : null,
                   ].filter(Boolean);

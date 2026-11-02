@@ -47,6 +47,8 @@ export const visitSchema = z.object({
   date: optDate,
   /** Trips that confirmed this visit. */
   tripIds: z.array(z.string()).default([]),
+  /** Years the user named by hand («был в 2022 и 2023»); dates and trips add their own years on top. */
+  years: z.array(z.number().int()).default([]),
   manual: z.boolean().default(false),
   ...stamps,
 });

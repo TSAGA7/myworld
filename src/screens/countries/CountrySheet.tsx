@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { markCity, toggleCityVisited, markCountry, tripsForCountry, unmarkCity, unmarkCountry } from '../../app/actions';
 import { focusOnMap, go } from '../../app/router';
 import { useToast } from '../../app/toast';
-import { been, useWorld } from '../../app/world';
+import { been, store, useWorld } from '../../app/world';
 import { countLabel, formatDate, formatRange } from '../../domain/dates';
 import { inMethodology, METHODOLOGY_INFO } from '../../domain/world';
 import { catalogToCity } from '../../geo/catalog';
@@ -10,14 +10,17 @@ import { COUNTRY_BY_ID } from '../../geo/reference';
 import { Icon } from '../../ui/Icon';
 import { Confirm, Flag, Sheet } from '../../ui/kit';
 import { PlaceSearch } from '../../ui/PlaceSearch';
+import { YearPicker } from '../../ui/YearPicker';
 import { StatusPill } from '../planet/PlaceCard';
 
 /** Country details: status, its cities on the map, trips, and the actions to change them. */
 export function CountrySheet({ countryId, onClose }: { countryId: string; onClose: () => void }) {
-  const { world, cities, visits, trips, settings } = useWorld();
+  const { world, cities, visits, trips, settings, years: allYears } = useWorld();
   const toast = useToast();
   const [adding, setAdding] = useState(false);
   const [confirm, setConfirm] = useState(false);
+  const [picker, setPicker] = useState<'add' | 'edit' | null>(null);
+  const years = allYears.get(countryId);
   const c = COUNTRY_BY_ID.get(countryId);
   if (!c) {
     return (
@@ -54,10 +57,17 @@ export function CountrySheet({ countryId, onClose }: { countryId: string; onClos
       }
     >
       <div className="row wrap">
-        <StatusPill status={status} feminine />
+        <StatusPill status={status} feminine years={status === 'visited' ? (years?.all ?? []) : []} />
         <span className="pill">{c.continent}</span>
         {!counted && <span className="pill outline">не входит в «{METHODOLOGY_INFO[settings.methodology].title}»</span>}
       </div>
+      {status === 'visited' && (
+        <button type="button" className="date-line left-btn" onClick={() => setPicker('edit')}>
+          <Icon name="calendar" size={18} />
+          <span className="grow">{years?.all.length ? `${years.all.length > 1 ? 'Годы' : 'Год'} посещения: ${years.all.join(', ')}` : 'Год посещения не указан'}</span>
+          <span className="link-btn">{years?.all.length ? 'Изменить' : 'Указать'}</span>
+        </button>
+      )}
       {(visitedCities > 0 || first) && (
         <p className="muted" style={{ margin: 0 }}>
           {visitedCities > 0 ? `Посещено ${countLabel(visitedCities, 'город', 'города', 'городов')}. ` : ''}
@@ -67,7 +77,7 @@ export function CountrySheet({ countryId, onClose }: { countryId: string; onClos
       <div className="row">
         {status !== 'visited' ? (
           settings.travelTracking && (
-            <button type="button" className="btn lime grow" onClick={() => void markCountry(toast, countryId, 'visited')}>
+            <button type="button" className="btn lime grow" onClick={() => setPicker('add')}>
               <Icon name="flag" size={18} /> Отметить посещённой
             </button>
           )
@@ -163,6 +173,20 @@ export function CountrySheet({ countryId, onClose }: { countryId: string; onClos
           danger
           onConfirm={() => unmarkCountry(toast, countryId, 'visited', true)}
           onClose={() => setConfirm(false)}
+        />
+      )}
+      {picker && (
+        <YearPicker
+          title={c.ru}
+          mode={picker}
+          initial={years?.manual ?? []}
+          locked={years?.derived ?? []}
+          onClose={() => setPicker(null)}
+          onDone={async (y) => {
+            setPicker(null);
+            if (picker === 'add') await markCountry(toast, countryId, 'visited', y);
+            else await store.setCountryYears(countryId, y);
+          }}
         />
       )}
     </Sheet>

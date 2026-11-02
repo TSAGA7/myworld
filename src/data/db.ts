@@ -97,10 +97,18 @@ export class WorldDb extends Dexie {
       });
     // v3: hobby marks (ski resorts, surf spots) and the offline copy of their catalogs. Nothing existing changes.
     this.version(3).stores({ hobby: 'id, &key, kind, placeId', catalog: 'name' });
+    // v4: visits get the years the user named by hand. Indexes stay the same.
+    this.version(4)
+      .stores({})
+      .upgrade(async (tx) => {
+        await tx.table('visits').toCollection().modify((v: Record<string, unknown>) => {
+          if (!Array.isArray(v.years)) v.years = [];
+        });
+      });
   }
 }
 
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 /** Tables holding user records, in export order. */
 export const USER_TABLES = ['cities', 'visits', 'plans', 'trips', 'stops', 'transport', 'stays', 'bookings', 'notes', 'attachments', 'tasks', 'meta', 'expenses', 'diary', 'guides', 'hobby'] as const;

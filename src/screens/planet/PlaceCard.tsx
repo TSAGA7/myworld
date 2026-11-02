@@ -10,10 +10,12 @@ import type { PlaceStatus } from '../../domain/world';
 import { COUNTRY_BY_ID, countryName } from '../../geo/reference';
 import { Icon } from '../../ui/Icon';
 import { Confirm, Flag } from '../../ui/kit';
+import { YearPicker } from '../../ui/YearPicker';
+import { visitedLabel } from '../../domain/years';
 
-export function StatusPill({ status, feminine = false }: { status: PlaceStatus; feminine?: boolean }) {
+export function StatusPill({ status, feminine = false, years = [] }: { status: PlaceStatus; feminine?: boolean; years?: readonly number[] }) {
   if (status === 'none') return <span className="pill">Нет отметки</span>;
-  const text = status === 'visited' ? (feminine ? 'Посещена' : 'Посещён') : feminine ? 'Запланирована' : 'Запланирован';
+  const text = status === 'visited' ? visitedLabel(years, feminine) : feminine ? 'Запланирована' : 'Запланирован';
   return (
     <span className={`pill ${status === 'visited' ? 'lime' : 'dark'}`}>
       <Icon name={status === 'visited' ? 'check' : 'calendar'} size={14} weight={2.2} />
@@ -111,9 +113,11 @@ export function CityCard({ city, onClose }: { city: CityInput; onClose: () => vo
 }
 
 export function CountryCard({ countryId, onClose }: { countryId: string; onClose: () => void }) {
-  const { world, trips, settings } = useWorld();
+  const { world, trips, settings, years: allYears } = useWorld();
   const toast = useToast();
   const [confirm, setConfirm] = useState(false);
+  const [picker, setPicker] = useState<'add' | 'edit' | null>(null);
+  const years = allYears.get(countryId);
   const c = COUNTRY_BY_ID.get(countryId);
   const status = world.countryStatus.get(countryId) ?? 'none';
   const cities = world.visitedCitiesByCountry.get(countryId) ?? 0;
@@ -135,14 +139,19 @@ export function CountryCard({ countryId, onClose }: { countryId: string; onClose
         </button>
       </header>
       <div className="row wrap">
-        <StatusPill status={status} feminine />
+        <StatusPill status={status} feminine years={status === 'visited' ? (years?.all ?? []) : []} />
         {cities > 0 && <span className="pill">{countLabel(cities, 'город', 'города', 'городов')}</span>}
-        {first && <span className="pill">с {formatDate(first)}</span>}
+        {first && !years?.all.length && <span className="pill">с {formatDate(first)}</span>}
+        {status === 'visited' && (
+          <button type="button" className="pill outline" onClick={() => setPicker('edit')}>
+            {years?.all.length ? 'Годы' : '+ год'}
+          </button>
+        )}
       </div>
       <TripLinks ids={related} />
       <div className="row card-actions">
         {status !== 'visited' && settings.travelTracking && (
-          <button type="button" className="btn lime grow" onClick={() => void markCountry(toast, countryId, 'visited')}>
+          <button type="button" className="btn lime grow" onClick={() => setPicker('add')}>
             <Icon name="flag" size={18} /> {been(settings.gender).here}
           </button>
         )}
@@ -173,6 +182,20 @@ export function CountryCard({ countryId, onClose }: { countryId: string; onClose
           danger
           onConfirm={() => unmarkCountry(toast, countryId, 'visited', true)}
           onClose={() => setConfirm(false)}
+        />
+      )}
+      {picker && (
+        <YearPicker
+          title={c?.ru ?? countryId}
+          mode={picker}
+          initial={years?.manual ?? []}
+          locked={years?.derived ?? []}
+          onClose={() => setPicker(null)}
+          onDone={async (y) => {
+            setPicker(null);
+            if (picker === 'add') await markCountry(toast, countryId, 'visited', y);
+            else await store.setCountryYears(countryId, y);
+          }}
         />
       )}
     </article>

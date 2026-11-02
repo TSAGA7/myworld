@@ -5,7 +5,9 @@ import { been, setSetting, store, useWorld } from '../../app/world';
 import { countLabel, plural } from '../../domain/dates';
 import { INHABITED_CONTINENTS } from '../../domain/achievements';
 import { catalogToCity } from '../../geo/catalog';
-import { countryName } from '../../geo/reference';
+import { COUNTRY_BY_ID, countryName } from '../../geo/reference';
+import { inMethodology } from '../../domain/world';
+import { bestYear, countriesPerYear } from '../../domain/years';
 import { prepareFile, useAttachmentUrl } from '../../ui/files';
 import { Icon } from '../../ui/Icon';
 import { Field, Segmented, Sheet, Topo } from '../../ui/kit';
@@ -14,17 +16,20 @@ import { ShareCardSheet } from './ShareCard';
 import { useFacts } from './useFacts';
 import { travelerStatus } from '../../domain/status';
 import { Hobbies } from './Hobbies';
+import { AchievementInfo, AchTile, RiderAchievements } from './AchievementInfo';
+import type { Achievement } from '../../domain/achievements';
 
 const km = (n: number) => `${Math.round(n).toLocaleString('ru-RU')} км`;
 
 export function Profile({ onSettings }: { onSettings: () => void }) {
-  const { settings, trips } = useWorld();
+  const { settings, trips, years, world } = useWorld();
   const { progress, facts, achievements, home } = useFacts();
   const toast = useToast();
   const avatar = useAttachmentUrl(settings.avatarId);
   const [edit, setEdit] = useState(false);
   const [share, setShare] = useState(false);
   const [showAll, setShowAll] = useState(false);
+  const [openAch, setOpenAch] = useState<Achievement | null>(null);
   const done = achievements.filter((a) => a.done);
   const next = achievements.filter((a) => !a.done).sort((a, b) => b.value / b.target - a.value / a.target);
   const shown = showAll ? [...done, ...next] : [...done.slice(-3), ...next.slice(0, 3)];
@@ -53,7 +58,12 @@ export function Profile({ onSettings }: { onSettings: () => void }) {
     factRows.push({ icon: '❤️', text: `Больше всего городов — ${countryName(facts.topCountry.id)}: ${countLabel(facts.topCountry.cities, 'город', 'города', 'городов')}` });
   const liked = trips.filter((t) => t.favorite);
   if (liked.length) factRows.push({ icon: '♥️', text: `Любимые поездки: ${liked.map((t) => t.title).join(', ')}` });
-  if (facts.countriesThisYear > 0) factRows.push({ icon: '📆', text: `В этом году — ${countLabel(facts.countriesThisYear, 'страна', 'страны', 'стран')}` });
+  const counted = new Set([...world.visitedCountryIds].filter((id) => { const c = COUNTRY_BY_ID.get(id); return !!c && inMethodology(c, settings.methodology); }));
+  const perYear = countriesPerYear(years, counted);
+  const top = bestYear(perYear);
+  const thisYear = perYear.find((y) => y.year === new Date().getFullYear());
+  if (thisYear) factRows.push({ icon: '📆', text: `В этом году — ${countLabel(thisYear.countries, 'страна', 'страны', 'стран')}` });
+  if (top && perYear.length > 1) factRows.push({ icon: '🏆', text: `В ${top.year} больше всего стран — ${top.countries}` });
 
   return (
     <div className="screen profile-screen">
@@ -134,6 +144,32 @@ export function Profile({ onSettings }: { onSettings: () => void }) {
           </section>
         )}
 
+        {(perYear.length > 0 || counted.size > 0) && (
+          <section className="stack tight">
+            <div className="section-title">
+              <h2 className="h2">По годам</h2>
+              {top && <span className="muted small num">рекорд — {top.year}</span>}
+            </div>
+            {perYear.length > 0 ? (
+              <div className="list">
+                {perYear.map((y) => (
+                  <div key={y.year} className={`list-row year-row ${top?.year === y.year ? 'best' : ''}`}>
+                    <b className="num year-num">{y.year}</b>
+                    <div className="grow year-bar" aria-hidden="true">
+                      <i style={{ width: `${Math.max(6, (y.countries / (top?.countries ?? 1)) * 100)}%` }} />
+                    </div>
+                    <span className="num year-count">{countLabel(y.countries, 'страна', 'страны', 'стран')}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="faint small" style={{ margin: 0 }}>
+                Укажите год в карточке страны («Год посещения») — здесь появится, сколько стран вы посетили в каждом году.
+              </p>
+            )}
+          </section>
+        )}
+
         <section className="stack tight">
           <div className="section-title">
             <h2 className="h2">Достижения</h2>
@@ -143,24 +179,16 @@ export function Profile({ onSettings }: { onSettings: () => void }) {
           </div>
           <div className="ach-grid">
             {shown.map((a) => (
-              <div key={a.id} className={`ach ${a.done ? 'done' : ''}`}>
-                <span className="ach-ic" aria-hidden="true">
-                  {a.icon}
-                </span>
-                <b>{a.title}</b>
-                <span className="faint tiny">{a.hint}</span>
-                {!a.done && (
-                  <div className="meter thin" aria-label={`${a.value} из ${a.target}`}>
-                    <i style={{ width: `${(a.value / a.target) * 100}%` }} />
-                  </div>
-                )}
-              </div>
+              <AchTile key={a.id} a={a} onOpen={() => setOpenAch(a)} />
             ))}
           </div>
           <button type="button" className="link-btn" style={{ justifySelf: 'start' }} onClick={() => setShowAll((s) => !s)}>
             {showAll ? 'Свернуть' : `Все достижения (${achievements.length})`}
           </button>
+          {openAch && <AchievementInfo a={openAch} onClose={() => setOpenAch(null)} />}
         </section>
+
+        <RiderAchievements />
 
         <section className="list">
           <button type="button" className="list-row" onClick={() => go('trips')}>

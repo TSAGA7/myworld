@@ -1,5 +1,6 @@
 import type { CityInput, Undo } from '../data/store';
 import type { City, Trip, TripStop } from '../domain/model';
+import { visitedLabel } from '../domain/years';
 import { countryName } from '../geo/reference';
 import { setSetting, store } from './world';
 
@@ -38,10 +39,10 @@ export async function toggleCityVisited(toast: Toast, city: City | CityInput, vi
   else await markCity(toast, city, 'visited');
 }
 
-export async function markCountry(toast: Toast, countryId: string, status: 'visited' | 'planned') {
+export async function markCountry(toast: Toast, countryId: string, status: 'visited' | 'planned', years: readonly number[] = []) {
   if (status === 'visited' && (await trackingOff(toast))) return;
-  await store.markCountry(countryId, status);
-  toast(status === 'visited' ? `${countryName(countryId)}: посещена` : `${countryName(countryId)}: запланирована`);
+  await store.markCountry(countryId, status, null, years);
+  toast(status === 'visited' ? `${countryName(countryId)}: ${visitedLabel([...years].sort((a, b) => a - b), true).toLowerCase()}` : `${countryName(countryId)}: запланирована`);
 }
 
 export async function unmarkCountry(toast: Toast, countryId: string, what: 'visited' | 'planned', withCities: boolean) {

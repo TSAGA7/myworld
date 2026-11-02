@@ -42,7 +42,7 @@ interface Input {
   cities: ReadonlyMap<string, City>;
   trips: readonly Trip[];
   stops: readonly TripStop[];
-  visits: ReadonlyArray<{ countryId: string; date: string | null }>;
+  visits: ReadonlyArray<{ countryId: string; date: string | null; years?: readonly number[] }>;
   percent: number;
   home: City | null;
   today: string;
@@ -85,7 +85,7 @@ export function computeFacts(i: Input): Facts {
   let topCountry: Facts['topCountry'] = null;
   for (const [id, n] of i.world.visitedCitiesByCountry) if (!topCountry || n > topCountry.cities) topCountry = { id, cities: n };
   const year = i.today.slice(0, 4);
-  const thisYear = new Set(i.visits.filter((v) => v.date?.startsWith(year)).map((v) => v.countryId));
+  const thisYear = new Set(i.visits.filter((v) => v.date?.startsWith(year) || v.years?.includes(Number(year))).map((v) => v.countryId));
   return {
     countries: i.world.visitedCountryIds.size,
     cities: i.world.visitedCityIds.size,

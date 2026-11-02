@@ -244,3 +244,45 @@ describe('schema v2 and shared trips', () => {
     expect((await world()).visitedCountryIds.has('CH')).toBe(true);
   });
 });
+
+describe('visit years (schema v4)', () => {
+  it('upgrades v3 visits with an empty list of years', async () => {
+    const name = `v3-${n}`;
+    const old = new Dexie(name);
+    old.version(3).stores({ visits: 'id, &key, cityId, countryId' });
+    await old.table('visits').add({ id: 'v1', key: 'country:AU', cityId: null, countryId: 'AU', date: null, tripIds: [], manual: true, createdAt: 'x', updatedAt: 'x' });
+    old.close();
+    const upgraded = new WorldDb(name);
+    const v = await upgraded.visits.get('v1');
+    expect(v?.countryId).toBe('AU');
+    expect(v?.years).toEqual([]);
+  });
+
+  it('marks a country with years, edits them and keeps one record', async () => {
+    await store.markCountry('AU', 'visited', null, [2023, 2022, 2023]);
+    expect((await db.visits.toArray()).map((v) => v.years)).toEqual([[2022, 2023]]);
+    await store.markCountry('AU', 'visited');
+    await store.setCountryYears('AU', [2024]);
+    const all = await db.visits.toArray();
+    expect(all).toHaveLength(1);
+    expect(all[0]?.years).toEqual([2024]);
+  });
+
+  it('gives years to a country that is on the map only through its cities', async () => {
+    await store.markCity(ROME, 'visited');
+    await store.setCountryYears('IT', [2019]);
+    const it = await db.visits.where('countryId').equals('IT').toArray();
+    expect(it.map((v) => v.key).sort()).toEqual(['city:ne:1', 'country:IT']);
+    const undo = await store.unmarkCountry('IT', 'visited', true);
+    expect(undo.visits).toHaveLength(2);
+    expect(await db.visits.count()).toBe(0);
+  });
+
+  it('keeps years through a backup', async () => {
+    await store.markCountry('JP', 'visited', null, [2025]);
+    const copy = parseBackup(JSON.parse(JSON.stringify(await exportBackup(db, false, '2026-11-02T00:00:00Z'))));
+    const other = new WorldDb(`restore-years-${n}`);
+    await restoreBackup(other, copy);
+    expect((await other.visits.toArray())[0]?.years).toEqual([2025]);
+  });
+});

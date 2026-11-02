@@ -44,7 +44,7 @@ describe('facts and achievements', () => {
     ['rio', city('rio', -22.9, -43.2, 'BR')],
     ['trom', city('trom', 69.65, 18.96, 'NO')],
   ]);
-  const visits = ['rome', 'rio', 'trom'].map((id) => ({ id, key: `city:${id}`, cityId: id, countryId: cities.get(id)!.countryId, date: '2026-01-01', tripIds: [], manual: true, createdAt: NOW, updatedAt: NOW }));
+  const visits = ['rome', 'rio', 'trom'].map((id) => ({ id, key: `city:${id}`, cityId: id, countryId: cities.get(id)!.countryId, date: '2026-01-01', tripIds: [], years: [], manual: true, createdAt: NOW, updatedAt: NOW }));
   const trip = { id: 't', startDate: '2026-01-01', endDate: '2026-01-05' } as Trip;
   const stops = [{ tripId: 't', order: 0, cityId: 'rome' }, { tripId: 't', order: 1, cityId: 'trom' }] as TripStop[];
   const world = deriveWorld(visits, [], stops);

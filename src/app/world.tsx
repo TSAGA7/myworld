@@ -6,6 +6,7 @@ import type { City, HobbyMark, Methodology, PlannedMark, Trip, TripStop, Visit }
 import type { RiderType } from '../domain/hobby';
 import type { FeedPrefs } from '../feed/visibility';
 import { deriveWorld, type WorldState } from '../domain/world';
+import { type CountryYears, yearsByCountry } from '../domain/years';
 import { type Currency, DEFAULT_RATES, DEFAULT_RATES_DATE, type Rates } from '../domain/money';
 
 export const db = new WorldDb();
@@ -100,6 +101,8 @@ export interface WorldData {
   /** Hobby marks: visited resorts / spots and favourite spots. */
   hobby: HobbyMark[];
   world: WorldState;
+  /** Years per visited country («Посещена в 2022, 2023»). */
+  years: Map<string, CountryYears>;
   settings: Settings;
 }
 
@@ -127,6 +130,7 @@ export function WorldProvider({ children }: { children: ReactNode }) {
   const cityRows = useLiveQuery(() => db.cities.toArray(), []);
   const meta = useLiveQuery(() => db.meta.toArray(), []);
   const hobby = useLiveQuery(() => db.hobby.toArray(), []);
+  const today = useToday();
 
   const value = useMemo<WorldData>(() => {
     const ready = !!(visits && plans && trips && stops && cityRows && meta && hobby);
@@ -142,9 +146,10 @@ export function WorldProvider({ children }: { children: ReactNode }) {
       cities: new Map((cityRows ?? []).map((c) => [c.id, c])),
       hobby: hobby ?? [],
       world: ready ? deriveWorld(visits ?? [], plans ?? [], stops ?? []) : EMPTY,
+      years: yearsByCountry(visits ?? [], trips ?? [], today),
       settings,
     };
-  }, [visits, plans, trips, stops, cityRows, meta, hobby, error]);
+  }, [visits, plans, trips, stops, cityRows, meta, hobby, error, today]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

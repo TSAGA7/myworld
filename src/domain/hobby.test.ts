@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import Dexie from 'dexie';
 import { describe, expect, it } from 'vitest';
 import { exportBackup, parseBackup, restoreBackup } from '../data/backup';
-import { WorldDb } from '../data/db';
+import { SCHEMA_VERSION, WorldDb } from '../data/db';
 import { WorldStore } from '../data/store';
 import { deriveWorld } from './world';
 import {
@@ -145,7 +145,7 @@ describe('hobby marks in the database', () => {
     v2.close();
     const db = new WorldDb(name);
     await db.open();
-    expect(db.verno).toBe(3);
+    expect(db.verno).toBe(SCHEMA_VERSION);
     expect(await db.visits.count()).toBe(1);
     expect(await db.hobby.count()).toBe(0);
     db.close();

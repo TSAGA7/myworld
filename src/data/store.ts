@@ -17,6 +17,7 @@ import type {
   Visit,
 } from '../domain/model';
 import { hobbyKey, visitKey } from '../domain/model';
+import { normalizeYears } from '../domain/years';
 import { type AddPreview, buildAddToMap, buildMarkVisited, previewAddToMap, previewMarkVisited, type VisitPreviewItem } from '../domain/tripToMap';
 import { TRIP_TABLES, type WorldDb } from './db';
 
@@ -79,8 +80,32 @@ export class WorldStore {
     });
   }
 
-  async markCountry(countryId: string, status: 'visited' | 'planned', date: string | null = null): Promise<void> {
-    await this.db.transaction('rw', this.db.visits, this.db.plans, () => this.mark(visitKey(null, countryId), null, countryId, status, date));
+  async markCountry(countryId: string, status: 'visited' | 'planned', date: string | null = null, years: readonly number[] = []): Promise<void> {
+    await this.db.transaction('rw', this.db.visits, this.db.plans, async () => {
+      await this.mark(visitKey(null, countryId), null, countryId, status, date);
+      if (status === 'visited' && years.length) await this.writeCountryYears(countryId, years);
+    });
+  }
+
+  /**
+   * Sets the years named by hand for a country («был в 2022 и 2023»). They live on the country record; when the
+   * country is on the map only through its cities, that record is created (it is the same fact: the country is visited).
+   */
+  async setCountryYears(countryId: string, years: readonly number[]): Promise<void> {
+    await this.db.transaction('rw', this.db.visits, () => this.writeCountryYears(countryId, years));
+  }
+
+  private async writeCountryYears(countryId: string, years: readonly number[]): Promise<void> {
+    const now = this.now();
+    const clean = normalizeYears(years, new Date().getFullYear());
+    const key = visitKey(null, countryId);
+    const v = await this.db.visits.where('key').equals(key).first();
+    if (v) {
+      await this.db.visits.put({ ...v, years: clean, updatedAt: now });
+      return;
+    }
+    if (!clean.length) return;
+    await this.db.visits.add({ id: this.newId(), key, cityId: null, countryId, date: null, tripIds: [], years: clean, manual: true, createdAt: now, updatedAt: now });
   }
 
   private async mark(key: string, cityId: string | null, countryId: string, status: 'visited' | 'planned', date: string | null): Promise<void> {
@@ -91,7 +116,7 @@ export class WorldStore {
         if (date && date !== v.date) await this.db.visits.put({ ...v, date, manual: true, updatedAt: now });
         return;
       }
-      await this.db.visits.add({ id: this.newId(), key, cityId, countryId, date, tripIds: [], manual: true, createdAt: now, updatedAt: now });
+      await this.db.visits.add({ id: this.newId(), key, cityId, countryId, date, tripIds: [], years: [], manual: true, createdAt: now, updatedAt: now });
       return;
     }
     const p = await this.db.plans.where('key').equals(key).first();
@@ -120,7 +145,7 @@ export class WorldStore {
         const key = visitKey(p.city?.id ?? null, p.countryId);
         const v = await this.db.visits.where('key').equals(key).first();
         if (!v) {
-          await this.db.visits.add({ id: this.newId(), key, cityId: p.city?.id ?? null, countryId: p.countryId, date: p.date, tripIds: [], manual: true, createdAt: now, updatedAt: now });
+          await this.db.visits.add({ id: this.newId(), key, cityId: p.city?.id ?? null, countryId: p.countryId, date: p.date, tripIds: [], years: [], manual: true, createdAt: now, updatedAt: now });
           if (p.city) cities++;
         } else if (p.date && (!v.date || p.date < v.date)) {
           await this.db.visits.put({ ...v, date: p.date, updatedAt: now });
