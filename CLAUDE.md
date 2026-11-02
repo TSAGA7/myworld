@@ -56,6 +56,8 @@ public/data   cities.tsv (~194 тыс. городов GeoNames), regions/<стр
 - Утром и вечером вторая задача по `scripts/feed/EDITORIAL.md`: переводит зарубежные новости (`lang: 'en'` в sources.ts → `translations.json`, без перевода новость скрыта) и собирает «Интересное» из авторских каналов (`STORY_LIST` → `stories.json` → `interesting.json`). Логика — `src/feed/editorial.ts`.
 - Дубли: `dedupe` в `src/feed/text.ts` (редкие слова, заголовки, флаги стран; авиакомпании/аэропорты/перевозчики друг с другом не склеиваются), регрессия на реальных постах — в тестах.
 - Все источники приложения показываются в «Настройки → Источники» (`src/screens/SourcesSheet.tsx`, берёт список из sources.ts).
+- Потянуть ленту вниз — `ui/usePullToRefresh.ts` + `refreshFeed()` в `src/feed/client.ts` (перечитывает файлы мимо кэша CDN; сбор новостей при этом не запускается). Шторки (`Sheet`) закрываются свайпом вниз — `useSwipeDown` в `ui/kit.tsx`.
+- GitHub запускает часовой `feed.yml` по расписанию с опозданием (бывает раз в несколько часов) — поэтому строка статуса не пишет «каждый час», если копия старше 1,5 ч.
 - Вкладки ленты (Билеты · Интересное · Дайджест · Новости) — `src/screens/feed/*`, по файлу на раздел, свайп — в `Feed.tsx`.
 - «Проверить цену»: `supabase/functions/price-check` + переменные репозитория `PRICE_CHECK_URL`, `PRICE_CHECK_KEY` (пусто → показывается время последнего часового скана).
 - Логика — `src/feed/*.ts` (импорты с `.ts`, скрипты запускаются `node --experimental-strip-types`), тесты — `src/feed/feed.test.ts`.
@@ -67,6 +69,7 @@ Headless Chromium (Playwright, swiftshader) в песочнице рисует �
 ## Достижения
 - Путешествия — `domain/achievements.ts` (`details` — короткое «за что» для окна; без `details` плитка не открывается: счётчики вроде «100 городов»). Райдер — `domain/riderAchievements.ts`: именные (`RIDER_ACHIEVEMENTS`, места по id/названию курорта) и счётчики (`RIDER_COUNTERS`); считаются только курорты с «Был здесь», города из поездок — нет.
 - Экран: `screens/profile/AchievementInfo.tsx` (окно в центре, сетка); свёрнутый вид — полученные + начатые, у «лестниц» (5→10→25 стран) только следующая ступень — `domain/achievementView.ts`.
+- Профиль: переключатель «Путешествия | Борд/Лыжи | Сёрфинг» у фактов и достижений (`profile/ModeSwitch.tsx`); факты увлечений — `domain/hobbyFacts.ts`, сёрф-достижения — `domain/surfAchievements.ts`, данные — `profile/useHobbyStats.ts`. Карточка для соцсетей берёт те же факты (до 3, выбор в localStorage `mw-share-picks`) и плитки увлечений.
 - Годы посещения страны — `visits.years` (Dexie v4) + даты и поездки, логика — `domain/years.ts`, выбор — `ui/YearPicker.tsx`.
 
 ## Увлечения (Rider / Surf)
@@ -76,6 +79,7 @@ Headless Chromium (Playwright, swiftshader) в песочнице рисует �
 - Ручные правки/камеры/выключение объектов — `scripts/catalog/resorts-extra.json`, `spots-extra.json` (только с источником). Id курорта стабилен: при смене берётся прежний, старые — в `alt`.
 - Свайп между вкладками (лента, «Мой мир») — общий хук `ui/useSwipe.ts` + класс `.swipeable` (touch-action: pan-y); жест не перехватывается только у реально прокручиваемых вбок рядов, полей, карт и шторок.
 - Поиск курортов: `aliases` (resorts-extra, с источником) и `towns` (ближайшие города из cities.tsv при сборке каталога) + `placeSoundsLike` — совпадение по звучанию для любого написания.
+- «Мой мир»: вкладка (Мир · Страна · Борд) помнится только пока приложение открыто — после перезапуска всегда «Мир».
 - «Мой мир»: вкладки `rider`/`surf` — `screens/countries/HobbyWorld.tsx`, страница места — `PlaceSheet.tsx` (маршрут `#/countries/@resort/<id>`, `@spot`). На карте — слой `hobby-dots`.
 - «Учитывать путешествия» (`travelTracking`): при выключении `app/actions.ts` не даёт отметить страну/город посещёнными (тост «Включить»), кнопки «Был здесь», «Отметить по фото», «Отметить города посещёнными» скрыты; планы, история, глобус и увлечения работают.
 - Лента по увлечениям: разделы `Горы`/`Сёрф` в `src/feed/sources.ts` (или `hobby` у автора в `STORY_LIST`) видны только при включённом Rider/Surf или настройке `sportNews`; скрытые источники — `hiddenSources`. Логика — `src/feed/visibility.ts`. В дайджест спортивные новости не попадают (`scripts/feed/digest.ts`).

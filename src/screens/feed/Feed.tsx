@@ -1,4 +1,6 @@
 import { useRef } from 'react';
+import { refreshFeed } from '../../feed/client';
+import { usePullToRefresh } from '../../ui/usePullToRefresh';
 import { useSwipe } from '../../ui/useSwipe';
 import { go } from '../../app/router';
 import { Segmented, Topo } from '../../ui/kit';
@@ -28,10 +30,17 @@ export function Feed({ route }: { route: string[] }) {
     if (next) go(`feed/${next.value}`, true);
   });
 
+  const screen = useRef<HTMLDivElement>(null);
+  const pull = usePullToRefresh(screen, refreshFeed);
+
   return (
-    <div className="screen feed-screen swipeable" {...swipe}>
+    <div ref={screen} className="screen feed-screen swipeable" {...swipe}>
       <Topo />
-      <div className="screen-inner">
+      <div className={`ptr ${pull.armed ? 'armed' : ''} ${pull.refreshing ? 'busy' : ''}`} style={{ height: pull.y, transition: pull.dragging ? 'none' : undefined }} aria-hidden={!pull.y}>
+        {pull.y > 0 && (pull.refreshing ? <span className="spinner sm" aria-label="Обновляем" /> : <span className="ptr-arrow">↓</span>)}
+        {pull.y > 0 && !pull.refreshing && <span className="ptr-text">{pull.armed ? 'Отпустите, чтобы обновить' : 'Потяните, чтобы обновить'}</span>}
+      </div>
+      <div className="screen-inner" style={{ transform: pull.y ? `translateY(${pull.y}px)` : undefined, transition: pull.dragging ? 'none' : 'transform 0.25s' }}>
         <header className="row between">
           <h1 className="h1">
             <span className="thin">Тревел-</span>лента

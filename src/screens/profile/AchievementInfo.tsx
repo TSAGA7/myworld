@@ -1,15 +1,11 @@
-import { useMemo, useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useWorld } from '../../app/world';
-import { type AchView, fromRider, collapsedView, started } from '../../domain/achievementView';
-import { riderAchievements, type VisitedResort } from '../../domain/riderAchievements';
-import { useCatalog } from '../../geo/hobbyCatalog';
-import { countryName } from '../../geo/reference';
+import { type AchView, collapsedView, started } from '../../domain/achievementView';
 import { AchIcon } from '../../ui/AchIcon';
 import { CenterCard } from '../../ui/UpdateCard';
 
 /** Window in the centre of the screen: what the achievement is given for and what counted. */
-export { fromTravel } from '../../domain/achievementView';
+export { fromHobby, fromTravel } from '../../domain/achievementView';
 
 export function AchievementInfo({ a, onClose }: { a: AchView; onClose: () => void }) {
   return createPortal(
@@ -41,7 +37,9 @@ export function AchievementInfo({ a, onClose }: { a: AchView; onClose: () => voi
               </span>
             )}
             {a.details && a.details.length === 0 && !a.done && <span className="faint">Пока нет.</span>}
-            {a.rider && !a.done && <span className="faint small">Считаются курорты с отметкой «Был здесь» — «Мой мир → Rider».</span>}
+            {a.rider && !a.done && (
+              <span className="faint small">{a.id.startsWith('surf') ? 'Считаются споты с отметкой «Был здесь» в «Мой мир».' : 'Считаются курорты с отметкой «Был здесь» в «Мой мир».'}</span>
+            )}
           </span>
         }
         primary={{ label: 'Понятно', onClick: onClose }}
@@ -80,7 +78,7 @@ export function AchTile({ a, onOpen }: { a: AchView; onOpen: () => void }) {
  * A titled grid of achievements. Collapsed (default) it shows only the ones already got and the started ones;
  * «Развернуть» next to the counter shows all.
  */
-export function AchSection({ title, list }: { title: string; list: AchView[] }) {
+export function AchSection({ title, list, switcher }: { title: string; list: AchView[]; switcher?: ReactNode }) {
   const [all, setAll] = useState(false);
   const [open, setOpen] = useState<AchView | null>(null);
   const done = list.filter((a) => a.done);
@@ -91,18 +89,19 @@ export function AchSection({ title, list }: { title: string; list: AchView[] }) 
   const rest = hidden;
   return (
     <section className="stack tight">
-      <div className="section-title">
+      <div className="section-title wrap">
         <h2 className="h2">{title}</h2>
-        <span className="row tight-row">
-          <span className="muted small num">
-            {done.length} из {list.length}
-          </span>
-          {(rest.length > 0 || all) && (
-            <button type="button" className="link-btn small" onClick={() => setAll((x) => !x)}>
-              {all ? 'Свернуть' : 'Развернуть'}
-            </button>
-          )}
+        {switcher}
+      </div>
+      <div className="row between ach-meta">
+        <span className="muted small num">
+          Получено {done.length} из {list.length}
         </span>
+        {(rest.length > 0 || all) && (
+          <button type="button" className="link-btn small" onClick={() => setAll((x) => !x)}>
+            {all ? 'Свернуть' : 'Развернуть'}
+          </button>
+        )}
       </div>
       {shown.length > 0 ? (
         <div className="ach-grid">
@@ -118,18 +117,4 @@ export function AchSection({ title, list }: { title: string; list: AchView[] }) 
       {open && <AchievementInfo a={open} onClose={() => setOpen(null)} />}
     </section>
   );
-}
-
-/** Achievements of the Rider hobby: shown while Rider is on. */
-export function RiderAchievements() {
-  const { settings, hobby } = useWorld();
-  const catalog = useCatalog('resorts', !!settings.riderType);
-  const list = useMemo(() => {
-    const visited: VisitedResort[] = hobby
-      .filter((m) => m.what === 'visit' && m.kind === 'resort')
-      .map((m) => ({ id: m.placeId, resort: catalog.index.get(m.placeId) ?? null }));
-    return riderAchievements(visited, countryName).map(fromRider);
-  }, [hobby, catalog]);
-  if (!settings.riderType) return null;
-  return <AchSection title="Достижения райдера" list={list} />;
 }

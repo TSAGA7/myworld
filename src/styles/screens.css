@@ -590,11 +590,14 @@
 .news-card.open .news-text { -webkit-line-clamp: unset; display: block; }
 .news-foot { display: flex; flex-wrap: wrap; gap: 6px; }
 
-.deal-card { display: grid; gap: 6px; text-align: left; color: inherit; width: 100%; }
+.deal-card { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; text-align: left; color: inherit; width: 100%; min-width: 0; }
 .deal-card:active { transform: scale(0.99); }
 .deal-top, .deal-bottom { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.deal-route { display: inline-flex; align-items: center; gap: 8px; min-width: 0; font-size: 18px; }
-.deal-route b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.deal-route { display: inline-flex; align-items: center; gap: 8px; min-width: 0; flex: 1 1 auto; font-size: 18px; }
+.deal-route .flag { flex: none; }
+.deal-bottom > span:first-child { min-width: 0; }
+.deal-date { flex: none; }
+.deal-route b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .deal-off { flex: none; padding: 3px 10px; border-radius: var(--r-pill); background: rgba(70, 160, 80, 0.14); color: #2e7d3a; font-weight: 700; font-size: 14px; }
 [data-theme='dark'] .deal-off { color: #8fd69a; background: rgba(120, 200, 130, 0.16); }
 .deal-price { font-size: 24px; letter-spacing: -0.02em; margin-right: 8px; }
@@ -738,3 +741,23 @@ button.ach:active { transform: scale(0.98); }
 .ach-places span.got { color: var(--ink); font-weight: 600; }
 .section-title .tight-row { gap: 10px; align-items: baseline; }
 .section-title .tight-row { white-space: nowrap; flex: none; }
+
+/* profile: «Путешествия | Борд | Сёрфинг» next to section titles */
+.section-title.wrap { flex-wrap: wrap; row-gap: 8px; align-items: center; }
+.segmented.mini { padding: 3px; }
+.segmented.mini button { height: 32px; padding: 0 11px; font-size: 13px; }
+.segmented.mini .thumb { top: 3px; bottom: 3px; }
+.ach-meta { margin-top: -4px; }
+
+/* share card: facts to put on the card */
+.share-facts { display: grid; gap: 8px; }
+.share-facts-group { margin: 4px 0 -2px 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+.chip.share-fact { width: 100%; height: auto; min-height: 44px; padding: 10px 14px; justify-content: flex-start; white-space: normal; text-align: left; min-width: 0; }
+.chip.share-fact .ellipsis { min-width: 0; }
+.chip.share-fact[aria-pressed='true'] { background: var(--lime); color: var(--lime-ink); }
+.chip.share-fact:disabled { opacity: 0.45; }
+
+/* feed: pull to refresh */
+.ptr { position: absolute; left: 0; right: 0; top: calc(var(--safe-t) + 8px); z-index: 2; display: flex; align-items: center; justify-content: center; gap: 8px; overflow: hidden; color: var(--ink-2); font-size: 13px; font-weight: 600; pointer-events: none; transition: height 0.2s; }
+.ptr-arrow { display: inline-block; font-size: 18px; transition: transform 0.2s; }
+.ptr.armed .ptr-arrow { transform: rotate(180deg); color: var(--ink); }

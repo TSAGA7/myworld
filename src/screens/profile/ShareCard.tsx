@@ -1,6 +1,6 @@
 import { geoAzimuthalEqualArea, geoCentroid, geoEqualEarth, geoPath } from 'd3-geo';
 import type { FeatureCollection } from 'geojson';
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { useToast } from '../../app/toast';
 import { setSetting, useWorld } from '../../app/world';
 import { INHABITED_CONTINENTS } from '../../domain/achievements';
@@ -10,6 +10,9 @@ import { countryName } from '../../geo/reference';
 import { Icon } from '../../ui/Icon';
 import { Segmented, Sheet } from '../../ui/kit';
 import { useFacts } from './useFacts';
+import { useHobbyStats } from './useHobbyStats';
+import { RIDER_FULL, RIDER_LABEL } from '../../domain/hobby';
+import type { FactRow } from '../../domain/hobbyFacts';
 import { travelerStatus } from '../../domain/status';
 import { useHomeCountry } from '../countries/HomeCountry';
 import { useHomeStats } from '../countries/homeStats';
@@ -19,13 +22,67 @@ type Look = 'dark' | 'light';
 type Scope = 'world' | 'home';
 
 const SIZE: Record<Format, [number, number]> = { story: [1080, 1920], square: [1080, 1350] };
+const MAX_FACTS = 3;
+const PICK_KEY = 'mw-share-picks';
+interface Picks {
+  /** Facts drawn as lines on the card (ids of FactRow), up to three. null — not chosen yet: the first travel fact. */
+  facts: string[] | null;
+  rider: boolean;
+  surf: boolean;
+}
+const readPicks = (): Picks => {
+  try {
+    const v = JSON.parse(localStorage.getItem(PICK_KEY) ?? 'null') as Partial<Picks> | null;
+    return { facts: Array.isArray(v?.facts) ? v.facts.filter((x): x is string => typeof x === 'string') : null, rider: !!v?.rider, surf: !!v?.surf };
+  } catch {
+    return { facts: null, rider: false, surf: false };
+  }
+};
 const MONTHS = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
 
 /** Story/post image with the user's travel stats, drawn on a canvas so it can be shared as a PNG. */
 export function ShareCardSheet({ onClose }: { onClose: () => void }) {
   const { world, settings } = useWorld();
-  const { progress, facts } = useFacts();
+  const { progress, facts, travelRows } = useFacts();
+  const hobby = useHobbyStats();
   const toast = useToast();
+  const [picks, setPicksRaw] = useState<Picks>(readPicks);
+  const setPicks = (p: Picks) => {
+    setPicksRaw(p);
+    try {
+      localStorage.setItem(PICK_KEY, JSON.stringify(p));
+    } catch {
+      /* private mode */
+    }
+  };
+  const riderOn = !!settings.riderType;
+  const surfOn = settings.surf;
+  // Facts on offer: travels, plus the facts of the hobbies that are on.
+  const offer: Array<FactRow & { group: string }> = [
+    ...travelRows.map((r) => ({ ...r, group: 'Путешествия' })),
+    ...(riderOn && settings.riderType ? hobby.riderRows.map((r) => ({ ...r, group: RIDER_LABEL[settings.riderType as 'ski' | 'snowboard'] })) : []),
+    ...(surfOn ? hobby.surfRows.map((r) => ({ ...r, group: 'Сёрфинг' })) : []),
+  ];
+  // Not chosen yet: one fact as before (distance from home, else the northern point, else the first one).
+  const fallback = travelRows.find((r) => r.id === 't-far') ?? travelRows.find((r) => r.id === 't-north') ?? travelRows[0];
+  const pickedIds = picks.facts ?? (fallback ? [fallback.id] : []);
+  const chosen = offer.filter((r) => pickedIds.includes(r.id)).slice(0, MAX_FACTS);
+  const toggleFact = (id: string) => {
+    const now = chosen.map((r) => r.id);
+    setPicks({ ...picks, facts: now.includes(id) ? now.filter((x) => x !== id) : [...now, id].slice(0, MAX_FACTS) });
+  };
+  const hobbyTiles: Array<[string, string]> = [];
+  if (riderOn && picks.rider && hobby.resorts.length) {
+    const n = hobby.resorts.length;
+    const c = new Set(hobby.resorts.map((r) => r.countryId)).size;
+    hobbyTiles.push([String(n), `${settings.riderType === 'ski' ? '⛷️' : '🏂'} ${plural(n, 'курорт', 'курорта', 'курортов')}`], [String(c), plural(c, 'страна с курортами', 'страны с курортами', 'стран с курортами')]);
+  }
+  if (surfOn && picks.surf && hobby.spots.length) {
+    const n = hobby.spots.length;
+    const c = new Set(hobby.spots.map((r) => r.countryId)).size;
+    hobbyTiles.push([String(n), `🏄 ${plural(n, 'спот', 'спота', 'спотов')}`], [String(c), plural(c, 'страна с волнами', 'страны с волнами', 'стран с волнами')]);
+  }
+  const chosenKey = chosen.map((r) => r.id).join(',') + '|' + hobbyTiles.map((t) => t.join(':')).join(',');
   const [format, setFormat] = useState<Format>('story');
   const [look, setLook] = useState<Look>('dark');
   const home = useHomeCountry();
@@ -87,7 +144,6 @@ export function ShareCardSheet({ onClose }: { onClose: () => void }) {
       } else y += 54;
 
       const homeId = scope === 'home' ? home : null;
-      const km = (n: number) => `${String(Math.round(n / 100) / 10).replace('.', ',')} тыс. км`;
       const pctText = (n: number) => String(n).replace('.', ',');
       let bigN: string;
       let ofN: string | null;
@@ -215,7 +271,8 @@ export function ShareCardSheet({ onClose }: { onClose: () => void }) {
       y += mapH + (story ? 80 : 40);
 
       // One interesting fact as a line of its own, then the tiles: long labels never squeeze into a tile.
-      let fact: string | null;
+      let fact: string | null = null;
+      const lines: string[] = [];
       const tiles: Array<[string, string]> = [];
       if (homeId) {
         let top: { name: string; n: number } | null = null;
@@ -234,13 +291,8 @@ export function ShareCardSheet({ onClose }: { onClose: () => void }) {
         if (hs.total > 0) tiles.push([String(hs.total - hs.opened), `${plural(hs.total - hs.opened, 'регион', 'региона', 'регионов')} впереди`]);
         if (hs.total > 0) tiles.push([String(hs.visited.length), plural(hs.visited.length, 'город', 'города', 'городов')]);
       } else {
-        fact = facts.farthestFromHome
-          ? `📍 Дальше всего от дома — ${facts.farthestFromHome.city.name}, ${km(facts.farthestFromHome.km)}`
-          : facts.north
-            ? `🧭 Северная точка — ${facts.north.name}, ${(facts.north.lat as number).toFixed(0)}° с. ш.`
-            : facts.topCountry && facts.topCountry.cities > 1
-              ? `🏙 Больше всего городов — ${countryName(facts.topCountry.id)}: ${facts.topCountry.cities}`
-              : null;
+        lines.push(...chosen.map((r) => `${r.icon} ${r.short ?? r.text}`));
+        tiles.push(...hobbyTiles);
         // Only numbers worth showing (no "0 поездок").
         const inhabited = facts.continents.filter((x) => (INHABITED_CONTINENTS as readonly string[]).includes(x)).length;
         tiles.push([`${inhabited}/6`, 'континентов']);
@@ -250,10 +302,11 @@ export function ShareCardSheet({ onClose }: { onClose: () => void }) {
         if (facts.countriesThisYear > 0) tiles.push([String(facts.countriesThisYear), `${plural(facts.countriesThisYear, 'страна', 'страны', 'стран')} за ${new Date().getFullYear()} год`]);
         if (facts.topCountry && facts.topCountry.cities > 0) tiles.push([String(facts.topCountry.cities), `${plural(facts.topCountry.cities, 'город', 'города', 'городов')}: ${countryName(facts.topCountry.id)}`]);
       }
-      if (fact) {
+      if (fact) lines.unshift(fact);
+      for (const l of lines) {
         ctx.fillStyle = ink;
         ctx.font = '600 38px Onest, system-ui, sans-serif';
-        ctx.fillText(fit(ctx, fact, w - pad * 2), pad, y);
+        ctx.fillText(fit(ctx, l, w - pad * 2), pad, y);
         y += story ? 60 : 50;
       }
 
@@ -298,7 +351,7 @@ export function ShareCardSheet({ onClose }: { onClose: () => void }) {
     return () => {
       alive = false;
     };
-  }, [format, look, showStatus, progress, facts, world, settings.name, toast, scope, home, homeReady, hs]);
+  }, [format, look, showStatus, progress, facts, world, settings.name, toast, scope, home, homeReady, hs, chosenKey]);
 
   useEffect(() => () => void (url && URL.revokeObjectURL(url)), [url]);
 
@@ -365,7 +418,52 @@ export function ShareCardSheet({ onClose }: { onClose: () => void }) {
           </span>
           <input type="checkbox" className="switch" checked={showStatus} onChange={(e) => void setSetting('shareStatus', e.target.checked)} />
         </label>
+        {scope === 'world' && riderOn && settings.riderType && (
+          <label className="list-row tap">
+            <span className="grow">
+              <span className="t">{RIDER_FULL[settings.riderType]} на карточке</span>
+              <span className="s block">{hobby.resorts.length ? `${hobby.resorts.length} ${plural(hobby.resorts.length, 'курорт', 'курорта', 'курортов')}` : 'Пока нет курортов с отметкой «Был здесь»'}</span>
+            </span>
+            <input type="checkbox" className="switch" disabled={!hobby.resorts.length} checked={picks.rider && hobby.resorts.length > 0} onChange={(e) => setPicks({ ...picks, rider: e.target.checked })} />
+          </label>
+        )}
+        {scope === 'world' && surfOn && (
+          <label className="list-row tap">
+            <span className="grow">
+              <span className="t">Сёрфинг на карточке</span>
+              <span className="s block">{hobby.spots.length ? `${hobby.spots.length} ${plural(hobby.spots.length, 'спот', 'спота', 'спотов')}` : 'Пока нет спотов с отметкой «Был здесь»'}</span>
+            </span>
+            <input type="checkbox" className="switch" disabled={!hobby.spots.length} checked={picks.surf && hobby.spots.length > 0} onChange={(e) => setPicks({ ...picks, surf: e.target.checked })} />
+          </label>
+        )}
       </div>
+      {scope === 'world' && offer.length > 0 && (
+        <div className="stack tight">
+          <div className="section-title">
+            <h3 className="h3">Факты на карточке</h3>
+            <span className="muted small num">
+              {chosen.length} из {MAX_FACTS}
+            </span>
+          </div>
+          <div className="share-facts">
+            {offer.map((r, i) => (
+              <Fragment key={r.id}>
+                {(i === 0 || offer[i - 1]?.group !== r.group) && offer.some((x) => x.group !== offer[0]?.group) && <span className="share-facts-group faint tiny">{r.group}</span>}
+                <button
+                  type="button"
+                  className="chip share-fact"
+                  aria-pressed={chosen.some((c) => c.id === r.id)}
+                  disabled={!chosen.some((c) => c.id === r.id) && chosen.length >= MAX_FACTS}
+                  onClick={() => toggleFact(r.id)}
+                >
+                  <span aria-hidden="true">{r.icon}</span>
+                  <span className="ellipsis">{r.short ?? r.text}</span>
+                </button>
+              </Fragment>
+            ))}
+          </div>
+        </div>
+      )}
       <div className={`share-preview ${format}`}>{url ? <img src={url} alt={scope === 'home' ? 'Карточка с регионами и городами своей страны' : 'Карточка с количеством стран и городов'} /> : <span className="spinner" />}</div>
     </Sheet>
   );

@@ -26,6 +26,7 @@ const LADDERS: Record<string, string> = {
   cont3: 'continents', cont6: 'continents',
   year5: 'year', year10: 'year',
   'rider-5': 'resorts', 'rider-15': 'resorts', 'rider-30': 'resorts',
+  'surf-1': 'spots', 'surf-5': 'spots', 'surf-15': 'spots', 'surf-30': 'spots',
 };
 
 export const fromTravel = (a: Achievement): AchView => ({
@@ -33,7 +34,8 @@ export const fromTravel = (a: Achievement): AchView => ({
   ...(a.details ? { details: a.details } : {}), opens: a.details !== undefined, rider: false,
   ...(LADDERS[a.id] ? { ladder: LADDERS[a.id] } : {}),
 });
-export const fromRider = (a: RiderAchievement): AchView => ({ ...a, opens: true, rider: true, ...(LADDERS[a.id] ? { ladder: LADDERS[a.id] } : {}) });
+/** Rider and surf achievements (same shape). */
+export const fromHobby = (a: RiderAchievement): AchView => ({ ...a, opens: true, rider: true, ...(LADDERS[a.id] ? { ladder: LADDERS[a.id] } : {}) });
 
 /**
  * What the collapsed grid shows: everything got, and what is started — for a ladder only its next step

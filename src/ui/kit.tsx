@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { type ReactNode, type RefObject, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { COUNTRY_BY_ID, flagUrl } from '../geo/reference';
 import { Icon, type IconName } from './Icon';
@@ -26,10 +26,13 @@ export function Sheet({
     window.addEventListener('keydown', key);
     return () => window.removeEventListener('keydown', key);
   }, []);
+  const sheetRef = useRef<HTMLElement>(null);
+  const scrimRef = useRef<HTMLDivElement>(null);
+  useSwipeDown(sheetRef, scrimRef, () => closeRef.current());
   return createPortal(
     <>
-      <div className="scrim" onClick={onClose} />
-      <section className="sheet" role="dialog" aria-modal="true" aria-label={typeof title === 'string' ? title : labelledBy}>
+      <div ref={scrimRef} className="scrim" onClick={onClose} />
+      <section ref={sheetRef} className="sheet" role="dialog" aria-modal="true" aria-label={typeof title === 'string' ? title : labelledBy}>
         <div className="grabber" />
         <header className="sheet-head">
           <h2 className="h2">{title}</h2>
@@ -44,6 +47,86 @@ export function Sheet({
     </>,
     document.body,
   );
+}
+
+/**
+ * Pull a bottom sheet down to close it: from the grabber/header anywhere, from the content only when it is scrolled to
+ * the top. A sideways gesture (chips, swipeable tabs) is left alone; on wide screens the sheet is a dialog and stays.
+ */
+export function useSwipeDown(sheetRef: RefObject<HTMLElement>, scrimRef: RefObject<HTMLElement>, close: () => void) {
+  const closeRef = useRef(close);
+  closeRef.current = close;
+  useEffect(() => {
+    const el = sheetRef.current;
+    if (!el || window.matchMedia('(min-width: 700px)').matches) return;
+    let startY = 0;
+    let startX = 0;
+    let startT = 0;
+    let dy = 0;
+    let mode: 'idle' | 'maybe' | 'drag' | 'off' = 'idle';
+    const body = () => el.querySelector<HTMLElement>('.sheet-body');
+    const set = (y: number, animate: boolean) => {
+      el.style.transition = animate ? 'transform 0.28s cubic-bezier(.2,.8,.2,1)' : 'none';
+      el.style.transform = y ? `translateY(${y}px)` : '';
+      if (scrimRef.current) {
+        scrimRef.current.style.transition = animate ? 'opacity 0.28s' : 'none';
+        scrimRef.current.style.opacity = y ? String(Math.max(0, 1 - y / (el.offsetHeight || 1))) : '';
+      }
+    };
+    const start = (e: TouchEvent) => {
+      const t = e.touches[0];
+      const target = e.target as HTMLElement;
+      if (!t || e.touches.length > 1 || target.closest('input, textarea, select, [contenteditable], .no-swipe-down')) {
+        mode = 'off';
+        return;
+      }
+      const inBody = !!target.closest('.sheet-body');
+      const b = body();
+      // In the content, only from the very top (otherwise this is an ordinary scroll).
+      mode = inBody && b && b.scrollTop > 0 ? 'off' : 'maybe';
+      startY = t.clientY;
+      startX = t.clientX;
+      startT = performance.now();
+      dy = 0;
+    };
+    const move = (e: TouchEvent) => {
+      const t = e.touches[0];
+      if (!t || mode === 'off' || mode === 'idle') return;
+      const y = t.clientY - startY;
+      const x = t.clientX - startX;
+      if (mode === 'maybe') {
+        if (Math.abs(x) < 8 && Math.abs(y) < 8) return;
+        if (y <= 0 || Math.abs(x) > Math.abs(y)) {
+          mode = 'off';
+          return;
+        }
+        mode = 'drag';
+      }
+      e.preventDefault();
+      dy = Math.max(0, y);
+      set(dy, false);
+    };
+    const end = () => {
+      if (mode === 'drag') {
+        const v = dy / Math.max(1, performance.now() - startT);
+        if (dy > 110 || v > 0.6) {
+          set(el.offsetHeight + 40, true);
+          window.setTimeout(() => closeRef.current(), 220);
+        } else set(0, true);
+      }
+      mode = 'idle';
+    };
+    el.addEventListener('touchstart', start, { passive: true });
+    el.addEventListener('touchmove', move, { passive: false });
+    el.addEventListener('touchend', end);
+    el.addEventListener('touchcancel', end);
+    return () => {
+      el.removeEventListener('touchstart', start);
+      el.removeEventListener('touchmove', move);
+      el.removeEventListener('touchend', end);
+      el.removeEventListener('touchcancel', end);
+    };
+  }, [sheetRef, scrimRef]);
 }
 
 export function Confirm({

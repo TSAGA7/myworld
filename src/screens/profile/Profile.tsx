@@ -5,9 +5,7 @@ import { been, setSetting, store, useWorld } from '../../app/world';
 import { countLabel, plural } from '../../domain/dates';
 import { INHABITED_CONTINENTS } from '../../domain/achievements';
 import { catalogToCity } from '../../geo/catalog';
-import { COUNTRY_BY_ID, countryName } from '../../geo/reference';
-import { inMethodology } from '../../domain/world';
-import { bestYear, countriesPerYear } from '../../domain/years';
+import { countryName } from '../../geo/reference';
 import { prepareFile, useAttachmentUrl } from '../../ui/files';
 import { Icon } from '../../ui/Icon';
 import { Field, Segmented, Sheet, Topo } from '../../ui/kit';
@@ -16,13 +14,13 @@ import { ShareCardSheet } from './ShareCard';
 import { useFacts } from './useFacts';
 import { travelerStatus } from '../../domain/status';
 import { Hobbies } from './Hobbies';
-import { AchSection, fromTravel, RiderAchievements } from './AchievementInfo';
-
-const km = (n: number) => `${Math.round(n).toLocaleString('ru-RU')} км`;
+import { AchSection, fromHobby, fromTravel } from './AchievementInfo';
+import { ModeSwitch, profileModes, type ProfileMode } from './ModeSwitch';
+import { useHobbyStats } from './useHobbyStats';
 
 export function Profile({ onSettings }: { onSettings: () => void }) {
-  const { settings, trips, years, world } = useWorld();
-  const { progress, facts, achievements, home } = useFacts();
+  const { settings, world } = useWorld();
+  const { progress, facts, achievements, home, perYear, top, travelRows } = useFacts();
   const toast = useToast();
   const avatar = useAttachmentUrl(settings.avatarId);
   const [edit, setEdit] = useState(false);
@@ -40,24 +38,21 @@ export function Profile({ onSettings }: { onSettings: () => void }) {
     }
   };
 
-  const factRows: Array<{ icon: string; text: string }> = [];
-  if (facts.routeKm > 0) factRows.push({ icon: '🛫', text: `${km(facts.routeKm)} по маршрутам — это ${facts.aroundEarth} ${plural(Math.floor(facts.aroundEarth), 'оборот', 'оборота', 'оборотов')} вокруг Земли` });
-  if (facts.farthestFromHome) factRows.push({ icon: '📍', text: `Дальше всего от дома — ${facts.farthestFromHome.city.name}, ${km(facts.farthestFromHome.km)}` });
-  if (facts.north) factRows.push({ icon: '🧊', text: `Самая северная точка — ${facts.north.name} (${(facts.north.lat as number).toFixed(1)}° с. ш.)` });
-  if (facts.south && facts.south.id !== facts.north?.id) {
-    const lat = facts.south.lat as number;
-    factRows.push({ icon: '🌴', text: `Самая южная — ${facts.south.name} (${Math.abs(lat).toFixed(1)}° ${lat < 0 ? 'ю. ш.' : 'с. ш.'})` });
-  }
-  if (facts.topCountry && facts.topCountry.cities > 1)
-    factRows.push({ icon: '❤️', text: `Больше всего городов — ${countryName(facts.topCountry.id)}: ${countLabel(facts.topCountry.cities, 'город', 'города', 'городов')}` });
-  const liked = trips.filter((t) => t.favorite);
-  if (liked.length) factRows.push({ icon: '♥️', text: `Любимые поездки: ${liked.map((t) => t.title).join(', ')}` });
-  const counted = new Set([...world.visitedCountryIds].filter((id) => { const c = COUNTRY_BY_ID.get(id); return !!c && inMethodology(c, settings.methodology); }));
-  const perYear = countriesPerYear(years, counted);
-  const top = bestYear(perYear);
-  const thisYear = perYear.find((y) => y.year === new Date().getFullYear());
-  if (thisYear) factRows.push({ icon: '📆', text: `В этом году — ${countLabel(thisYear.countries, 'страна', 'страны', 'стран')}` });
-  if (top && perYear.length > 1) factRows.push({ icon: '🏆', text: `В ${top.year} больше всего стран — ${top.countries}` });
+  // «Путешествия | Борд | Сёрфинг» for the facts and the achievements; only hobbies that are on.
+  const hobbyModes = profileModes(settings.riderType, settings.surf);
+  const [factPick, setFactMode] = useState<ProfileMode>('travel');
+  const [achPick, setAchMode] = useState<ProfileMode>('travel');
+  const factMode = hobbyModes.some((m) => m.value === factPick) ? factPick : 'travel';
+  const achMode = hobbyModes.some((m) => m.value === achPick) ? achPick : 'travel';
+  const hobbyStats = useHobbyStats();
+  const shownRows = factMode === 'rider' ? hobbyStats.riderRows : factMode === 'surf' ? hobbyStats.surfRows : travelRows;
+
+  // 4th tile: trips made in the app; without them (everything marked by hand) — the years with travels instead of «0 поездок».
+  const tail = facts.trips > 0
+    ? { n: facts.trips, label: plural(facts.trips, 'поездка', 'поездки', 'поездок') }
+    : perYear.length > 0
+      ? { n: perYear.length, label: `${plural(perYear.length, 'год', 'года', 'лет')} в пути` }
+      : null;
 
   return (
     <div className="screen profile-screen">
@@ -86,7 +81,7 @@ export function Profile({ onSettings }: { onSettings: () => void }) {
           </button>
         </section>
 
-        <section className="profile-stats">
+        <section className="profile-stats" style={{ gridTemplateColumns: `repeat(${3 + Number(!!tail)}, minmax(0, 1fr))` }}>
           <div className="pstat big">
             <b className="num">{progress.visited}</b>
             <span>{plural(progress.visited, 'страна', 'страны', 'стран')}</span>
@@ -103,10 +98,12 @@ export function Profile({ onSettings }: { onSettings: () => void }) {
             <b className="num">{facts.continents.filter((c) => (INHABITED_CONTINENTS as readonly string[]).includes(c)).length}/6</b>
             <span>континентов</span>
           </div>
-          <div className="pstat">
-            <b className="num">{facts.trips}</b>
-            <span>{plural(facts.trips, 'поездка', 'поездки', 'поездок')}</span>
-          </div>
+          {tail && (
+            <div className="pstat">
+              <b className="num">{tail.n}</b>
+              <span>{tail.label}</span>
+            </div>
+          )}
         </section>
 
         <StatusCard countries={progress.visited} />
@@ -117,19 +114,28 @@ export function Profile({ onSettings }: { onSettings: () => void }) {
           <Icon name="share" size={19} /> Поделиться картой путешествий
         </button>
 
-        {factRows.length > 0 && (
+        {(travelRows.length > 0 || hobbyModes.length > 1) && (
           <section className="stack tight">
-            <h2 className="h2">Факты</h2>
-            <div className="list">
-              {factRows.map((f) => (
-                <div key={f.text} className="list-row fact">
-                  <span className="fact-ic" aria-hidden="true">
-                    {f.icon}
-                  </span>
-                  <span className="grow">{f.text}</span>
-                </div>
-              ))}
+            <div className="section-title wrap">
+              <h2 className="h2">Факты</h2>
+              <ModeSwitch label="Факты о чём" value={factMode} onChange={setFactMode} modes={hobbyModes} />
             </div>
+            {shownRows.length > 0 ? (
+              <div className="list">
+                {shownRows.map((f) => (
+                  <div key={f.id} className="list-row fact">
+                    <span className="fact-ic" aria-hidden="true">
+                      {f.icon}
+                    </span>
+                    <span className="grow">{f.text}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="faint small" style={{ margin: 0 }}>
+                {factMode === 'travel' ? 'Отметьте страны и города — здесь появятся факты о путешествиях.' : `Отметьте «${been(settings.gender).here}» на ${factMode === 'surf' ? 'спотах' : 'курортах'} в «Мой мир» — здесь появятся факты.`}
+              </p>
+            )}
             {!home && (
               <button type="button" className="link-btn" style={{ justifySelf: 'start' }} onClick={() => setEdit(true)}>
                 Укажите домашний город — появится расстояние от дома и путь до поездок
@@ -138,7 +144,7 @@ export function Profile({ onSettings }: { onSettings: () => void }) {
           </section>
         )}
 
-        {(perYear.length > 0 || counted.size > 0) && (
+        {(perYear.length > 0 || world.visitedCountryIds.size > 0) && (
           <section className="stack tight">
             <div className="section-title">
               <h2 className="h2">По годам</h2>
@@ -164,9 +170,12 @@ export function Profile({ onSettings }: { onSettings: () => void }) {
           </section>
         )}
 
-        <AchSection title="Достижения" list={achievements.map(fromTravel)} />
-
-        <RiderAchievements />
+        <AchSection
+          title="Достижения"
+          key={achMode}
+          list={achMode === 'rider' ? hobbyStats.riderAch.map(fromHobby) : achMode === 'surf' ? hobbyStats.surfAch.map(fromHobby) : achievements.map(fromTravel)}
+          switcher={<ModeSwitch label="Достижения чего" value={achMode} onChange={setAchMode} modes={hobbyModes} />}
+        />
 
         <section className="list">
           <button type="button" className="list-row" onClick={() => go('trips')}>

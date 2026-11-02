@@ -31,6 +31,23 @@ function readSaved<K extends FeedName>(name: K): FileOf[K] | null {
   }
 }
 
+export const FEED_REFRESH = 'mw-feed-refresh';
+const FEED_LOADED = 'mw-feed-loaded';
+
+/** Reloads every feed file on screen; resolves when one of them is in (or after 8 s). */
+export function refreshFeed(): Promise<void> {
+  return new Promise((resolve) => {
+    const done = () => {
+      window.removeEventListener(FEED_LOADED, done);
+      window.clearTimeout(t);
+      resolve();
+    };
+    const t = window.setTimeout(done, 8000);
+    window.addEventListener(FEED_LOADED, done);
+    window.dispatchEvent(new Event(FEED_REFRESH));
+  });
+}
+
 export type FeedState<T> = {
   data: T | null;
   /** 'missing' = the file is not published yet (e.g. the scanner has no key yet). */
@@ -43,10 +60,18 @@ export function useFeedFile<K extends FeedName>(name: K): FeedState<FileOf[K]> {
   const [data, setData] = useState<FileOf[K] | null>(() => readSaved(name));
   const [status, setStatus] = useState<FeedState<FileOf[K]>['status']>('loading');
   const [tick, setTick] = useState(0);
+  // «Pull to refresh» in the feed: every open file reloads, past the CDN copy.
+  useEffect(() => {
+    const on = () => setTick((t) => t + 1);
+    window.addEventListener(FEED_REFRESH, on);
+    return () => window.removeEventListener(FEED_REFRESH, on);
+  }, []);
   useEffect(() => {
     let alive = true;
     setStatus('loading');
-    fetch(`${FEED_BASE}${name}.json?t=${Math.floor(Date.now() / 120_000)}`)
+    // A forced reload asks for a fresh copy; otherwise the same URL for two minutes (cheap, cached).
+    const bust = tick > 0 ? `${Date.now()}` : `${Math.floor(Date.now() / 120_000)}`;
+    fetch(`${FEED_BASE}${name}.json?t=${bust}`, tick > 0 ? { cache: 'no-store' } : undefined)
       .then(async (r) => {
         if (r.status === 404) return 'missing' as const;
         if (!r.ok) throw new Error(String(r.status));
@@ -62,7 +87,8 @@ export function useFeedFile<K extends FeedName>(name: K): FeedState<FileOf[K]> {
         return 'ok' as const;
       })
       .then((s) => alive && setStatus(s))
-      .catch(() => alive && setStatus('offline'));
+      .catch(() => alive && setStatus('offline'))
+      .finally(() => window.dispatchEvent(new Event(FEED_LOADED)));
     return () => {
       alive = false;
     };

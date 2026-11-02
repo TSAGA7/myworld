@@ -20,16 +20,12 @@ import { PlaceSheet } from "./PlaceSheet";
 import { RIDER_LABEL, type WorldScope, worldScopes } from "../../domain/hobby";
 import { PhotoImport } from "./PhotoImport";
 
-const SCOPE_KEY = "mw-countries-scope";
-const SCOPES: readonly WorldScope[] = ["world", "home", "rider", "surf"];
-const readScope = (): WorldScope => {
-  try {
-    const v = localStorage.getItem(SCOPE_KEY);
-    return SCOPES.find((s) => s === v) ?? "world";
-  } catch {
-    return "world";
-  }
-};
+/**
+ * The «Мир · Страна · Борд» tab is remembered only while the app is open: after a restart «Мой мир» opens on «Мир».
+ * (It used to be saved on the phone, and the app kept opening on «Борд».)
+ */
+let lastScope: WorldScope = "world";
+const readScope = (): WorldScope => lastScope;
 
 type Filter = "all" | "visited" | "planned" | "none";
 type Sort = "az" | "date";
@@ -70,11 +66,7 @@ export function Countries({
   }, !openId && !openPlace);
   const setScope = (v: WorldScope) => {
     setScopeRaw(v);
-    try {
-      localStorage.setItem(SCOPE_KEY, v);
-    } catch {
-      /* private mode */
-    }
+    lastScope = v;
   };
 
   const m = settings.methodology;

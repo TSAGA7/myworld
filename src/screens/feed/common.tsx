@@ -13,7 +13,10 @@ export function useNow(): Date {
   return now;
 }
 
-/** "Обновлено 5 мин назад · каждый час", or the offline note with a retry. */
+/**
+ * "Обновлено 5 мин назад · каждый час", or the offline note with a retry. When the copy is older than ~1.5 h (GitHub
+ * runs the hourly collector late at times), the promise «каждый час» would contradict the age, so it is not shown.
+ */
 export function StatusLine({ state, updatedAt, every }: { state: FeedState<unknown>; updatedAt: string | undefined; every: string }) {
   const now = useNow();
   return (
@@ -26,7 +29,7 @@ export function StatusLine({ state, updatedAt, every }: { state: FeedState<unkno
         <Icon name="check" size={15} />
       )}
       <span className="grow">
-        {state.status === 'offline' ? 'Нет связи — показана сохранённая копия' : updatedAt ? `Обновлено ${ago(updatedAt, now)} · ${every}` : every}
+        {state.status === 'offline' ? 'Нет связи — показана сохранённая копия' : updatedAt ? (now.getTime() - Date.parse(updatedAt) > 90 * 60_000 ? `Обновлено ${ago(updatedAt, now)}` : `Обновлено ${ago(updatedAt, now)} · ${every}`) : every}
       </span>
       {state.status === 'offline' && (
         <button type="button" className="link-btn" onClick={state.reload}>
