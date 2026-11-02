@@ -4,7 +4,7 @@
  * Data: Travelpayouts / Aviasales Data API — the cheapest tickets found by Aviasales users in the last 48 hours.
  * History of daily prices is kept in feed/prices-history.json (45 days) and is the "usual price" of each route.
  */
-import { findDeals, monthsFrom, ORIGINS, recordPrices, type Names, type PriceHistory, type PriceRow } from '../../src/feed/deals.ts';
+import { buildRoutes, findDeals, monthsFrom, ORIGINS, recordPrices, type Names, type PriceHistory, type PriceRow, type RouteCity } from '../../src/feed/deals.ts';
 import type { DealsFile } from '../../src/feed/schema.ts';
 import { fetchText, readJson, writeJson } from './io.ts';
 
@@ -18,13 +18,17 @@ if (!token) {
 const API = 'https://api.travelpayouts.com';
 const now = new Date();
 
-type CityRow = { code: string; name: string | null; country_code: string; name_translations?: { en?: string } };
+type CityRow = { code: string; name: string | null; country_code: string; name_translations?: { en?: string }; coordinates?: { lat?: number; lon?: number } | null };
 type AirlineRow = { code: string; name: string | null; name_translations?: { en?: string } };
 const [cities, airlines] = await Promise.all([
   fetchText(`${API}/data/ru/cities.json`, {}, 60_000).then((t) => JSON.parse(t) as CityRow[]),
   fetchText(`${API}/data/ru/airlines.json`, {}, 60_000).then((t) => JSON.parse(t) as AirlineRow[]).catch(() => [] as AirlineRow[]),
 ]);
-const cityBy = new Map(cities.map((c) => [c.code, { name: c.name || c.name_translations?.en || c.code, country: c.country_code ?? '' }]));
+const cityBy = new Map(cities.map((c) => [c.code, { name: c.name || c.name_translations?.en || c.code, country: c.country_code ?? '', lat: c.coordinates?.lat ?? null, lon: c.coordinates?.lon ?? null }]));
+const routeCity = (code: string): RouteCity | undefined => {
+  const c = cityBy.get(code);
+  return c ? [c.name, c.country, c.lat, c.lon] : undefined;
+};
 const airlineBy = new Map(airlines.map((a) => [a.code, a.name || a.name_translations?.en || a.code]));
 const names: Names = { city: (c) => cityBy.get(c), airline: (c) => airlineBy.get(c) };
 
@@ -60,4 +64,8 @@ const prev = readJson<DealsFile>('deals.json');
 const deals = findDeals(rows, history, now, prev?.deals ?? [], names, marker);
 writeJson('prices-history.json', recordPrices(history, rows, now));
 writeJson('deals.json', { updatedAt: now.toISOString(), origins: ORIGINS.map((o) => ({ ...o })), deals } satisfies DealsFile);
+// Every route's cheapest price: trips («Выгодные забросы»), price watch and hobby filters read it.
+const routes = buildRoutes(rows, routeCity, now);
+writeJson('routes.json', routes);
+console.log(`routes.json: ${routes.prices.length} цен, ${Object.keys(routes.cities).length} городов`);
 console.log(`deals.json: ${deals.length} выгодных из ${rows.length} цен (${jobs.length - failed}/${jobs.length} запросов)`);

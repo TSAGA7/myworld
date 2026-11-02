@@ -17,35 +17,19 @@ export function useNow(): Date {
 const hm = (iso: string) => new Date(iso).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
 
 /**
- * «Собрано в 18:37 · 4 ч назад · проверено 23:05»: when the data was collected (the collector's time, not the
- * download) and, after a pull-to-refresh, when the phone checked for a newer copy — so it is clear what happened.
+ * Only «нет связи» is shown above the list (the owner asked to drop the «обновлено …» line); the time the data was
+ * collected is still registered for the pull-to-refresh banner.
  */
 export function StatusLine({ state, updatedAt }: { state: FeedState<unknown>; updatedAt: string | undefined; every?: string }) {
-  const now = useNow();
-  const pull = usePullStatus();
   useEffect(() => notePublished(updatedAt), [updatedAt]);
-  const checked = pull.checkedAt && now.getTime() - Date.parse(pull.checkedAt) < 30 * 60_000 ? pull.checkedAt : null;
+  if (state.status !== 'offline') return null;
   return (
     <div className="feed-status faint small">
-      {state.status === 'loading' ? (
-        <span className="spinner sm" aria-label="Обновляем" />
-      ) : state.status === 'offline' ? (
-        <Icon name="cloud" size={15} />
-      ) : (
-        <Icon name="check" size={15} />
-      )}
-      <span className="grow">
-        {state.status === 'offline'
-          ? 'Нет связи — показана сохранённая копия'
-          : updatedAt
-            ? `Собрано в ${hm(updatedAt)} · ${ago(updatedAt, now)}${checked ? ` · проверено в ${hm(checked)}` : ''}`
-            : 'Ещё не собрано'}
-      </span>
-      {state.status === 'offline' && (
-        <button type="button" className="link-btn" onClick={state.reload}>
-          Повторить
-        </button>
-      )}
+      <Icon name="cloud" size={15} />
+      <span className="grow">Нет связи — показана сохранённая копия</span>
+      <button type="button" className="link-btn" onClick={state.reload}>
+        Повторить
+      </button>
     </div>
   );
 }

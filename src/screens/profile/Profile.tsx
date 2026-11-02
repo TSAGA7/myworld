@@ -25,6 +25,7 @@ export function Profile({ onSettings }: { onSettings: () => void }) {
   const avatar = useAttachmentUrl(settings.avatarId);
   const [edit, setEdit] = useState(false);
   const [share, setShare] = useState(false);
+  const [yearsOpen, setYearsOpen] = useState(false);
   const initials = (settings.name || 'Путешественник').split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase();
 
   const pickAvatar = async (f: File | undefined) => {
@@ -84,8 +85,16 @@ export function Profile({ onSettings }: { onSettings: () => void }) {
 
         <section className="profile-stats" style={{ gridTemplateColumns: `repeat(${3 + Number(!!tail)}, minmax(0, 1fr))` }}>
           <div className="pstat big">
-            <b className="num">{progress.visited}</b>
-            <span>{plural(progress.visited, 'страна', 'страны', 'стран')}</span>
+            <div className="pstat-big-top">
+              <b className="num">{progress.visited}</b>
+              <span>
+                {plural(progress.visited, 'страна', 'страны', 'стран')}
+                <span className="pstat-of num"> из {progress.total}</span>
+              </span>
+            </div>
+            <div className="meter pstat-meter" aria-label={`${progress.percent}% мира`}>
+              <i style={{ width: `${Math.max(progress.percent, progress.visited ? 2 : 0)}%` }} />
+            </div>
           </div>
           <div className="pstat">
             <b className="num">{facts.cities}</b>
@@ -153,7 +162,7 @@ export function Profile({ onSettings }: { onSettings: () => void }) {
             </div>
             {perYear.length > 0 ? (
               <div className="list">
-                {perYear.map((y) => (
+                {(yearsOpen ? perYear : perYear.slice(0, 1)).map((y) => (
                   <div key={y.year} className={`list-row year-row ${top?.year === y.year ? 'best' : ''}`}>
                     <b className="num year-num">{y.year}</b>
                     <div className="grow year-bar" aria-hidden="true">
@@ -163,7 +172,14 @@ export function Profile({ onSettings }: { onSettings: () => void }) {
                   </div>
                 ))}
               </div>
-            ) : (
+            ) : null}
+            {perYear.length > 1 && (
+              <button type="button" className="link-btn more-toggle" aria-expanded={yearsOpen} onClick={() => setYearsOpen((o) => !o)}>
+                {yearsOpen ? 'Свернуть' : `Все годы · ${perYear.length}`}
+                <Icon name={yearsOpen ? 'chevronUp' : 'chevronDown'} size={16} />
+              </button>
+            )}
+            {perYear.length === 0 && (
               <p className="faint small" style={{ margin: 0 }}>
                 Укажите год в карточке страны («Год посещения») — здесь появится, сколько стран вы посетили в каждом году.
               </p>

@@ -222,9 +222,14 @@
 .pstat { display: grid; align-content: end; gap: 2px; padding: 12px; border-radius: var(--r-md); background: var(--glass-strong); border: 1px solid var(--glass-edge); box-shadow: var(--glass-inset); min-width: 0; }
 .pstat b { font-size: 22px; font-weight: 720; letter-spacing: -0.02em; line-height: 1; }
 .pstat span { font-size: 12px; color: var(--ink-2); }
-.pstat.big { grid-column: 1 / -1; grid-template-columns: auto 1fr; align-items: baseline; gap: 10px; background: var(--graphite); color: var(--graphite-ink); border-color: transparent; padding: 16px 18px; }
-.pstat.big b { font-size: 56px; }
-.pstat.big span { color: inherit; opacity: 0.7; font-size: 18px; }
+.pstat.big { grid-column: 1 / -1; gap: 14px; padding: 18px 20px 20px; position: relative; overflow: hidden; background: var(--glass-strong); border-color: var(--glass-edge); }
+.pstat.big::after { content: ''; position: absolute; right: -60px; top: -80px; width: 220px; height: 220px; border-radius: 50%; background: radial-gradient(circle, rgba(221,243,111,0.28), rgba(221,243,111,0) 70%); pointer-events: none; }
+.pstat-big-top { display: flex; align-items: baseline; gap: 10px; position: relative; z-index: 1; }
+.pstat.big b { font-size: 64px; letter-spacing: -0.04em; }
+.pstat.big .pstat-big-top > span { font-size: 18px; font-weight: 600; color: var(--ink); }
+.pstat.big .pstat-of { font-size: 18px; color: var(--ink-3); font-weight: 400; }
+.pstat-meter { position: relative; z-index: 1; height: 8px; }
+.more-toggle { justify-self: start; display: inline-flex; align-items: center; gap: 4px; }
 .fact { min-height: 54px; font-size: 15px; }
 .fact-ic { font-size: 22px; width: 28px; text-align: center; flex: none; }
 .ach-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
@@ -767,3 +772,18 @@ button.ach:active { transform: scale(0.98); }
 .pull-banner.fresh { background: var(--lime); color: var(--lime-ink); border-color: transparent; }
 .pull-banner .block { display: block; margin-top: 2px; font-size: 13px; }
 .pull-banner > svg, .pull-banner > .spinner { flex: none; margin-top: 1px; }
+
+/* tickets: price watch, trip picks, hobby chips */
+.bell-btn.on { background: var(--lime); color: var(--lime-ink); border-color: transparent; }
+.watch-card { display: grid; gap: 10px; }
+.watch-row { display: flex; align-items: center; gap: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+.watch-row .t { font-weight: 600; }
+.watch-price { display: grid; justify-items: end; gap: 2px; }
+.watch-price .down { color: #2e7d3a; }
+.watch-price .up { color: #c0392b; }
+[data-theme='dark'] .watch-price .down { color: #8fd69a; }
+[data-theme='dark'] .watch-price .up { color: #ff8a80; }
+.trip-deals { display: grid; gap: 12px; box-shadow: inset 0 0 0 1.5px var(--lime-deep); }
+.deal-card.hl { box-shadow: inset 0 0 0 2px var(--lime-deep); }
+.chip.kind-chip[aria-pressed='true'] { background: var(--lime); color: var(--lime-ink); }
+.deals-btn { justify-content: center; }

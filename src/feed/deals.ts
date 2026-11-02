@@ -141,3 +141,37 @@ export function recordPrices(history: PriceHistory, rows: readonly PriceRow[], n
   }
   return out;
 }
+
+// ---------- routes.json: the cheapest price of every scanned route and month (not only the deals)
+
+/** City of a route: [name, country (ISO2), lat, lon]. */
+export type RouteCity = [string, string, number | null, number | null];
+/** [origin, destination, 'YYYY-MM', price, departure 'YYYY-MM-DD', transfers] */
+export type RoutePrice = [string, string, string, number, string, number];
+export interface RoutesFile {
+  updatedAt: string;
+  cities: Record<string, RouteCity>;
+  prices: RoutePrice[];
+}
+
+/** One price per origin, destination and month: the cheapest. */
+export function buildRoutes(rows: readonly PriceRow[], city: (code: string) => RouteCity | undefined, now: Date): RoutesFile {
+  const best = new Map<string, PriceRow>();
+  for (const r of rows) {
+    if (!(r.price > 0) || Date.parse(r.departure_at) <= now.getTime()) continue;
+    const k = routeKey(r);
+    const b = best.get(k);
+    if (!b || r.price < b.price) best.set(k, r);
+  }
+  const cities: Record<string, RouteCity> = {};
+  const prices: RoutePrice[] = [];
+  for (const r of best.values()) {
+    for (const c of [r.origin, r.destination]) {
+      const v = cities[c] ?? city(c);
+      if (v) cities[c] = v;
+    }
+    prices.push([r.origin, r.destination, r.departure_at.slice(0, 7), Math.round(r.price), r.departure_at.slice(0, 10), r.transfers ?? 0]);
+  }
+  prices.sort((a, b) => a[0].localeCompare(b[0]) || a[1].localeCompare(b[1]) || a[2].localeCompare(b[2]));
+  return { updatedAt: now.toISOString(), cities, prices };
+}

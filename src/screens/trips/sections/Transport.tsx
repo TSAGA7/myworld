@@ -1,6 +1,8 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useRef, useState } from 'react';
-import { db, store, useWorld } from '../../../app/world';
+import { db, store, useToday, useWorld } from '../../../app/world';
+import { go } from '../../../app/router';
+import { openTripDeals, tripFocus } from '../../feed/dealsContext';
 import type { Stamped } from '../../../data/store';
 import { formatDate } from '../../../domain/dates';
 import { BOARDING_DEFAULTS, type AccommodationBooking, type Attachment, TRANSPORT_MODES, type TransportBooking, type Trip } from '../../../domain/model';
@@ -14,7 +16,7 @@ import { Icon } from '../../../ui/Icon';
 import { Empty, Field, Flag } from '../../../ui/kit';
 import { type Currency, formatMoney } from '../../../domain/money';
 import { AttachmentField, AttachmentRow, savePending } from '../Attachments';
-import { MODE_ICON, MODE_LABEL, parsePrice } from '../common';
+import { MODE_ICON, MODE_LABEL, parsePrice, useRoute } from '../common';
 import { FormSheet, LinkOut, PriceFields, SectionHead, text, useToastFn } from './shared';
 
 
@@ -33,6 +35,7 @@ export function TransportSection({ trip }: { trip: Trip }) {
   return (
     <section className="stack">
       <SectionHead title="Билеты" addLabel="Билет" onAdd={() => setEdit(emptyTransport(trip.id, settings.currency))} />
+      {trip.startDate && <DealsButton trip={trip} />}
       {sorted.length === 0 ? (
         <Empty icon="ticket" title="Билетов пока нет" text="Самолёты, поезда, автобусы, паромы и аренда авто. Достаточно указать вид транспорта — остальное по желанию." />
       ) : (
@@ -47,6 +50,27 @@ export function TransportSection({ trip }: { trip: Trip }) {
       )}
       {edit && <TransportForm value={edit} onClose={() => setEdit(null)} />}
     </section>
+  );
+}
+
+/** «Выгодные забросы»: tickets from home to this trip's places, its dates highlighted. */
+function DealsButton({ trip }: { trip: Trip }) {
+  const route = useRoute(trip.id);
+  const today = useToday();
+  if (!trip.startDate || trip.startDate < today) return null;
+  return (
+    <button
+      type="button"
+      className="btn glass-btn block deals-btn"
+      onClick={() =>
+        openTripDeals(
+          tripFocus(trip.title, trip.startDate as string, trip.endDate ?? '', trip.countryIds, route.map((r) => r.city).filter((c): c is NonNullable<typeof c> => !!c)),
+          go,
+        )
+      }
+    >
+      <Icon name="plane" size={18} /> Выгодные забросы
+    </button>
   );
 }
 

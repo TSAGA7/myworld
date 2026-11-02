@@ -5,6 +5,7 @@ import { WorldStore } from '../data/store';
 import type { City, HobbyMark, Methodology, PlannedMark, Trip, TripStop, Visit } from '../domain/model';
 import type { RiderType } from '../domain/hobby';
 import type { FeedPrefs } from '../feed/visibility';
+import type { PriceWatch } from '../feed/destinations';
 import { deriveWorld, type WorldState } from '../domain/world';
 import { type CountryYears, yearsByCountry } from '../domain/years';
 import { type Currency, DEFAULT_RATES, DEFAULT_RATES_DATE, type Rates } from '../domain/money';
@@ -55,6 +56,8 @@ export interface Settings {
   sportNews: boolean;
   /** «Лента»: sources the reader hid (ids from src/feed/sources.ts). */
   hiddenSources: string[];
+  /** «Лента → Билеты»: routes with the bell on (price watch). */
+  priceWatch: PriceWatch[];
 }
 const DEFAULTS: Settings = {
   methodology: 'm195',
@@ -81,6 +84,7 @@ const DEFAULTS: Settings = {
   travelTracking: true,
   sportNews: false,
   hiddenSources: [],
+  priceWatch: [],
 };
 
 /** Texts that depend on the user's gender. */

@@ -12,6 +12,7 @@ import { Icon } from '../../ui/Icon';
 import { Confirm, Field, Flag, Sheet } from '../../ui/kit';
 import { PlaceSearch } from '../../ui/PlaceSearch';
 import { useRoute } from './common';
+import { openTripDeals, tripFocus } from '../feed/dealsContext';
 
 interface Draft {
   key: string;
@@ -172,6 +173,21 @@ export function TripEditor({ tripId }: { tripId: string | null }) {
             <span className="faint small">{countLabel(nights(startDate, endDate) ?? 0, 'ночь', 'ночи', 'ночей')} в поездке</span>
           )}
         </div>
+        {startDate && endDate && !datesWrong && (
+          <button
+            type="button"
+            className="btn glass-btn block deals-btn"
+            onClick={() => {
+              if (!countryIds.length && !stops.length) {
+                toast('Добавьте страну или город — подберём билеты туда');
+                return;
+              }
+              openTripDeals(tripFocus(title, startDate, endDate, countryIds, stops.map((s) => s.city)), go);
+            }}
+          >
+            <Icon name="plane" size={18} /> Выгодные забросы
+          </button>
+        )}
 
         <section className="stack">
           <div className="section-title">

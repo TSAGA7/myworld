@@ -78,6 +78,8 @@ export function AchTile({ a, onOpen }: { a: AchView; onOpen: () => void }) {
  * A titled grid of achievements. Collapsed (default) it shows only the ones already got and the started ones;
  * «Развернуть» next to the counter shows all.
  */
+const COLLAPSED = 4;
+
 export function AchSection({ title, list, switcher }: { title: string; list: AchView[]; switcher?: ReactNode }) {
   const [all, setAll] = useState(false);
   const [open, setOpen] = useState<AchView | null>(null);
@@ -85,8 +87,10 @@ export function AchSection({ title, list, switcher }: { title: string; list: Ach
   const collapsed = collapsedView(list);
   const going = collapsed.filter((a) => !a.done).sort((a, b) => b.value / b.target - a.value / a.target);
   const hidden = list.filter((a) => !collapsed.includes(a));
-  const shown = all ? [...done, ...going, ...hidden] : [...done, ...going];
-  const rest = hidden;
+  // Collapsed: the first four (got first, then the closest to getting); «Развернуть» shows every one.
+  const ordered = [...done, ...going, ...hidden];
+  const shown = all ? ordered : ordered.slice(0, COLLAPSED);
+  const rest = ordered.slice(COLLAPSED);
   return (
     <section className="stack tight">
       <div className="section-title wrap">
@@ -99,7 +103,7 @@ export function AchSection({ title, list, switcher }: { title: string; list: Ach
         </span>
         {(rest.length > 0 || all) && (
           <button type="button" className="link-btn small" onClick={() => setAll((x) => !x)}>
-            {all ? 'Свернуть' : 'Развернуть'}
+            {all ? 'Свернуть' : `Развернуть · ещё ${rest.length}`}
           </button>
         )}
       </div>
