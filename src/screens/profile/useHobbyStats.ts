@@ -11,6 +11,9 @@ export interface HobbyStats {
   resorts: Resort[];
   spots: Spot[];
   favourites: number;
+  /** Active places in the catalogs (for «N из M»). */
+  resortTotal: number;
+  spotTotal: number;
   riderRows: FactRow[];
   surfRows: FactRow[];
   riderAch: RiderAchievement[];
@@ -37,6 +40,8 @@ export function useHobbyStats(): HobbyStats {
       resorts,
       spots,
       favourites,
+      resortTotal: resortCat.items.filter((r) => r.active).length,
+      spotTotal: spotCat.items.filter((r) => r.active).length,
       riderRows: riderFacts(resorts, countryName, home),
       surfRows: surfFacts(spots, favourites, countryName, home),
       riderAch: riderAchievements(marks, countryName),

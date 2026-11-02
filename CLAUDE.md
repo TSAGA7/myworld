@@ -69,7 +69,7 @@ Headless Chromium (Playwright, swiftshader) в песочнице рисует �
 ## Достижения
 - Путешествия — `domain/achievements.ts` (`details` — короткое «за что» для окна; без `details` плитка не открывается: счётчики вроде «100 городов»). Райдер — `domain/riderAchievements.ts`: именные (`RIDER_ACHIEVEMENTS`, места по id/названию курорта) и счётчики (`RIDER_COUNTERS`); считаются только курорты с «Был здесь», города из поездок — нет.
 - Экран: `screens/profile/AchievementInfo.tsx` (окно в центре, сетка); свёрнутый вид — полученные + начатые, у «лестниц» (5→10→25 стран) только следующая ступень — `domain/achievementView.ts`.
-- Профиль: переключатель «Путешествия | Борд/Лыжи | Сёрфинг» у фактов и достижений (`profile/ModeSwitch.tsx`); факты увлечений — `domain/hobbyFacts.ts`, сёрф-достижения — `domain/surfAchievements.ts`, данные — `profile/useHobbyStats.ts`. Карточка для соцсетей берёт те же факты (до 3, выбор в localStorage `mw-share-picks`) и плитки увлечений.
+- Профиль: переключатель «Путешествия | Борд/Лыжи | Сёрфинг» у фактов и достижений (`profile/ModeSwitch.tsx`); факты увлечений — `domain/hobbyFacts.ts`, сёрф-достижения — `domain/surfAchievements.ts`, данные — `profile/useHobbyStats.ts`. Карточка для соцсетей (`profile/ShareCard.tsx`): «Мой мир | своя страна | Борд | Сёрфинг», к «Мой мир» можно добавить увлечения (одна карточка для всего); факты — те же строки (до 3 на каждый вид карточки, выбор в localStorage `mw-share-picks`). Текст на canvas никогда не режется многоточием: `domain/textLayout.ts` (`fitLines` — меньше шрифт, потом вторая строка).
 - Годы посещения страны — `visits.years` (Dexie v4) + даты и поездки, логика — `domain/years.ts`, выбор — `ui/YearPicker.tsx`.
 
 ## Увлечения (Rider / Surf)

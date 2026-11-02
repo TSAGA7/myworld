@@ -154,6 +154,8 @@ export function achievements(f: Facts, world: WorldState, cities: ReadonlyMap<st
   const inhabited = inhabitedList.length;
   const cityLabel = (c: City) => `${c.name}, ${name(c.countryId)}`;
   const firstCity = (test: (c: City & { lat: number; lon: number }) => boolean) => visitedCities.filter(test).map(cityLabel);
+  type Located = City & { lat: number; lon: number };
+  const edgeCity = (test: (c: Located) => boolean, order: (a: Located, b: Located) => number): Located[] => visitedCities.filter(test).sort(order).slice(0, 1);
   const a = (id: string, icon: string, title: string, hint: string, value: number, target: number, details?: string[]): Achievement => ({
     id, icon, title, hint, value: Math.min(value, target), target, done: value >= target, ...(details ? { details: shortList(details) } : {}),
   });
@@ -192,9 +194,10 @@ export function achievements(f: Facts, world: WorldState, cities: ReadonlyMap<st
       ...(f.north && (f.north.lat as number) > 0 ? [`Север: ${cityLabel(f.north)}`] : []),
       ...(f.south && (f.south.lat as number) < 0 ? [`Юг: ${cityLabel(f.south)}`] : []),
     ]),
-    a('meridian', '🕐', 'Запад и Восток', 'Города в западном и восточном полушариях', Number(lons.some((x) => x > 0)) + Number(lons.some((x) => x < 0)), 2, [
-      ...firstCity((c) => c.lon < 0).slice(0, 1).map((x) => `Запад: ${x}`),
-      ...firstCity((c) => c.lon > 0).slice(0, 1).map((x) => `Восток: ${x}`),
+    a('meridian', '🕐', 'Запад и Восток', 'Города западнее и восточнее Гринвича (нулевого меридиана)', Number(lons.some((x) => x > 0)) + Number(lons.some((x) => x < 0)), 2, [
+      // The most western and the most eastern city, not just any one (it used to pick a random suburb).
+      ...edgeCity((c) => c.lon < 0, (a, b) => a.lon - b.lon).map((c) => `Самый западный: ${cityLabel(c)} (${Math.abs(c.lon).toFixed(0)}° з. д.)`),
+      ...edgeCity((c) => c.lon > 0, (a, b) => b.lon - a.lon).map((c) => `Самый восточный: ${cityLabel(c)} (${c.lon.toFixed(0)}° в. д.)`),
     ]),
     a('polar', '❄️', 'Полярник', 'Город за полярным кругом', Number(lats.some((x) => Math.abs(x) >= POLAR)), 1, firstCity((c) => Math.abs(c.lat) >= POLAR)),
     a('islands', '🏝️', 'Островитянин', '3 островных государства', islands, 3, islandIds.map(name)),

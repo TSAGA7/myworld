@@ -761,3 +761,5 @@ button.ach:active { transform: scale(0.98); }
 .ptr { position: absolute; left: 0; right: 0; top: calc(var(--safe-t) + 8px); z-index: 2; display: flex; align-items: center; justify-content: center; gap: 8px; overflow: hidden; color: var(--ink-2); font-size: 13px; font-weight: 600; pointer-events: none; transition: height 0.2s; }
 .ptr-arrow { display: inline-block; font-size: 18px; transition: transform 0.2s; }
 .ptr.armed .ptr-arrow { transform: rotate(180deg); color: var(--ink); }
+.share-scope.many button { padding: 0 8px; font-size: 13px; gap: 4px; }
+.chip.share-fact > span:last-child { min-width: 0; }

@@ -19,7 +19,7 @@ import { ModeSwitch, profileModes, type ProfileMode } from './ModeSwitch';
 import { useHobbyStats } from './useHobbyStats';
 
 export function Profile({ onSettings }: { onSettings: () => void }) {
-  const { settings, world } = useWorld();
+  const { settings, world, trips } = useWorld();
   const { progress, facts, achievements, home, perYear, top, travelRows } = useFacts();
   const toast = useToast();
   const avatar = useAttachmentUrl(settings.avatarId);
@@ -47,9 +47,10 @@ export function Profile({ onSettings }: { onSettings: () => void }) {
   const hobbyStats = useHobbyStats();
   const shownRows = factMode === 'rider' ? hobbyStats.riderRows : factMode === 'surf' ? hobbyStats.surfRows : travelRows;
 
-  // 4th tile: trips made in the app; without them (everything marked by hand) — the years with travels instead of «0 поездок».
-  const tail = facts.trips > 0
-    ? { n: facts.trips, label: plural(facts.trips, 'поездка', 'поездки', 'поездок') }
+  // 4th tile: every trip in «Поездки», upcoming ones too («2 поездки», as on the trips screen); without trips —
+  // the years with travels instead of «0».
+  const tail = trips.length > 0
+    ? { n: trips.length, label: plural(trips.length, 'поездка', 'поездки', 'поездок') }
     : perYear.length > 0
       ? { n: perYear.length, label: `${plural(perYear.length, 'год', 'года', 'лет')} в пути` }
       : null;

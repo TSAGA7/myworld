@@ -19,10 +19,11 @@ export function travelFactRows(facts: Facts, trips: readonly Trip[], perYear: re
     rows.push({ id: 't-route', icon: '🛫', text: `${km(facts.routeKm)} по маршрутам — это ${facts.aroundEarth} ${plural(Math.floor(facts.aroundEarth), 'оборот', 'оборота', 'оборотов')} вокруг Земли`, short: `${thousandKm(facts.routeKm)} по маршрутам` });
   if (facts.farthestFromHome)
     rows.push({ id: 't-far', icon: '📍', text: `Дальше всего от дома — ${facts.farthestFromHome.city.name}, ${km(facts.farthestFromHome.km)}`, short: `Дальше всего от дома — ${facts.farthestFromHome.city.name}, ${thousandKm(facts.farthestFromHome.km)}` });
-  if (facts.north) rows.push({ id: 't-north', icon: '🧊', text: `Самая северная точка — ${facts.north.name} (${(facts.north.lat as number).toFixed(1)}° с. ш.)` });
+  if (facts.north)
+    rows.push({ id: 't-north', icon: '🧊', text: `Самая северная точка — ${facts.north.name} (${(facts.north.lat as number).toFixed(1)}° с. ш.)`, short: `Северная точка — ${facts.north.name}, ${Math.round(facts.north.lat as number)}° с. ш.` });
   if (facts.south && facts.south.id !== facts.north?.id) {
     const lat = facts.south.lat as number;
-    rows.push({ id: 't-south', icon: '🌴', text: `Самая южная — ${facts.south.name} (${Math.abs(lat).toFixed(1)}° ${lat < 0 ? 'ю. ш.' : 'с. ш.'})` });
+    rows.push({ id: 't-south', icon: '🌴', text: `Самая южная — ${facts.south.name} (${Math.abs(lat).toFixed(1)}° ${lat < 0 ? 'ю. ш.' : 'с. ш.'})`, short: `Южная точка — ${facts.south.name}, ${Math.round(Math.abs(lat))}° ${lat < 0 ? 'ю. ш.' : 'с. ш.'}` });
   }
   if (facts.topCountry && facts.topCountry.cities > 1)
     rows.push({ id: 't-top', icon: '❤️', text: `Больше всего городов — ${countryName(facts.topCountry.id)}: ${countLabel(facts.topCountry.cities, 'город', 'города', 'городов')}` });
