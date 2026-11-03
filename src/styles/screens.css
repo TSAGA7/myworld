@@ -787,3 +787,14 @@ button.ach:active { transform: scale(0.98); }
 .deal-card.hl { box-shadow: inset 0 0 0 2px var(--lime-deep); }
 .chip.kind-chip[aria-pressed='true'] { background: var(--lime); color: var(--lime-ink); }
 .deals-btn { justify-content: center; }
+
+/* profile: «язычок» under the years card that unfolds the rest */
+.years-tab {
+  justify-self: center; margin-top: -11px; position: relative; z-index: 0; display: inline-flex; align-items: center; gap: 4px;
+  padding: 8px 16px 6px; border-radius: 0 0 16px 16px; border: 1px solid var(--glass-edge); border-top: 0;
+  background: var(--glass-strong); box-shadow: var(--glass-inset); color: var(--ink-2); font-weight: 600; cursor: pointer;
+}
+.years-tab svg { transition: transform 0.25s var(--ease); }
+.years-tab.open svg { transform: rotate(180deg); }
+.years-tab:active { transform: translateY(1px); }
+.years-list { position: relative; z-index: 1; }

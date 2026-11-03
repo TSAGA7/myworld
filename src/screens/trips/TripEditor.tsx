@@ -176,7 +176,7 @@ export function TripEditor({ tripId }: { tripId: string | null }) {
         {startDate && endDate && !datesWrong && (
           <button
             type="button"
-            className="btn glass-btn block deals-btn"
+            className="btn lime block deals-btn"
             onClick={() => {
               if (!countryIds.length && !stops.length) {
                 toast('Добавьте страну или город — подберём билеты туда');

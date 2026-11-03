@@ -61,7 +61,7 @@ function DealsButton({ trip }: { trip: Trip }) {
   return (
     <button
       type="button"
-      className="btn glass-btn block deals-btn"
+      className="btn lime block deals-btn"
       onClick={() =>
         openTripDeals(
           tripFocus(trip.title, trip.startDate as string, trip.endDate ?? '', trip.countryIds, route.map((r) => r.city).filter((c): c is NonNullable<typeof c> => !!c)),

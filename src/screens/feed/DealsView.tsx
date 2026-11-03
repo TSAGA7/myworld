@@ -182,9 +182,6 @@ export function DealsView() {
           ))}
         </div>
       )}
-      <p className="faint tiny feed-sources">
-        Цены — самые дешёвые билеты, найденные пользователями Aviasales за последние двое суток. «Обычная» цена — медиана по этому направлению и месяцу. Цена у продавца может отличаться.
-      </p>
       {picked && <DealSheet deal={picked} updatedAt={state.data.updatedAt} onClose={() => setPicked(null)} />}
     </>
   );

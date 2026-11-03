@@ -161,7 +161,7 @@ export function Profile({ onSettings }: { onSettings: () => void }) {
               {top && <span className="muted small num">рекорд — {top.year}</span>}
             </div>
             {perYear.length > 0 ? (
-              <div className="list">
+              <div className="list years-list">
                 {(yearsOpen ? perYear : perYear.slice(0, 1)).map((y) => (
                   <div key={y.year} className={`list-row year-row ${top?.year === y.year ? 'best' : ''}`}>
                     <b className="num year-num">{y.year}</b>
@@ -174,9 +174,9 @@ export function Profile({ onSettings }: { onSettings: () => void }) {
               </div>
             ) : null}
             {perYear.length > 1 && (
-              <button type="button" className="link-btn more-toggle" aria-expanded={yearsOpen} onClick={() => setYearsOpen((o) => !o)}>
-                {yearsOpen ? 'Свернуть' : `Все годы · ${perYear.length}`}
-                <Icon name={yearsOpen ? 'chevronUp' : 'chevronDown'} size={16} />
+              <button type="button" className={`years-tab ${yearsOpen ? 'open' : ''}`} aria-expanded={yearsOpen} aria-label={yearsOpen ? 'Свернуть годы' : `Все годы: ${perYear.length}`} onClick={() => setYearsOpen((o) => !o)}>
+                <span className="tiny">{yearsOpen ? 'Свернуть' : `Ещё ${perYear.length - 1}`}</span>
+                <Icon name="chevronDown" size={16} />
               </button>
             )}
             {perYear.length === 0 && (
