@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { newestEditionFirst } from './editorial';
 import { aviasalesLink, findDeals, median, monthsFrom, recordPrices, routeKey, type Names, type PriceHistory, type PriceRow } from './deals';
 import { addDigest, buildDigest, DraftSchema, moscowDate } from './digest';
 import { mergeNews, recentNews, toItem } from './news';
@@ -365,5 +366,13 @@ describe('resort notices', () => {
       n('c:5', 'r2', 'critical', '2026-12-10T10:00:00Z'),
     ];
     expect(currentNotices(items, new Set(['r1']), now).map((x) => x.id)).toEqual(['c:2', 'c:4']);
+  });
+});
+
+describe('interesting editions', () => {
+  it('puts the evening above the morning of the same day, and newer days first', () => {
+    const e = (date: string, part: string) => ({ date, part, id: `${date}-${part}` });
+    const list = [e('2026-11-01', 'evening'), e('2026-11-02', 'morning'), e('2026-11-02', 'evening'), e('2026-11-03', 'morning')].sort(newestEditionFirst);
+    expect(list.map((x) => x.id)).toEqual(['2026-11-03-morning', '2026-11-02-evening', '2026-11-02-morning', '2026-11-01-evening']);
   });
 });

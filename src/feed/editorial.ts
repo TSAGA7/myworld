@@ -80,5 +80,14 @@ export function buildEdition(draft: StoryDraft, stories: readonly NewsItem[], so
 
 export const addEdition = (file: InterestingFile | null, e: Edition): InterestingFile => ({
   updatedAt: e.createdAt,
-  editions: [e, ...(file?.editions ?? []).filter((x) => x.id !== e.id)].sort((a, b) => b.id.localeCompare(a.id)).slice(0, EDITIONS_KEPT),
+  editions: [e, ...(file?.editions ?? []).filter((x) => x.id !== e.id)].sort(newestEditionFirst).slice(0, EDITIONS_KEPT),
 });
+
+/**
+ * Newest edition first: by date, and on one day the evening above the morning.
+ * (Sorting by id put «…-morning» above «…-evening» — «m» > «e» — so the morning stayed on top all evening.)
+ */
+export function newestEditionFirst(a: { date: string; part: string }, b: { date: string; part: string }): number {
+  if (a.date !== b.date) return b.date.localeCompare(a.date);
+  return (b.part === 'evening' ? 1 : 0) - (a.part === 'evening' ? 1 : 0);
+}

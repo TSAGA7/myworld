@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { feedPrefs, setSetting, useWorld, type Settings } from '../../app/world';
 import { type FeedPrefs, orderStories } from '../../feed/visibility';
 import { useFeedFile } from '../../feed/client';
+import { newestEditionFirst } from '../../feed/editorial';
 import { dayMonthFull, greeting } from '../../feed/format';
 import type { Edition, StoryItem } from '../../feed/schema';
 import { Icon } from '../../ui/Icon';
@@ -20,7 +21,8 @@ export function InterestingView() {
   const { settings } = useWorld();
   const now = useNow();
   const [setup, setSetup] = useState(false);
-  const editions = state.data?.editions ?? [];
+  // Sorted here too: copies published before the fix had the morning above the evening.
+  const editions = [...(state.data?.editions ?? [])].sort(newestEditionFirst);
 
   const head = (
     <header className="stories-hello">
