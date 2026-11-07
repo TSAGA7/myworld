@@ -1,0 +1,688 @@
+{
+ "updatedAt": "2026-11-05T05:48:41.114Z",
+ "editions": [
+  {
+   "id": "2026-11-05-morning",
+   "date": "2026-11-05",
+   "part": "morning",
+   "createdAt": "2026-11-05T05:48:41.114Z",
+   "items": [
+    {
+     "country": "JP",
+     "place": "Япония",
+     "text": "Врен передаёт свежий отчёт читателей: 4 ноября в храмовом комплексе Никко уже началась осенняя окраска клёнов, а водопады Кирифури сейчас в самом пике — хороший повод выбраться из Токио на момидзи.",
+     "storyIds": [
+      "wrenjapan:18594"
+     ],
+     "image": "https://cdn4.telesco.pe/file/qiS96Mn4Aqvt5mR-IE-cfhu_e4kAaXbviY-wuNHR0ErNbbPxRbIAlOMOaTX0jP9wLiWOMa2EwWiQYfEyqPBO0tgTu0ipB5lzpcscjjlwZqsS3pK2rnfxeF6hO6LBjSwTT45vN9xYmlruENoaVSA2ObjkGR53gw6ECiXzXxxezdRPrFOrDDUnWkxuoVkeQdhDNUBSUPaxo46Q23hd4ydx4aPpBhUidPgMWfQwggXLHcEIrRUqxpLKmr_w93SkYXc5F_mYda7wCqMEj73xXDSed7XENebz4D5IZVyqHhzFD1RULqjUaAqW7rJU7jPnrJUg4khM1LMDZNraggqNUyt7Rg.jpg",
+     "links": [
+      {
+       "name": "Врен о Японии",
+       "url": "https://t.me/wrenjapan/18594"
+      }
+     ]
+    },
+    {
+     "country": "JP",
+     "place": "Осака",
+     "text": "Туристы советуют ресторан с безлимитной вагю у северного центра Осаки: 120 минут за 5800 иен с человека, вечером столик лучше бронировать через Google Maps, а к ужину обязательно нужно взять напиток.",
+     "storyIds": [
+      "wrenjapan:18588"
+     ],
+     "image": "https://cdn4.telesco.pe/file/vmWNk9MNuNsL8AdOoB0a891Ch98k0JDjW8nG0oceeYt5YIvGU4JJkqkD62ZRVGKoanx2k2mh3c0-6bSN4LytCMUlHfqRArGBF2g6k18M6UUo6w1pxiPRUJN1XzPy8M97EiAvCCopTESjQhIwXpOxRlstM28jma1ob5be5JpRZvjFXM1wZgcaFVpUIds-i4iBrMvBfxoLJxxSz2I5nZmcgYIIy-2MwqwRWfD47zThACpvUFg-txHV-x5gpbnQvgMeN3VJLWOLzT24zptwdk65oQKvuLHaS7ifOGWMnGJ9g1lFWv7djussVHmudrSGubU5Vl6YXFz-1bTuvK9kFOT2lA.jpg",
+     "links": [
+      {
+       "name": "Врен о Японии",
+       "url": "https://t.me/wrenjapan/18588"
+      }
+     ]
+    },
+    {
+     "country": "JP",
+     "place": "Кюсю",
+     "text": "Врен напоминает про свой гид по Кюсю для тех, кто хочет уйти от толп Токио, Киото и Осаки: действующий вулкан, песчаные онсэны, лодки по ущелью и дерево, которому, по преданию, десять тысяч лет.",
+     "storyIds": [
+      "wrenjapan:18593"
+     ],
+     "links": [
+      {
+       "name": "Врен о Японии",
+       "url": "https://t.me/wrenjapan/18593"
+      }
+     ]
+    },
+    {
+     "country": "CN",
+     "place": "Харбин",
+     "text": "Грушины расписали маршрут по зимнему Харбину на 5 дней: Центральная улица и набережная Сунгари, Софийский собор вечером, парк тигров и городок из льда и снега — и главный совет одеваться слоями.",
+     "storyIds": [
+      "grushiny:15830"
+     ],
+     "image": "https://cdn4.telesco.pe/file/CVH37wigyaZpabE6zYV6KOg3oOgXGPGWyI3kz4ZJvAfNb7eLT4MTSCvagFrbkDcpOQKw-Eskfir5IB2PZiXJ9sg3TxjYjL0uiQGiQvgV5-8R5v2uZ38Hit5aOXJWpsirxBR-_mIwDuVXdc6nOsFs4ytXcLFiuESFdRG-ay9zk3RYXfzpctrNl12g8S6skUDlcChHl5js0f-2RSduF8oZawfVrN60UCjVKDp-mdLVVVB_YxCG47fAQc_rl6SJNV-RUA0EO8gg9-B1zFpStp11SLvSmcKoYXxYrdNWBDNvocU1NkPxON_2BWtJWjHj3MGdK2AjZJsdQXB6yay8aHU1QQ.jpg",
+     "links": [
+      {
+       "name": "Грушины Юра и Юля",
+       "url": "https://t.me/grushiny/15830"
+      }
+     ]
+    },
+    {
+     "country": "TL",
+     "place": "Восточный Тимор",
+     "text": "Автор делится опытом перелётов в Восточный Тимор и обратно на AeroDili и Citilink: онлайн-регистрация для иностранцев не работала, на обоих A320 кормили горячим, а на стойке кроме паспорта ничего не проверяли.",
+     "storyIds": [
+      "shichk0ff:8475"
+     ],
+     "image": "https://cdn4.telesco.pe/file/ZUGskZvm1lSlRlse-9T5wAZYgHWoNypSCwCi1BW9Kf5C3SmxiVcFwm4MmA16MmdOUHeiuX_5Q-JGtUgvVxpWO-W-sjM6xr_rg5CrQwgh-SeUt4dEtgEW8komXOZeR9k9T8t6I4VfjhtmK17sHMfqyV7Mj73E3Su-o4uDMJjaEuRtVrNPKuTgwKLfySQrst2DUwXFwKHBwGhbmyaIQ8WvmIY2kpQHBU1DkqoLTWGTz0jPvlsmq7AOB9ICiaUniP9iVgKpOpa4iz_1q5xX4QDJRkbQVeRHlVySytBBn3uJ-tXaUnX9t5ELAlFnF1p2FqmFi2e3QSKRkdYcVGMrR9_Lag.jpg",
+     "links": [
+      {
+       "name": "SHICHKOFF",
+       "url": "https://t.me/shichk0ff/8475"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "2026-11-04-evening",
+   "date": "2026-11-04",
+   "part": "evening",
+   "createdAt": "2026-11-04T16:48:37.605Z",
+   "items": [
+    {
+     "country": "CN",
+     "place": "Китай",
+     "text": "Грушины рассказывают о священной горе Тайшань: к вершине высотой около 1545 м ведут больше 7 000 ступеней, подъём пешком занимает 4–6 часов, и многие стартуют в 9–10 вечера, чтобы встретить рассвет наверху.",
+     "storyIds": [
+      "grushiny:15829"
+     ],
+     "image": "https://cdn4.telesco.pe/file/QnBWiDCK0-iVhVNeJgMU14ZQ0vMgDATXfD_S0yvY4m9Djmfd85baeBJcs-K-SoRlvqy3MYiZjt-4f8wMJtpe39sksW-QkUDQ_gUxMxSRVBRkAfC40Xnb1SGfTSxBbzDaV8z66lVj0HP8KOtkj8DG5-jaxDwU6XSaa8zJ8vIkTbT8eNRGZQCSHNMUtK9dGfmYe8Tuc4IvSMQdD3wGqRfz581Y3RB41KJyraV8Tjx8Wv7HwbYnDP3jZTG9DN5Yv1cAxxZKU-xjSM8yKUxRiHSLgC7lj3GHxef49MBM3WegszHAgjOJQNtW2KlbSr9FDkTaVK8j1L5LpBjb1PwrXBOfUA",
+     "links": [
+      {
+       "name": "Грушины Юра и Юля",
+       "url": "https://t.me/grushiny/15829"
+      }
+     ]
+    },
+    {
+     "country": "JP",
+     "place": "Япония",
+     "text": "Автор советует заглянуть в святилище Хаконе-Дзиндзя на озере Аси по пути из Мисимы в Фудзикавагутико — с японскими кедрами и воротами тории прямо на воде, которые по легенде отмечают выход дракона из озера.",
+     "storyIds": [
+      "rutravellers:15129"
+     ],
+     "image": "https://cdn4.telesco.pe/file/tISa_rKf2GLB9qSic0BIg_8K5E_0QD5VlgPwGy011FUBhBd_fvBHcO-YNkzuLNDbSdxxJsjQXy8C5v-OX-61KlXM5kk0s_rP8KKmuxc6GhXmARJLiR0zYaZttsnqQ4EdaiNbgSWK5wsqCVpLnsWklfQn-KUvx0UJGvXLIldedX3PzKQkEFpTA0Rlq-dCJgMt4ZCIkST6xOxZkARZyPKtryHeZ84fj03LwByA3T-V5_3mvqL9gJftxI-6tTspRMmxlv2DjTk3MQeNpKlBXeDsGfwcOwvViuPbGei6MnzLoiqWh2cMXAQoM5YyBXSpMxNzEVW88whj9xnOdnvn5klvGw.jpg",
+     "links": [
+      {
+       "name": "Рутрэвел",
+       "url": "https://t.me/rutravellers/15129"
+      }
+     ]
+    },
+    {
+     "country": "JP",
+     "place": "Япония",
+     "text": "Автор делится лайфхаком: наличные в Японии удобнее всего снимать в банкоматах Seven Bank — там самые мягкие курсы и комиссии.",
+     "storyIds": [
+      "rutravellers:15127"
+     ],
+     "links": [
+      {
+       "name": "Рутрэвел",
+       "url": "https://t.me/rutravellers/15127"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "2026-11-04-morning",
+   "date": "2026-11-04",
+   "part": "morning",
+   "createdAt": "2026-11-04T05:48:29.157Z",
+   "items": [
+    {
+     "country": "JP",
+     "place": "Япония",
+     "text": "Автор советует ехать из Осаки к океану в Сирахаму (префектура Вакаяма): в сезон там лучший пляж региона, вне сезона — красивые прогулки по побережью и древний онсен прямо на берегу.",
+     "storyIds": [
+      "wrenjapan:18583"
+     ],
+     "image": "https://cdn4.telesco.pe/file/jrvtHi0-O46vIJIkFWf18Sx59w9-4cK0ntq65cYZNvqNliH1hjTye44oxk4yI3XOlPAM395WGfYtv1WGEELvx7XjIDkCqakYphpOZPU1sF-af-b6fceiZFxGO0bcPoVIi11PpEHXX9oEZ8n70aEkNa69BU205xvyE9PdoqotxyoTh0kqdkR3VthusaOpcn7vIFS5QmBpswWP5rwJskr4SExhuWlpcKC24UDDeOe6r6sjJKMpyrKZrC8UuqNAQrh0Ohx879VwO-NUXHOjrbN9XWnIEaWbov7wHWM1W4TMMVBhSnjJ6N9ltgT0Pm22rjfv0FI4PbH8giLVQ9seT_I_Yg.jpg",
+     "links": [
+      {
+       "name": "Врен о Японии",
+       "url": "https://t.me/wrenjapan/18583"
+      }
+     ]
+    },
+    {
+     "country": "VN",
+     "place": "Фукуок",
+     "text": "Авторы предупреждают о мошенничестве с жильём на Фукуоке: в соцсетях появлялись поддельные страницы пятизвёздочных отелей с заниженными ценами и предоплатой, а в прошлом году туристы сталкивались с овербукингом даже при заранее оплаченных бронях.",
+     "storyIds": [
+      "grushiny:15825"
+     ],
+     "image": "https://cdn4.telesco.pe/file/jQtbrxVWkkJNQBLXs8LtsnI8lWbExKFqH8imQrUSFYXfSueNX0AmMsEeLHyNSRMxaqLR0p0iifYUcnB5eQLX6evYDc9rGv60LmKVedCa7ZtfDmTm_T3vF2-elTEtOLHMuPmX3LqulkAzrhmgq3CC_eW8pQgEUogKv2ATAYJm4AbGIKF4OcuEz8XRd7NQ_ME9jbFKvy3YgoSj5nFcuH4_pQSwXUqJ10gxJhzCtvcC4E51D9P47khl5nU9kcxei_DXCtdGJ-gx1h_5NnkhXwmtJYEia5wdFXZu5vbTjcWYJeGvSPTYeH5KDK8OzQywTjmaq9s8aR4Gw6eZkOuL11gBFg.jpg",
+     "links": [
+      {
+       "name": "Грушины Юра и Юля",
+       "url": "https://t.me/grushiny/15825"
+      }
+     ]
+    },
+    {
+     "country": "CN",
+     "place": "Китай",
+     "text": "Авторы делятся подборкой фильмов и документалок о Китае — начать советуют с «Последнего императора» Бертолуччи, первого западного фильма, снятого прямо в Запретном городе, а потом взяться за сериал «Эпопея империи Цинь».",
+     "storyIds": [
+      "grushiny:15826"
+     ],
+     "image": "https://cdn4.telesco.pe/file/YXhM-bUTlsPc-GisTukT-QM9L1qaqD1lmhl4jwef8dlRA5W5i-9NoQB8ymO2nC2RjeINRdUIdGvNdqmCDQ3S0yyHleC__CQv1Ky7n0hin9SnP-pm6B-ZnLp19D27Ijgm_TN9rxsWMUG04l-Xi7nasaOXNSwdMBJUWstK2U4AXovncv1Hx6cNchut9Tqg-N9mHXRJM42XvZMxEmcRrH9PdN-b-NWfTMiwLuY6J01uBWjxvF472pY5vEM3P9l_NAW0aWxrtu9gW7oTDPIv_A_nBjkfWSP0y-0qriHuSGN7vgWDdpU0wyF2U_d3tpn_fAPlnmh_DYpmHkqiRv27xsoxBA.jpg",
+     "links": [
+      {
+       "name": "Грушины Юра и Юля",
+       "url": "https://t.me/grushiny/15826"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "2026-11-03-evening",
+   "date": "2026-11-03",
+   "part": "evening",
+   "createdAt": "2026-11-03T16:48:47.778Z",
+   "items": [
+    {
+     "country": "JP",
+     "place": "Япония",
+     "text": "Врен объясняет, что без визы в Японию можно попасть на круизе из Шанхая туда и обратно, но советует так делать только любителям круизов или тем, кто рискует получить отказ: обычная японская виза бесплатная, а за те же деньги на берегу вы увидите в разы больше.",
+     "storyIds": [
+      "wrenjapan:18580"
+     ],
+     "image": "https://cdn4.telesco.pe/file/ZhuwN_-Hd9RfZksw8Qpt7FPVZUAjqiKOHUninZ7JXEfVW_yFvaFPDitofn6NzmDTXD3MAF9WBbrm4wk3SqbZ5_opV7A-u6mqkAGD2pqCv3azbCDQwTALBrk10eOa0TI10aqRav1Yr6PIwpZIO4gfJARswG-MAuq10OjFmYVgAB0vOlHcKIuiyY1QZxMos2S9npr-9X8TfRQpvsfLYiqOvI3PwVllBAuKz21YFoz_TXWUuB_PEewWDhHpocVpSjqtxrbG9WBe-ARibM2xh3lcFqtuUFCCXTrDUvM3vGVXlz7GQg8XbXx2Zb-Y8zu2ExzxiB0L1AsreWhClIzVwRGelA.jpg",
+     "links": [
+      {
+       "name": "Врен о Японии",
+       "url": "https://t.me/wrenjapan/18580"
+      }
+     ]
+    },
+    {
+     "country": "JP",
+     "place": "Киото",
+     "text": "Врен советует улочки Саннендзака и Нинэндзака с пагодой Ясака в районе Хигасияма по пути к храму Киёмидзу-дэра — днём там толпы в любой сезон, поэтому за красивыми кадрами автор ходит ночью или на рассвете.",
+     "storyIds": [
+      "wrenjapan:18579"
+     ],
+     "image": "https://cdn4.telesco.pe/file/Q1mYd87JyDBwECyF3XQ49OAEYhNhY7Hu3JxHok5LNLKi_ANuhhX9w2ATquhHil58RQeNQzSziXkgWGwLN4mDrDRt9-4ueZRT0iD4WhKOhgf7FP-O_aldY6r8A3sA1-I6mwecfafxWoUGC1_34bJW1TJseMGudeyb8OApYG1MSfzf8V31GmCoa1Z5Zpl7hwKLqRJkIGqtaiNxU_IouXEo0HqM1v-_WHFg6rCr-LTEbjlb4pEzND_Rf6qqQgPYUV_mTOB0FN8_ZWqwjXI6s0JBQVJ_W0UJJqsuHH9jVn-4IKUo7OKEmFai34PG9dti36HqcLTiNBO3ajr-C0th20JzEg",
+     "links": [
+      {
+       "name": "Врен о Японии",
+       "url": "https://t.me/wrenjapan/18579"
+      }
+     ]
+    },
+    {
+     "country": "JP",
+     "place": "Токио",
+     "text": "Рутрэвел рассказывает про памятник Хатико у станции Сибуя, где для фото придётся постоять в очереди, и делится лайфхаком: если ездите на метро не больше двух раз в день, транспортную карту можно не покупать — разовые билеты недорогие.",
+     "storyIds": [
+      "rutravellers:15120"
+     ],
+     "image": "https://cdn4.telesco.pe/file/ot41NoShpU_zHVVORyjXtVKw6Z_nuboVOMO3MO_VjDp7AfPeUiS2eviUyhSqPSsMxIqO2-fab4Yc883VL398cBdv-6PbRkEDQQSzOU-9dIUJdkdNBUAD97mJUF1LGRFg7jEvyVGbfyUoiPs9RVsA6u_eir7QfZjsp5AACj-fDOZu6Dn402B_z6aq7QSqwQuoc5Rl8JWdDBEnQVi_6w_DnqI0_f3w3LvdFIIpMm64CYtVBZlMKgZTdPH2Ge9VV90tJkNNEqAZ3EWtQTpAkXZma2W_CRkt4wnJNIIAUdF0oOZtOSkhy2g5heQuxVVhUBRhxdppYaKIqRcRAH76Y2xlSw.jpg",
+     "links": [
+      {
+       "name": "Рутрэвел",
+       "url": "https://t.me/rutravellers/15120"
+      }
+     ]
+    },
+    {
+     "country": "TL",
+     "place": "Восточный Тимор",
+     "text": "SHICHKOFF пишет из Дили, что местные жители открытые и любопытные: дети обязательно здороваются, охотно фотографируются, попрошаек почти нет, а белый турист в местной маршрутке-микролете вызывает настоящий интерес.",
+     "storyIds": [
+      "shichk0ff:8469"
+     ],
+     "image": "https://cdn4.telesco.pe/file/ZRiIhIqHA_LczBpdvzQk6N6K1kDNuxP8E6-gxM0XSIyZyVc5FNDVn3RdJPyfQRW8FQnoQ0nfjpzeKlF9lt57w7tqTmZCijA-8kbajR2Ur6YsjzWUgZ8MxHWbe9RsrPAFYfJi1QNkkGo6nXDA-6Zs0PJaQ7YEN_EsIEw4goTVGwbi4opw7F1W6cL5DsDDhhJp7To_ZYClfPbcctEyzWxxcSNopcChusPPtNtZ0CsYNUuEz2_6KWO3ODn4UNOGJro4dIEVenTLtUE_XTDzGOW-v-JtP6faaaqmNsvN5tX5FFp0Yu-3PiT7-ML9Ddj170ZMtXdhW8CsTNi50cOEw0UJCw.jpg",
+     "links": [
+      {
+       "name": "SHICHKOFF",
+       "url": "https://t.me/shichk0ff/8469"
+      }
+     ]
+    },
+    {
+     "country": "JP",
+     "place": "Япония",
+     "text": "Рутрэвел делится японской приметой: 3 ноября, в День культуры, почти всегда стоит хорошая погода, даже если до и после идут дожди.",
+     "storyIds": [
+      "rutravellers:15104"
+     ],
+     "image": "https://cdn4.telesco.pe/file/dhJ_OhPhyRkgt2F4YRdauvxz5ONk9zVjBuA9TUvlYQL-dZiiPivMOU_HBeXiZIiqZ_PYRZaXBVDjdu6VUR8t02865X9VCiswbF9tgMOSMzkg1fERdrLognEwWgESegPIhFyxnb7neP_3FsVrEw-SnmWsx-yJ4sqcOV6Bz2itUiO90rUtN2bUdvki6Hc-1a4oNkNm5z2iTF6SJ6h8h7sdUdUerlYT2-JZmQT7Hw6qS6s6NleyglpxEDi8AuWhaCNbf9ALGtubNU8jGDEcsNTpnRuhtz01GmrS9KCJj06apXdza9-vDyh6WNq-zFPeGcH8T0Tond6PCPtoQa74L_PpYw.jpg",
+     "links": [
+      {
+       "name": "Рутрэвел",
+       "url": "https://t.me/rutravellers/15104"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "2026-11-03-morning",
+   "date": "2026-11-03",
+   "part": "morning",
+   "createdAt": "2026-11-03T05:48:16.644Z",
+   "items": [
+    {
+     "country": "JP",
+     "place": "Япония",
+     "text": "Авторы советуют приезжать к пагоде Чурейто к шести утра: именно рано утром Фудзи обычно открыта, и шанс на кадр есть даже в пасмурные дни.",
+     "storyIds": [
+      "rutravellers:15101"
+     ],
+     "image": "https://cdn4.telesco.pe/file/sVlrAekEK_rhGCEfDNkcXFejXpOvDeQwZUYs1z-bTyWADI6pv6xYMFltPwd4nCnX6sbttMY3256iKslvb2wMorccB55BnnjW06_VThuCOE9gXEukYEfzNLKWOP_aAT-ab8r5O4LNOrFtFMq1-WguEQPSLv3ySuO3IDM9HWQBzZVV0XNIzYlk_Buk3MybelHLBr9j94ablqfz_XDOvW-DzL1zOpO3dH2rd_08h3cCZzWJjyoOb9PE5eeV_SiNWQA6OR1Il1t7lyLTrfAKQv460kvHHXHeId75YyLx1WuIOyc7b8EUCa1p7ZeEg49FGi8WrxqdwPpcBqIi3_lBqHxljA.jpg",
+     "links": [
+      {
+       "name": "Рутрэвел",
+       "url": "https://t.me/rutravellers/15101"
+      }
+     ]
+    },
+    {
+     "country": "JP",
+     "place": "Токио",
+     "text": "Врен подметил, что российские туристы чаще всего селятся в районе Нихонбаси-Нингётё и ездят в город Ито с капибарами и побережьем Дзёгасаки, а в отеле Nihonbashi Saibo для них уже перевели инструкции на русский.",
+     "storyIds": [
+      "wrenjapan:18578"
+     ],
+     "image": "https://cdn4.telesco.pe/file/AbZhcyDPmaYU0TabheqIj9QuwzTMXSzcqzh54XhB2cOTDE3ed8LjH2eDoXcObMH5OcdpncLc4j88kH-liSmAOf1cIxgTUt_PXrRE1ma85mXN5mMEhIrOpaZPxMBd6vvhVaamTLjevXg9l4TOk046JiX1eB887JqA2CbpFtnFVydRG25_yVNwFfw5mfWYsEYmyi4KZjoHUy8djAI0FjmY9CU9x6fg5HI3JDqy6VCGU3jQsQe9hILqu-h2wzZhuiVDeie6t2YGA1oDvnRXOb1N_1QF7guWTlH3eaZQHpBYz4WDunMr4q9OlN25tN9-gNz5q1qK2OBn6JzGP7A2RYrEog.jpg",
+     "links": [
+      {
+       "name": "Врен о Японии",
+       "url": "https://t.me/wrenjapan/18578"
+      }
+     ]
+    },
+    {
+     "country": "JP",
+     "place": "Токио",
+     "text": "Врен советует на пик момидзи в Токио в первой половине декабря смотреть билеты China Southern с бесплатным отелем на длинной пересадке и напоминает, что у China Eastern, Air China и China Airlines свои правила.",
+     "storyIds": [
+      "wrenjapan:18572"
+     ],
+     "image": "https://cdn4.telesco.pe/file/vkjnxPrjbjD1t8vNyof6fViIyhx9oXsJXlN737jy0uc20x38cxEZBXsexcu5wgXgYAj4JtB4ndHBIHJi9fEd78vWG3hXHDo1v7x2gFC6CzkbbURpvanH0mFJXg-dU5-CFOdmUUicTlpviUi8HDcG9eDlRvzM9p8EoIHYuMP_nNEBSC3mcgwG1n3nZWHJ1U7jSB4hN3NXIc8Lahm2VFvHd0K2Y8UxYk0XJ2sexKBxh7MllO7vwpT8zbFA7o95F2XMe-DAXTcLGF4LqJhO7RVPPpIKWFyH3BHsLt-L5jWPIeU5QrFxPsQ2BJ8vP5I0QKQ9qqTxBC_ldxKzf67tniTlrA.jpg",
+     "links": [
+      {
+       "name": "Врен о Японии",
+       "url": "https://t.me/wrenjapan/18572"
+      }
+     ]
+    },
+    {
+     "country": "VN",
+     "place": "Нячанг",
+     "text": "Юра и Юля рассказывают, что жили в отеле Xavia чуть в стороне от центра — номер с панорамными окнами на море и тихим пляжем через дорогу обошёлся им примерно в 25–30 тысяч рублей за 9 ночей.",
+     "storyIds": [
+      "grushiny:15824"
+     ],
+     "image": "https://cdn4.telesco.pe/file/LXMW77Qs9MZCKsVYuZhbE9ewBurNorprH2VedeMud2-dz7I8lUCKdfix61PRi0CB4OfwIBz8lyUyMdDFyKa2lKvRVjpwIiBzuEHh8B8nejcj9hF0NlPEXbTI63ZUwPnjY8I9vhb0wPMgxC_Ber0d3lWQFav5q70MFyGh3nLdg_0ItFzD_bypbOpd-WsoWKY7Evc4miEaFN6ucvycRc870vG2YDNWJ52Mu3lt4PDpx2KnmROErQ2r7auwAmAk_iV4XjKhMjPW3bf29AX09brTf8aZDxV_Fq7oxb-62DuczE1Bo91FwKM5F3ccjCRxxr2yJ-HmaHGhFumM0vDaUOeHgg",
+     "links": [
+      {
+       "name": "Грушины Юра и Юля",
+       "url": "https://t.me/grushiny/15824"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "2026-11-02-evening",
+   "date": "2026-11-02",
+   "part": "evening",
+   "createdAt": "2026-11-02T17:11:54.493Z",
+   "items": [
+    {
+     "country": "JP",
+     "place": "Япония",
+     "text": "Автор делится свежим опытом возврата Tax Free по новой системе: в аэропорту Нарита налог за чемодан вернули наличными без досмотра покупки, с округлением вниз, а при регистрации на сайтах операторов деньги можно получить и на иностранную карту.",
+     "storyIds": [
+      "wrenjapan:18577"
+     ],
+     "image": "https://cdn4.telesco.pe/file/Tjoev1cYeNaRZGmHSgbLbLayOeKLzBn_OXWRyMsgbZGBgxYdTpJYYLJtHacZvMKGtFUtN3ohsC7kEJs1PhYNtPGEX6_rNMnfwMhuklTkBV15w8iY9tlSYgeS1sf364hgUlc8rY2KKOGLkSKGuvQCJ46djbJ-Wb0DaCODrgl-251uRUqpVKg1qjmpLGfhqR-LCU4tT8AzQt1D7wopSYEqT8g6TkOToGWNBDTqMKO2ma_8J3q5jYpryR1xvW8zdKnPO5gzaQ0YMleVjagLQqXb0P5WdIIY-3PFwTgxRSeTy9FqJds78X1GWkOM9IvC7AIH76JZyPKgJMwqdx-UB577Wg.jpg",
+     "links": [
+      {
+       "name": "Врен о Японии",
+       "url": "https://t.me/wrenjapan/18577"
+      }
+     ]
+    },
+    {
+     "country": "JP",
+     "place": "Япония",
+     "text": "Яркие момидзи уже дошли до парка у замка Хиросаки на севере Хонсю, и автор ждёт, что через пару недель волна красных клёнов докатится до центральной Японии.",
+     "storyIds": [
+      "wrenjapan:18573"
+     ],
+     "image": "https://cdn4.telesco.pe/file/BkLqT-CiJLTHPlQyytVB4teOXPsxGLNEZfQZVyHdU4zThodO5gRjxyEuQGPBaY5thlZ9YE17pK-KAKnhXTeIVGLeXbt6wuw51FaUq44WVdOd6DPeSy-wrsYnEN3n_g8lSM0eEPrCqN1DwpL0g_7eTS_WDllKZwOqpp_uKRH6xygJYMIyRipf7xuOua3IdK9VcAXi-eWmGUwso8tjcecFWL7NMOytmrE_UxMLAr2u5IgZUaEJRuJr6FuIkv5lzXfSsv7hu-FCK5qyxNpsLpFuxnQF3Ac9-AIfCGBkHp0401VO8iHTcwFWo0teViAs6IhWpRwiSWJ22LW-DlIDadNg7w.jpg",
+     "links": [
+      {
+       "name": "Врен о Японии",
+       "url": "https://t.me/wrenjapan/18573"
+      }
+     ]
+    },
+    {
+     "country": "TL",
+     "place": "Восточный Тимор",
+     "text": "Автор рассказывает о двух днях в Дили: паром на остров Атауро ходит раз в день и идёт три часа, катер стоит 250 $ в одну сторону, а обзорную поездку по городу удалось найти за 50 $ вместо 150 $ у хозяина гестхауса.",
+     "storyIds": [
+      "shichk0ff:8460"
+     ],
+     "image": "https://cdn4.telesco.pe/file/BJygkNnjpDrQuaNRvUAr49qq1jIISqbah2xlLa0mNxxIXySnLEcoKKhDayzrPd9CZ9iINtSwsVIOCpojUvRkQErZRJukI7FDNbhqtmzMaRoDBJbRkYKivByWMPV10cLFx7OLm-HZa9KHwc4TwKvwzruhBiY3_MaL8ibVBEWQmr7tF8E8KyMlcImQb29YVNDldkiZBpadjvdseu3046_Nf73_tleLyQ7Ff1tFxRfB7UbP43EpDm6W1O6VXk9gdRR-PlzFwk_nzCIAgpOvOEykmYtddBuwi7MjSKfQ_q6-otDMhSKEfQULwh8vUYvL1qHVrk2_YNMFXhgiM7eGRXCwDA.jpg",
+     "links": [
+      {
+       "name": "SHICHKOFF",
+       "url": "https://t.me/shichk0ff/8460"
+      }
+     ]
+    },
+    {
+     "country": "CN",
+     "place": "Пекин",
+     "text": "Авторы собрали советы для стыковки в аэропорту Дасин: до любого выхода не больше восьми минут пешком, а номер без окон в отеле прямо в терминале выгоднее бронировать онлайн — на ресепшене примерно на 30% дороже.",
+     "storyIds": [
+      "grushiny:15813"
+     ],
+     "image": "https://cdn4.telesco.pe/file/STj5OK4Zx79CHNz39O-rykF2QWb-y-KUi_BbkfhpEJsETZmjFDR4XrVg6z737VT1H0MNiQd1eWeS-mPzuG9_L4wPK4tLDePMHHMbKdHrnSD27u2d-FUpc8IHvmwBpG8w6dEUnTrFt8MtVGRrRLpJ8eeJhE5f0K6PlRvb398L2ogosSX3Z2ScHkvHosw7KuE2RhuovH_f_gIu7IgMD823-9SFOIPGLpyehqPqU9NZAkP0lCLdH-2S801Da0HZ_msNvO7P1CrMgygoIP0kyFm62mYYZMI08WF4opAaCrSAOSVtj_Nt6BZYsTdrZEaDavsqxxCsz_-sO0CErqHPrsUg5g.jpg",
+     "links": [
+      {
+       "name": "Грушины Юра и Юля",
+       "url": "https://t.me/grushiny/15813"
+      }
+     ]
+    },
+    {
+     "country": "CN",
+     "place": "Шанхай",
+     "text": "Авторы советуют прогулку от Бунда через мост над рекой Сучжоу к Главпочтамту 1924 года с бесплатным музеем почты и кофейней рядом — музей открыт в среду, четверг и выходные с 9 до 17.",
+     "storyIds": [
+      "grushiny:15812"
+     ],
+     "image": "https://cdn4.telesco.pe/file/XWpNNynBRNtjWGQivouGuzyPTflhu5iZhK7Mu8oWQSsUkgbJYcBguN8kn2Fpgw_mb1cI2QSdK4taClmypCkbKaPsX-mq-IbqEiiKH-hc-W31zB_KSecJ3JQuc0uyCpkp808b5jKUsQQH3pQoduKSeUdnF-xBoShRT_JYmMtPQfKQZibKTD4JtGd62szoE2jusdv0FlQ421H8sjZdvGyI8R7vie5MMb7UwLsNMlbiLCiJDVoyDkEAxcNZOctyHYrMIqcxlCzECWBSOmdHmze99h3KMWj5ETsq9IWbdHQp7Ih2QeKkWkPvoqYKTcz54HCC9cqdLOdjZzMlqqW_yRCgwQ.jpg",
+     "links": [
+      {
+       "name": "Грушины Юра и Юля",
+       "url": "https://t.me/grushiny/15812"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "2026-11-02-morning",
+   "date": "2026-11-02",
+   "part": "morning",
+   "createdAt": "2026-11-02T05:48:55.419Z",
+   "items": [
+    {
+     "country": "JP",
+     "place": "Япония",
+     "text": "Врен предупреждает: у оператора Tax Free jptrans.jp, с которым туристы сталкиваются чаще всего, гражданам России нельзя получить возврат наличными в аэропорту или на белорусскую карту, а автоматы с наличными удерживают 10% суммы.",
+     "storyIds": [
+      "wrenjapan:18568"
+     ],
+     "image": "https://cdn4.telesco.pe/file/OsRuz-06rj9T6h2jIvHr3CyX5aGL9Gk9-0h8WKIgMD3P1ILPuduB-PAQtytRHZXLfIwAbjp4QG0T6bGxCfcMN7PIPRNTiRObsy4kSni_cqU3TExTTsRwjz9n6HuoQFFSRJjBK8KdktHAu2xCjLv1OaGMxcF2ACHdsD82QPQNtQMAbW17KNHpYY5Fh9yUHoAp9pBkBTw5X3lk0UcuOyyFDh4VahjF7bQ5oeAjPW25HHVxKAAuzhn16e877nTrsgeXJq7XXtodlxqAhIqKne6AuZyPBCJkfRvACq4o7p9i3skwxRL-hbEMCuZK9NpQQ3ZR2wJg7gmBNGwvri6YYcJ91Q.jpg",
+     "links": [
+      {
+       "name": "Врен о Японии",
+       "url": "https://t.me/wrenjapan/18568"
+      }
+     ]
+    },
+    {
+     "country": "JP",
+     "place": "Нагоя",
+     "text": "Врен напоминает о своём гиде по Нагое: сюда едут ради трёх музеев Toyota и парка студии Гибли, а ещё город удобен для ночёвки перед трактом Накасендо и поездкой к Такаяме и Сиракава-го.",
+     "storyIds": [
+      "wrenjapan:18570"
+     ],
+     "links": [
+      {
+       "name": "Врен о Японии",
+       "url": "https://t.me/wrenjapan/18570"
+      }
+     ]
+    },
+    {
+     "country": "",
+     "place": "Для любой поездки",
+     "text": "Врен собрал азы для туриста по реальным ошибкам из своих чатов: чем пограничник отличается от таможенника, зачем возвратный тариф на авиабилет и почему при пересадке в Китае часто приходится выходить в город.",
+     "storyIds": [
+      "wrenjapan:18567"
+     ],
+     "links": [
+      {
+       "name": "Врен о Японии",
+       "url": "https://t.me/wrenjapan/18567"
+      }
+     ]
+    },
+    {
+     "country": "ID",
+     "place": "Бали",
+     "text": "SHICHKOFF побывал в Concordia Lounge аэропорта Бали: пустили по Dragon Pass, еды хватает, но алкоголя нет, зал тесный и потёртый, газировка спрятана в холодильниках под линией фуршета, а бесплатный душ выглядит видавшим виды.",
+     "storyIds": [
+      "shichk0ff:8451"
+     ],
+     "image": "https://cdn4.telesco.pe/file/tbHiDk6ge9dGTzazJQ86u1HpH8d9xZGFNm0VO82YWsPqEwzvoFaF2wk6fY51O69MzIbI5f9kAQFiALYlLfT9juUWnK1vC3nqncJwENXz_oMuPOStMFNMXF6U_UvXKbE-9VcCFgjo_DVC0rngrJXm1Zn6TJlZw2LnB_X4bBANnRB-RM2ClWV9887JgFPim9d6LxYEo30FwBe0-kLtOgCHtEvXqOBASRp34rjRKQCd8OlrH6LgXXnBXaizvsD9iVyto9OId7LTIAi6moi0IbnCAQPG-doqOpETk4bhmoCwNydGlOabd9lYZ3nJbdK5qbGNnn8d6MVDSDrrS9m4a-8fAQ.jpg",
+     "links": [
+      {
+       "name": "SHICHKOFF",
+       "url": "https://t.me/shichk0ff/8451"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "2026-11-01-evening",
+   "date": "2026-11-01",
+   "part": "evening",
+   "createdAt": "2026-11-01T16:48:56.625Z",
+   "items": [
+    {
+     "country": "JP",
+     "place": "Япония",
+     "text": "Автор советует простой традиционный рёкан Kanko Ryokan Yamato в Икоме на горе между Осакой и Нарой, рядом с храмом Ходзан-дзи: купальня простая, но работает как приватная, а вместо ужина кайсеки — обильный японский завтрак.",
+     "storyIds": [
+      "wrenjapan:18558"
+     ],
+     "image": "https://cdn4.telesco.pe/file/rpY2VAvchk9ZifMuNjqkbZ3MFkTlfHLpz0ZXoFaihIXyn2Ih5Bd21NRuaY1kC-hkWux0M9CMigHIqyP9vXL0M2hqvGHZik1XdPapc5crX38GrwaXFOr_i-N_TyGT0L-5SGcESqU3qwCmpy4LfHPLucbgvOAllzbM7zaG7rDC0oUkhV7LIH4ibgmhpUQSDEhKbhbvNhuRF0q_2sLj-JWLN7qxyTbRPU-L7WlfDFtt852KFkvrvfhmfGb006NZ6alk0roGL2e-NmS-k4SIREOO_Q7Y2Y5r_g2Vq4NbdRZWk60l4yADtPDCkIvnXicmkUSZZk9dgQKyXVfAqiBPuhCIEg.jpg",
+     "links": [
+      {
+       "name": "Врен о Японии",
+       "url": "https://t.me/wrenjapan/18558"
+      }
+     ]
+    },
+    {
+     "country": "JP",
+     "place": "Осака",
+     "text": "Автор рассказывает о новом недорогом бизнес-отеле в 12 минутах к югу от станции Намба: просторные твины, вчетвером можно от 4500 рублей за ночь, рядом Den Den Town, но до Дотонбори придётся пройтись.",
+     "storyIds": [
+      "wrenjapan:18552"
+     ],
+     "image": "https://cdn4.telesco.pe/file/Js81-PDca8W2oWXdDrybd8JJrNnCRtod6eDHMbImg0RU7Ra5InvtIjQbPEvRDt3aLPDoPvKgYCZJoLs9Ac4kF3B5PaXY0gZ-_WU4VEEWifwhk46uyc9_qg6ykBMboa0srfZy7c_LvIRexAjMGDjF1q8acFYwDi-KAXGiTnlFL8nkJIt_0DrtGaWGt4V_uxkk1YQHKxP4_oUgMZIdh4gBhrHsjsNerQywVwHRABaVFtqUg8ohLybp0Acd8WitCnVqdqCgzzbj_hzVSsIyyel4ycsSezoTHReVcg_bM4v7U9hU582UMAdYCpdDkoXW1YczOWwIWWBYGLZR6bBG0ZZcjg.jpg",
+     "links": [
+      {
+       "name": "Врен о Японии",
+       "url": "https://t.me/wrenjapan/18552"
+      }
+     ]
+    },
+    {
+     "country": "JP",
+     "place": "Киото",
+     "text": "Автор поднялся к святилищу Фусими Инари: подъём на гору высотой 233 метра и спуск занимают 1–2 часа, сверху вид на ночной Киото, а в лесу можно встретить диких кабанов.",
+     "storyIds": [
+      "rutravellers:15035"
+     ],
+     "image": "https://cdn4.telesco.pe/file/XT7t0lx3U995BhZfLMr8e1is-Xp03tMfDtcZOcBFWVxq6E9bRfvio-7R20msEuFUEX5o3uRHxlZylowNxNTsJeYKkh96V0u4y6atSxUXmctCvO-rXb91RVXyvH46wAi-0fnn_MBC39AT8Cr80Num5yTPIhFla0oKMV3iUTcpLwjwS6cj9gCfcFyGkFakxJ4QX8fOWIqgddZjkD8lgncTNeYi0nRP9HBQXfQozCcpLWmLGYq7WYwr5YYAg9SlzTA5vPOb4N96dcqgs6BT6kP16XhGVyUrFlZ0EmMdyeBYT31wELsZgJ2Pb09XxMR6gYXX8EtREdo95HnLDnigLxaKGA.jpg",
+     "links": [
+      {
+       "name": "Рутрэвел",
+       "url": "https://t.me/rutravellers/15035"
+      }
+     ]
+    },
+    {
+     "country": "AE",
+     "place": "Абу-Даби",
+     "text": "Автор делится свежим опытом в Pearl Lounge — единственном общедоступном зале международного терминала: бывает очередь, зал длинный и места находятся, спящих будят, а душ платный.",
+     "storyIds": [
+      "shichk0ff:8445"
+     ],
+     "image": "https://cdn4.telesco.pe/file/eOD_BXpSf2r9aIooJwzWBi-OtoFPB-V4xdI3cpscvvvlgF67vJ7KsmHerLZnvX8uFkxMEiHFZdUuUaQKv7-hewxiN8tjgjp8QQCr5pvGbIVq06QutmadA4qOaJtWBs5tBJkAQEsQBgDaIXxKKxhz4RqmoQqY-34-BM0E9Wka8IVjY8OKR8jqujZQjSpT0GQc2_b32WVzXMfVdR-6extlufx7bAvRGbVcU1edYcuPiYFaFNIuX9oPDiupBrxbtlQIWMtrePG-qt3COeOpSRxNKmjDXdce1lKjlL_5m71gEF7q1qq6ZOycC_59MtIcnlBaetxRGYqye7SrMdzy6d8Vrw.jpg",
+     "links": [
+      {
+       "name": "SHICHKOFF",
+       "url": "https://t.me/shichk0ff/8445"
+      }
+     ]
+    },
+    {
+     "country": "VN",
+     "place": "Фукуок",
+     "text": "Авторы разбирают транспорт на острове — автобусы, такси, байки и прокат машин с ценами — и советуют пляж, откуда видно садящиеся самолёты, и соседний Sunset Sanato с арт-инсталляциями.",
+     "storyIds": [
+      "grushiny:15802"
+     ],
+     "image": "https://cdn4.telesco.pe/file/kMV-857ahQjMncOdeMbgrbAHaayLbMprYUL3WFhUIAdv1nO_oI44Lx7iodSw8N6n6fAub_8C8m5H2mLp3VbXiB9JkVDWJWv3VrUDhtXgadY-Jax4sonZSqmHYVZlIjDxArfjUZQegOtJx4BtKr2bDLOBUXjJmya76a_vNQrFJV0qO9YvzbATtIj8K-e0oFGE5CK_1_E1gUjL54G3cMIYnQcHDUBegxLm1DGFVyf6KDrrmYWJi28BBpAwtQS5xs3MQFo1XiUtXg9uLRoRZufZV6kIgksLTjP7LcETc-9x3Uun1WZZk1vzBayZw89GnscbXX6I0VuuQqUX-euOhx3LrQ",
+     "links": [
+      {
+       "name": "Грушины Юра и Юля",
+       "url": "https://t.me/grushiny/15802"
+      }
+     ]
+    },
+    {
+     "country": "JP",
+     "place": "Саппоро",
+     "text": "Автор рассказывает, что в Саппоро сейчас желтеют гинкго, а по вечерам аллею у университета Хоккайдо подсвечивают.",
+     "storyIds": [
+      "wrenjapan:18566"
+     ],
+     "image": "https://cdn4.telesco.pe/file/NeXjwo5CAqsqlocLqH7o47PoduWYz6oBazmsFY3q-9w0ek8XYm7jYbRfa9SSPf3G3zz6Td6PXRgibJxIVSviCegjp9hEOpTeNV71PRSHat4Wf_TczeOQxTIngXfDmYwDq3Cu4kBhSgbHd6d-zgvsuNHYtTrsa14Y6d3knhHyU48XtxnrdKpjDuNbJ0sS1rZ5DIm9ZiiDju_8Pqazdg-i0m7Grucn9vm9wC3N5YfSPNbU9v3OEoMVE-fuOtyjZaiLUdF3srOmQflA2pcjg7-svcpknAZRemGSXB_fYdNUrHu3Nng3uxN7bB-ymQPbk-nPYz9IhKPaWMlsHS1vNC3s7Q.jpg",
+     "links": [
+      {
+       "name": "Врен о Японии",
+       "url": "https://t.me/wrenjapan/18566"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "2026-11-01-morning",
+   "date": "2026-11-01",
+   "part": "morning",
+   "createdAt": "2026-11-01T09:17:24.909Z",
+   "items": [
+    {
+     "country": "TL",
+     "place": "Восточный Тимор",
+     "text": "автор делится опытом: прямой рейс с Бали летит около двух часов, туда-обратно выходит примерно 35 000 ₽, виза по прибытии — $30, а такси из аэропорта в центр легко сторговать с $15 до $10. Валюта в стране — доллар США.",
+     "storyIds": [
+      "shichk0ff:8436"
+     ],
+     "image": "https://cdn4.telesco.pe/file/DioteAEdGD5WaA8uvtSN33TgobAJr8c2Efv96AOiYH6gJO-9wlb7t_umP7IEBkEcHY0y3Ri6rXWaHYMjhmqZIBoag4lmbBjrqwGvQYHZNffmwa5s7BeUyFLzwGFE7IH5M0stkA5dBsHlvCKfPIwlZLqLiO4au-yao4RXoUkFFHpDMCj817gtCFrZmQuVfoA1BUBp_zjVu5kNcazr5Tlaeb61PPlxvHvhf9xoKcCzgj5m-ghqQaG8abcXtY97R53a9Ndob0UUHbnXQqdIr-KeBhonR_H8QJpbhIb7095JNbw8f1YjPX7Mm3XRmgx5OMiyVnJt8qBf5fDtOj307rHv1Q.jpg",
+     "links": [
+      {
+       "name": "SHICHKOFF",
+       "url": "https://t.me/shichk0ff/8436"
+      }
+     ]
+    },
+    {
+     "country": "JP",
+     "place": "Япония",
+     "text": "автор объясняет новую систему Tax Free с 1 ноября: в магазине платите полную сумму, а налог возвращают после проверки покупок в киоске аэропорта ещё до сдачи багажа.",
+     "storyIds": [
+      "wrenjapan:18557"
+     ],
+     "image": "https://cdn4.telesco.pe/file/Bf-tVZPLbA5mw-NUkiubNqV7iDhFzl-XwTGguZgJstdTn2Ocm1YExOWaVXvbqgTIyAO85jzaC3gNQni_dtNIaQAvKlAa8PgLO0Ykgn9qU41ZES6heq8k4kztwRyLgLQeJzjDq4THLt748rLReaVoBwb5xWEA3OK-bPSTRbJbrme73BSqKI2o8A7Ww_RP9k_AaLBWEZqBevMWBjRqrvVlbwqC1ECrpVZzAmHMgLuAReCBVuJSpCefBHBQGEGvqtAlA5ra2mIzqemg7pkO-J4bQPNWEFGIW4GgSu6oOmYmEbk8qQ9JqDvwtmZa0M1vP3TMdoK94M4MIl5kvHfa6TruyA.jpg",
+     "links": [
+      {
+       "name": "Врен о Японии",
+       "url": "https://t.me/wrenjapan/18557"
+      }
+     ]
+    },
+    {
+     "country": "JP",
+     "place": "Япония",
+     "text": "рядом с Токио советуют музей под открытым небом в духе Сиракава-го: 25 домов эпохи Эдо — рыбацкие, фермерские, самурайские, — можно зайти внутрь и погреться у очага ирори.",
+     "storyIds": [
+      "wrenjapan:18545"
+     ],
+     "image": "https://cdn4.telesco.pe/file/XfE6nBwIN027XYwRuYKJDgN1ZfpvdL6LVY1YlQsVwA-L78GFkxdHAbTXQlzq1uCw36zYriI5LUYEhCtlg4runMfckqvfnV2t2LvtiN5KnB5yGyczcWorbpQ0YkW4Sa3qsC2eIl069pQaoYbNeJPgAc8YQ5_wGKVAKsc2dkh_A5I3axMZDsid_Zc2z4v_V9YJcqQB21Mb6rQYnBCbAUE5Y7YtT4kHMEwYsLpGEQyxus9zt3B8wBN4AtTS8RFqmU4-YLrXmxSUafY1C2PV2pfKml6ya4lEv56_ASRg0gAkIgGsTEG2JV4ha3Hv9jTfTiGrvXOqlnfXBMedS7xEJ99cKA.jpg",
+     "links": [
+      {
+       "name": "Врен о Японии",
+       "url": "https://t.me/wrenjapan/18545"
+      }
+     ]
+    },
+    {
+     "country": "CN",
+     "place": "Китай",
+     "text": "что делать, если опоздали на поезд: в тот же день билет бесплатно переоформят на другой поезд до 24:00, а перенос на следующий день обойдётся в 40% стоимости.",
+     "storyIds": [
+      "grushiny:15799"
+     ],
+     "image": "https://cdn4.telesco.pe/file/JXHTZJ0AP0zGe6XGQ4ilHhua1HlmJCn8e4lsZCZbYZI1GkyB24url7HiStkqefYN9j3OLwvcJuYvbWnbBiw5x-LauECoqZOS0UREBnfivdP_PnnkA6RE1mJEHdKxs1-MOR2MrTbUZIRlOV6_Eddia6o3y2yOSyVaiS6a-F9TIgj38voW-FH4dKcDd3uZEIFAoDKwl8DfRT3fOXkjleN_Of136yhjFf8E6Z8NDlS5TSHghSEOpio5veeMH18t0Vm7sTf5kiVyRncUw-6UF4335wnry9gc_b1XCnAZbw0UCFvjIhILlqJKaREeuZXPXifq4mRpS5iH5y98w226B_nBvQ",
+     "links": [
+      {
+       "name": "Грушины Юра и Юля",
+       "url": "https://t.me/grushiny/15799"
+      }
+     ]
+    },
+    {
+     "country": "VN",
+     "place": "Вьетнам",
+     "text": "на Фукуоке советуют вечерний туристический рынок — с 17:00 до 22–23 часов: морепродукты, фрукты, жареное мороженое и сувениры; рядом дневной рынок для местных, там дешевле.",
+     "storyIds": [
+      "grushiny:15787"
+     ],
+     "image": "https://cdn4.telesco.pe/file/U7_l9GmLLSADpWfcDrVsXyJFUsRVRmlH_FzU6E-1HvNKo-S7xSFkS9gXnapso1l5QpCg-33AEAREa43Cg6cc18XKsKF1xgDGOnsMxkoAuXEvu8ol_5Lpvi3IjxxHAKpR_ONCtUWdgM2JKDF0M-qUam7MO-L6oSLAUqRqpIRErGLb6A9eahnoYTPvnoZYh1KDZAo2b6ZV1IdNfDHvYfWnnXlhelt9fu-eXuEOTaVH40o68xORcL4fhwQgPLLeVQB2EQlRYpQS6ORd0cf-PeCLaQJBu7b_aYC3Z2q6f0eBlbTfw8yn_0ArVyeyw9ZoqUYQBzQ9QQW7DZ6pSUzzTz3WHQ.jpg",
+     "links": [
+      {
+       "name": "Грушины Юра и Юля",
+       "url": "https://t.me/grushiny/15787"
+      }
+     ]
+    },
+    {
+     "country": "RU",
+     "place": "Южный Урал",
+     "text": "озеро Тургояк у Миасса называют младшим братом Байкала: дно видно на глубине до 10–17 метров, а на острове Веры сохранились древние мегалиты.",
+     "storyIds": [
+      "rutravellers:15062"
+     ],
+     "image": "https://cdn4.telesco.pe/file/uvuG98PWx95nFOz91xsXl5qWo1yqWdBc4jqpmEcLIZoRQT2G28utcE84uK5giAMCZnKXaNXAk5J5a0CUwE7b5SLIkFh71qUIwP-fRcmq-X1fqBIUNPVn8Ksx1y7XdWVJK5aDKBAdLTlW9xo4wQx_qhfCkxQ2-JOFOwmPt38GEi8ldRbE_LLp3bLzntzxgJ0WmJEg6iWG95tQkU8gmjMKGfoVjowsN9xr8GOY6L_dsp3jNbOeRMaMhxZPOQPdDhnqo9bLBqBp67VwoCEyNmrWIc6gwz0lFdv04wyIOixDKv3cXhFJVkDpUnuJ5QUZG8D0GFaPhK7tC4mOAq-cJLACtw",
+     "links": [
+      {
+       "name": "Рутрэвел",
+       "url": "https://t.me/rutravellers/15062"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
